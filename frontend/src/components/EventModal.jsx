@@ -1,28 +1,85 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { eventAPI } from '../services/api';
-import { X } from 'lucide-react';
 import { useToast } from '../context/ToastContext';
+import { X } from 'lucide-react';
 
-const EventModal = ({ onClose, onSave, userId, initialDate }) => {
-  const defaultDateTime = initialDate || new Date();
-  const formatDateTimeLocal = (date) => {
-    const d = new Date(date);
-    d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
-    return d.toISOString().slice(0, 16);
+const EventModal = ({ onClose, onSave, userId, initialDate, event = null }) => {
+  const { showToast } = useToast();
+  
+  // ✅ IMPROVED: Better datetime formatting that preserves exact local time
+  const formatDateTimeLocal = (dateInput) => {
+    let d;
+    
+    if (typeof dateInput === 'string') {
+      // If it's a string from the backend, parse it as local time
+      d = new Date(dateInput);
+    } else {
+      d = new Date(dateInput);
+    }
+    
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    const hours = String(d.getHours()).padStart(2, '0');
+    const minutes = String(d.getMinutes()).padStart(2, '0');
+    
+    return `${year}-${month}-${day}T${hours}:${minutes}`;
   };
 
+  const getInitialDateTime = () => {
+    if (event) {
+      return event.startDateTime;
+    }
+    if (initialDate) {
+      return initialDate;
+    }
+    return new Date();
+  };
+
+  const defaultDateTime = getInitialDateTime();
+  
   const [formData, setFormData] = useState({
     title: '',
     description: '',
     eventType: 'Class',
-    startDateTime: formatDateTimeLocal(defaultDateTime),
-    endDateTime: formatDateTimeLocal(new Date(defaultDateTime.getTime() + 60 * 60 * 1000)),
+    startDateTime: '',
+    endDateTime: '',
     location: '',
     colorCode: '#3788d8',
   });
   const [loading, setLoading] = useState(false);
 
-  const { showToast } = useToast();
+  useEffect(() => {
+    if (event) {
+      // ✅ FIX: When editing, use the EXACT datetime from the event
+      const startDT = new Date(event.startDateTime);
+      const endDT = new Date(event.endDateTime);
+      
+      setFormData({
+        title: event.title || '',
+        description: event.description || '',
+        eventType: event.eventType || 'Class',
+        startDateTime: formatDateTimeLocal(startDT),
+        endDateTime: formatDateTimeLocal(endDT),
+        location: event.location || '',
+        colorCode: event.colorCode || '#3788d8',
+      });
+    } else {
+      // Creating new event
+      const startDT = initialDate ? new Date(initialDate) : new Date();
+      const endDT = new Date(startDT.getTime() + 60 * 60 * 1000);
+      
+      setFormData({
+        title: '',
+        description: '',
+        eventType: 'Class',
+        startDateTime: formatDateTimeLocal(startDT),
+        endDateTime: formatDateTimeLocal(endDT),
+        location: '',
+        colorCode: '#3788d8',
+      });
+    }
+  }, [event, initialDate]);
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -33,18 +90,41 @@ const EventModal = ({ onClose, onSave, userId, initialDate }) => {
     setLoading(true);
 
     try {
-      await eventAPI.createEvent({
-        ...formData,
+      // Format datetime for backend (local time, no timezone conversion)
+      const formatDateTimeForBackend = (datetimeLocal) => {
+        // datetime-local input gives us "2024-11-25T14:30"
+        // Backend expects "2024-11-25T14:30:00"
+        return datetimeLocal.includes(':00', datetimeLocal.length - 3) 
+          ? datetimeLocal 
+          : datetimeLocal + ':00';
+      };
+      
+      const eventData = {
+        title: formData.title,
+        description: formData.description,
+        eventType: formData.eventType,
+        location: formData.location,
+        colorCode: formData.colorCode,
         userId,
-        startDateTime: new Date(formData.startDateTime).toISOString(),
-        endDateTime: new Date(formData.endDateTime).toISOString(),
-      });
+        startDateTime: formatDateTimeForBackend(formData.startDateTime),
+        endDateTime: formatDateTimeForBackend(formData.endDateTime),
+      };
+
+      if (event) {
+        await eventAPI.updateEvent(event.id, eventData);
+        showToast('Event updated successfully!', 'success');
+      } else {
+        await eventAPI.createEvent(eventData);
         showToast('Event created successfully!', 'success');
-        onSave();
-        onClose();
+      }
+      
+      onSave();
     } catch (error) {
-      console.error('Error creating event:', error);
-      showToast('Failed to create event. Please try again.', 'error');
+      console.error('Error saving event:', error);
+      showToast(
+        event ? 'Failed to update event. Please try again.' : 'Failed to create event. Please try again.',
+        'error'
+      );
     } finally {
       setLoading(false);
     }
@@ -71,7 +151,9 @@ const EventModal = ({ onClose, onSave, userId, initialDate }) => {
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-white rounded-lg p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
         <div className="flex justify-between items-center mb-4">
-          <h2 className="text-2xl font-bold text-gray-800">Create New Event</h2>
+          <h2 className="text-2xl font-bold text-gray-800">
+            {event ? 'Edit Event' : 'Create New Event'}
+          </h2>
           <button
             onClick={onClose}
             className="text-gray-400 hover:text-gray-600"
@@ -193,7 +275,7 @@ const EventModal = ({ onClose, onSave, userId, initialDate }) => {
               disabled={loading}
               className="flex-1 px-4 py-2 bg-primary text-white rounded-lg hover:bg-blue-600 transition disabled:opacity-50"
             >
-              {loading ? 'Creating...' : 'Create Event'}
+              {loading ? 'Saving...' : event ? 'Update Event' : 'Create Event'}
             </button>
           </div>
         </form>

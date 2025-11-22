@@ -1,8 +1,11 @@
 import React from 'react';
 import { taskAPI } from '../services/api';
-import { Clock, AlertCircle } from 'lucide-react';
+import { useToast } from '../context/ToastContext';
+import { Clock } from 'lucide-react';
 
 const TaskBoard = ({ tasks, onTasksChange }) => {
+  const { showToast } = useToast();
+  
   const columns = [
     { id: 'Pending', title: 'Pending', color: 'border-blue-500' },
     { id: 'In Progress', title: 'In Progress', color: 'border-yellow-500' },
@@ -13,10 +16,11 @@ const TaskBoard = ({ tasks, onTasksChange }) => {
     try {
       const task = tasks.find(t => t.id === taskId);
       await taskAPI.updateTask(taskId, { ...task, status: newStatus });
+      showToast(`Task moved to ${newStatus}`, 'success');
       onTasksChange();
     } catch (error) {
       console.error('Error updating task:', error);
-      alert('Failed to update task status');
+      showToast('Failed to update task status', 'error');
     }
   };
 
@@ -48,15 +52,19 @@ const TaskBoard = ({ tasks, onTasksChange }) => {
               .map((task) => (
                 <div
                   key={task.id}
-                  className="bg-white p-4 rounded-lg shadow-sm hover:shadow-md transition cursor-pointer"
+                  className="bg-white p-4 rounded-lg shadow-sm hover:shadow-md transition"
                 >
-                  <h4 className="font-semibold text-gray-800 mb-2">{task.title}</h4>
+                  <div className="flex justify-between items-start mb-2">
+                    <h4 className="font-semibold text-gray-800 flex-1">{task.title}</h4>
+                  </div>
+                  
                   {task.description && (
                     <p className="text-sm text-gray-600 mb-3 line-clamp-2">
                       {task.description}
                     </p>
                   )}
-                  <div className="flex items-center justify-between text-xs">
+                  
+                  <div className="flex items-center justify-between text-xs mb-2">
                     <span className={`px-2 py-1 rounded-full ${getPriorityColor(task.priority)}`}>
                       {task.priority}
                     </span>
@@ -65,39 +73,40 @@ const TaskBoard = ({ tasks, onTasksChange }) => {
                       {formatDate(task.dueDate)}
                     </span>
                   </div>
+                  
                   {task.subject && (
-                    <div className="mt-2 text-xs text-gray-500">
+                    <div className="mb-2 text-xs text-gray-500">
                       📚 {task.subject}
                     </div>
                   )}
                   
-                  {/* Status Change Buttons */}
-                  <div className="mt-3 flex gap-2">
+                  {/* Status Change Buttons - NO DELETE ON DASHBOARD */}
+                    <div className="mt-3 flex gap-2 flex-wrap">
                     {column.id !== 'Pending' && (
-                      <button
+                        <button
                         onClick={() => handleStatusChange(task.id, 'Pending')}
-                        className="text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded hover:bg-blue-200"
-                      >
+                        className="text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition"
+                        >
                         ← Pending
-                      </button>
+                        </button>
                     )}
                     {column.id !== 'In Progress' && (
-                      <button
+                        <button
                         onClick={() => handleStatusChange(task.id, 'In Progress')}
-                        className="text-xs px-2 py-1 bg-yellow-100 text-yellow-700 rounded hover:bg-yellow-200"
-                      >
+                        className="text-xs px-2 py-1 bg-yellow-100 text-yellow-700 rounded hover:bg-yellow-200 transition"
+                        >
                         In Progress
-                      </button>
+                        </button>
                     )}
                     {column.id !== 'Completed' && (
-                      <button
+                        <button
                         onClick={() => handleStatusChange(task.id, 'Completed')}
-                        className="text-xs px-2 py-1 bg-green-100 text-green-700 rounded hover:bg-green-200"
-                      >
+                        className="text-xs px-2 py-1 bg-green-100 text-green-700 rounded hover:bg-green-200 transition"
+                        >
                         Complete →
-                      </button>
+                        </button>
                     )}
-                  </div>
+                    </div>
                 </div>
               ))}
             {tasks.filter((task) => task.status === column.id).length === 0 && (

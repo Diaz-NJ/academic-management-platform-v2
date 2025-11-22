@@ -39,4 +39,14 @@ export const eventAPI = {
   deleteEvent: (id) => api.delete(`/events/${id}`),
 };
 
+export const groupAPI = {
+  getGroups: (userId) => api.get(`/groups/user/${userId}`),
+  getGroup: (id) => api.get(`/groups/${id}`),
+  createGroup: (group) => api.post('/groups', group),
+  updateGroup: (id, group) => api.put(`/groups/${id}`, group),
+  deleteGroup: (id) => api.delete(`/groups/${id}`),
+  addMember: (groupId, member) => api.post(`/groups/${groupId}/members`, member),
+  removeMember: (groupId, userId) => api.delete(`/groups/${groupId}/members/${userId}`),
+};
+
 export default api;

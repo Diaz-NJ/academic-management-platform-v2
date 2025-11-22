@@ -11,7 +11,7 @@ const Register = () => {
     email: '',
     password: '',
     confirmPassword: '',
-    section: 'BSIT-3I'
+    section: '' // ✅ Changed: Now empty by default
   });
   const [loading, setLoading] = useState(false);
   const { register } = useAuth();
@@ -120,20 +120,23 @@ const Register = () => {
             />
           </div>
 
+          {/* ✅ CHANGED: Dropdown replaced with text input */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Section
+              Course/Year/Section
             </label>
-            <select
+            <input
+              type="text"
               name="section"
               value={formData.section}
               onChange={handleChange}
+              placeholder="e.g., BSIT 3A, BSCS 4B, BSA 2C"
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary transition"
-            >
-              <option value="BSIT-3I">BSIT-3I</option>
-              <option value="BSIT-3J">BSIT-3J</option>
-              <option value="BSIT-3K">BSIT-3K</option>
-            </select>
+              required
+            />
+            <p className="text-xs text-gray-500 mt-1">
+              Enter your course, year, and section (e.g., BSIT 3A)
+            </p>
           </div>
 
           <div>
