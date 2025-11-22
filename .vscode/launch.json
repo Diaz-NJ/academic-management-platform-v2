@@ -1,0 +1,24 @@
+{
+    "configurations": [
+        {
+            "type": "java",
+            "name": "Spring Boot-AcademicManagementPlatformApplication<amp>",
+            "request": "launch",
+            "cwd": "${workspaceFolder}",
+            "mainClass": "com.ptc.amp.AcademicManagementPlatformApplication",
+            "projectName": "amp",
+            "args": "",
+            "envFile": "${workspaceFolder}/.env"
+        },
+        {
+            "type": "java",
+            "name": "Spring Boot-AcademicManagementApplication<amp>",
+            "request": "launch",
+            "cwd": "${workspaceFolder}",
+            "mainClass": "com.ptc.amp.AcademicManagementApplication",
+            "projectName": "amp",
+            "args": "",
+            "envFile": "${workspaceFolder}/.env"
+        }
+    ]
+}
