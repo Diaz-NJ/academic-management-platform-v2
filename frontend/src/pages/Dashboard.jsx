@@ -15,6 +15,7 @@ import Tasks from './Tasks';
 import Collaboration from './Collaboration';
 import Analytics from './Analytics';
 import Calendar from './Calendar';
+import Settings from './Settings';
 import WeeklyEvents from '../components/WeeklyEvents';
 
 const Dashboard = () => {
@@ -154,6 +155,16 @@ const Dashboard = () => {
             <BarChart3 className="w-4 h-4 inline mr-1" />
             Analytics
           </button>
+          <button
+            onClick={() => setActiveTab('settings')}
+            className={`px-3 py-2 rounded-md text-sm font-medium ${
+              activeTab === 'settings'
+                ? 'bg-primary text-white'
+                : 'text-gray-700 hover:bg-gray-100'
+            }`}
+          >
+            ⚙️ Settings
+          </button>
         </div>
 
         {/* Mobile menu button */}
@@ -256,6 +267,19 @@ const Dashboard = () => {
           <BarChart3 className="w-4 h-4 inline mr-1" />
           Analytics
         </button>
+        <button
+          onClick={() => {
+            setActiveTab('settings');
+            setMobileMenuOpen(false);
+          }}
+          className={`block w-full text-left px-3 py-2 rounded-md text-sm font-medium ${
+            activeTab === 'settings'
+              ? 'bg-primary text-white'
+              : 'text-gray-700 hover:bg-gray-100'
+          }`}
+        >
+          ⚙️ Settings
+        </button>
       </div>
     )}
   </div>
@@ -348,6 +372,7 @@ const Dashboard = () => {
         {activeTab === 'calendar' && <Calendar />}
         {activeTab === 'collaboration' && <Collaboration />}
         {activeTab === 'analytics' && <Analytics />}
+        {activeTab === 'settings' && <Settings />}
       </div>
 
       {/* Task Modal */}
