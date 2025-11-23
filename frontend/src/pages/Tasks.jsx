@@ -5,6 +5,10 @@ import { Plus, Trash2, Edit, Filter } from 'lucide-react';
 import TaskModal from '../components/TaskModal';
 import { useToast } from '../context/ToastContext';
 import ConfirmDialog from '../components/ConfirmDialog';
+import LoadingSpinner from '../components/LoadingSpinner';
+import EmptyState from '../components/EmptyState';
+import { CheckSquare } from 'lucide-react';
+import { formatRelativeDate } from '../utils/dateUtils';
 
 const Tasks = () => {
   const { user } = useAuth();
@@ -119,7 +123,7 @@ const Tasks = () => {
   const uniqueSubjects = [...new Set(tasks.map(t => t.subject).filter(Boolean))];
 
   if (loading) {
-    return <div className="text-center py-8">Loading tasks...</div>;
+    return <LoadingSpinner message="Loading your tasks..." />;
   }
 
   return (
@@ -230,9 +234,17 @@ const Tasks = () => {
       <div className="bg-white rounded-lg shadow">
         <div className="divide-y divide-gray-200">
           {filteredTasks.length === 0 ? (
-            <div className="text-center py-12 text-gray-500">
-              No tasks found
-            </div>
+            <EmptyState
+              icon={CheckSquare}
+              title={searchQuery ? "No Tasks Found" : "No Tasks Yet"}
+              message={
+                searchQuery 
+                  ? `No tasks match "${searchQuery}". Try a different search term or clear filters.`
+                  : "Create your first task to get started!"
+              }
+              actionLabel={searchQuery ? undefined : "Create Your First Task"}
+              onAction={searchQuery ? undefined : () => setShowTaskModal(true)}
+            />
           ) : (
             filteredTasks.map(task => (
               <div key={task.id} className="p-6 hover:bg-gray-50 transition">
@@ -261,13 +273,7 @@ const Tasks = () => {
                         </span>
                       )}
                       <span className="flex items-center">
-                        📅 Due: {new Date(task.dueDate).toLocaleDateString('en-US', {
-                          month: 'short',
-                          day: 'numeric',
-                          year: 'numeric',
-                          hour: '2-digit',
-                          minute: '2-digit'
-                        })}
+                        📅 {formatRelativeDate(task.dueDate)}
                       </span>
                     </div>
                   </div>

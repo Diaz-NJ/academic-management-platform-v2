@@ -2,26 +2,31 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { taskAPI } from '../services/api';
 import { TrendingUp, CheckCircle, Clock, AlertCircle } from 'lucide-react';
+import LoadingSpinner from '../components/LoadingSpinner';
 
 const Analytics = () => {
   const { user } = useAuth();
   const [tasks, setTasks] = useState([]);
   const [stats, setStats] = useState({});
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     loadTasks();
   }, [user]);
 
-  const loadTasks = async () => {
-    try {
-      const response = await taskAPI.getTasks(user.id);
-      const taskData = response.data;
-      setTasks(taskData);
-      calculateStats(taskData);
-    } catch (error) {
-      console.error('Error loading tasks:', error);
-    }
-  };
+const loadTasks = async () => {
+  try {
+    setLoading(true);
+    const response = await taskAPI.getTasks(user.id);
+    const taskData = response.data;
+    setTasks(taskData);
+    calculateStats(taskData);
+  } catch (error) {
+    console.error('Error loading tasks:', error);
+  } finally {
+    setLoading(false);
+  }
+};
 
   const calculateStats = (taskData) => {
     const total = taskData.length;
@@ -56,6 +61,10 @@ const Analytics = () => {
       priorityBreakdown
     });
   };
+
+  if (loading) {
+  return <LoadingSpinner message="Analyzing your progress..." />;
+}
 
   return (
     <div className="space-y-6">

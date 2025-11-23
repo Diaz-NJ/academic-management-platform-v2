@@ -17,6 +17,7 @@ import Analytics from './Analytics';
 import Calendar from './Calendar';
 import Settings from './Settings';
 import WeeklyEvents from '../components/WeeklyEvents';
+import LoadingSpinner from '../components/LoadingSpinner';
 
 const Dashboard = () => {
   const { user, logout } = useAuth();
@@ -80,13 +81,13 @@ const Dashboard = () => {
 
   const stats = getStats();
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-xl">Loading dashboard...</div>
-      </div>
-    );
-  }
+    if (loading) {
+      return (
+        <div className="min-h-screen flex items-center justify-center">
+          <LoadingSpinner message="Loading your dashboard..." />
+        </div>
+      );
+    }
 
   return (
     <div className="min-h-screen bg-gray-50">

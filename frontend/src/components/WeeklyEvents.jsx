@@ -1,5 +1,6 @@
 import React from 'react';
 import { Clock, MapPin, Calendar as CalendarIcon } from 'lucide-react';
+import { formatShortDate } from '../utils/dateUtils';
 
 const WeeklyEvents = ({ events }) => {
   // Get start and end of current week (Sunday to Saturday)
@@ -102,7 +103,7 @@ const WeeklyEvents = ({ events }) => {
                 )}
               </h3>
               <span className="text-sm text-gray-500">
-                {day.date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                {formatShortDate(day.date.toISOString())}
               </span>
             </div>
             

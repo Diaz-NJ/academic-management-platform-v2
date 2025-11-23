@@ -6,6 +6,9 @@ import { Plus, ChevronLeft, ChevronRight, Edit, Trash2 } from 'lucide-react';
 import EventModal from '../components/EventModal';
 import ConfirmDialog from '../components/ConfirmDialog';
 import EventDetailsModal from '../components/EventDetailsModal';
+import LoadingSpinner from '../components/LoadingSpinner';
+import EmptyState from '../components/EmptyState';
+import { Calendar as CalendarIcon } from 'lucide-react';
 
 const Calendar = () => {
   const { user } = useAuth();
@@ -21,6 +24,8 @@ const Calendar = () => {
   const [filteredEvents, setFilteredEvents] = useState([]);
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [showEventDetailsModal, setShowEventDetailsModal] = useState(false);
+  const [loading, setLoading] = useState(true);
+  
 
   useEffect(() => {
     loadEvents();
@@ -42,10 +47,13 @@ const Calendar = () => {
 
   const loadEvents = async () => {
     try {
+      setLoading(true);
       const response = await eventAPI.getEvents(user.id);
       setEvents(response.data);
     } catch (error) {
       console.error('Error loading events:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -147,6 +155,10 @@ const Calendar = () => {
   for (let i = 1; i <= daysInMonth; i++) {
     days.push(i);
   }
+
+  if (loading) {
+  return <LoadingSpinner message="Loading your calendar..." />;
+}
 
   return (
     <div className="space-y-6">
@@ -251,9 +263,13 @@ const Calendar = () => {
                   </div>
                 ))
             ) : (
-              <p className="text-gray-500 text-center py-4">
-                No events found matching "{searchQuery}"
-              </p>
+              <EmptyState
+                icon={CalendarIcon}
+                title="No Events Found"
+                message={`No events match "${searchQuery}". Try a different search term.`}
+                actionLabel="Clear Search"
+                onAction={() => setSearchQuery('')}
+              />
             )}
           </div>
         </div>
@@ -386,7 +402,17 @@ const Calendar = () => {
               eventDate.setHours(0, 0, 0, 0);
               return eventDate >= now;
             }).length === 0 && (
-              <p className="text-gray-500 text-center py-4">No upcoming events</p>
+              <EmptyState
+                icon={CalendarIcon}
+                title="No Upcoming Events"
+                message="You don't have any upcoming events scheduled. Create one to get started!"
+                actionLabel="Create Event"
+                onAction={() => {
+                  setSelectedDate(new Date());
+                  setEditingEvent(null);
+                  setShowEventModal(true);
+                }}
+              />
             )}
           </div>
         </div>

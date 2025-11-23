@@ -2,6 +2,7 @@ import React from 'react';
 import { taskAPI } from '../services/api';
 import { useToast } from '../context/ToastContext';
 import { Clock } from 'lucide-react';
+import { formatShortDate } from '../utils/dateUtils';
 
 const TaskBoard = ({ tasks, onTasksChange }) => {
   const { showToast } = useToast();
@@ -32,11 +33,6 @@ const TaskBoard = ({ tasks, onTasksChange }) => {
       Urgent: 'bg-red-100 text-red-800',
     };
     return colors[priority] || 'bg-gray-100 text-gray-800';
-  };
-
-  const formatDate = (dateString) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   };
 
   return (
@@ -70,7 +66,7 @@ const TaskBoard = ({ tasks, onTasksChange }) => {
                     </span>
                     <span className="flex items-center text-gray-500">
                       <Clock className="w-3 h-3 mr-1" />
-                      {formatDate(task.dueDate)}
+                      {formatShortDate(task.dueDate)}
                     </span>
                   </div>
                   

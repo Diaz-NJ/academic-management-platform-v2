@@ -5,6 +5,8 @@ import { groupAPI } from '../services/api';
 import { Users, Plus, Edit, Trash2, FileText, BookOpen } from 'lucide-react';
 import GroupModal from '../components/GroupModal';
 import ConfirmDialog from '../components/ConfirmDialog';
+import LoadingSpinner from '../components/LoadingSpinner';
+import EmptyState from '../components/EmptyState';
 
 const Collaboration = () => {
   const { user } = useAuth();
@@ -94,11 +96,7 @@ const Collaboration = () => {
   };
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center py-12">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-      </div>
-    );
+    return <LoadingSpinner message="Loading your groups..." />;
   }
 
   return (
@@ -155,38 +153,20 @@ const Collaboration = () => {
 
       {/* Groups Grid */}
       {filteredGroups.length === 0 ? (
-      <div className="bg-white rounded-lg shadow p-12 text-center">
-        <Users className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-        {groups.length === 0 ? (
-          <>
-            <h3 className="text-xl font-semibold text-gray-800 mb-2">No Groups Yet</h3>
-            <p className="text-gray-600 mb-6">
-              Create your first group to collaborate on projects and assignments
-            </p>
-            <button
-              onClick={handleCreateGroup}
-              className="px-6 py-3 bg-primary text-white rounded-lg hover:bg-blue-600 transition inline-flex items-center space-x-2"
-            >
-              <Plus className="w-5 h-5" />
-              <span>Create Your First Group</span>
-            </button>
-          </>
-        ) : (
-          <>
-            <h3 className="text-xl font-semibold text-gray-800 mb-2">No Results Found</h3>
-            <p className="text-gray-600 mb-6">
-              No groups match "{searchQuery}". Try a different search term.
-            </p>
-            <button
-              onClick={() => setSearchQuery('')}
-              className="px-6 py-3 bg-primary text-white rounded-lg hover:bg-blue-600 transition"
-            >
-              Clear Search
-            </button>
-          </>
-        )}
-      </div>
-    ) : (
+        <div className="bg-white rounded-lg shadow">
+          <EmptyState
+            icon={Users}
+            title={groups.length === 0 ? "No Groups Yet" : "No Results Found"}
+            message={
+              groups.length === 0
+                ? "Create your first group to collaborate on projects and assignments with your classmates!"
+                : `No groups match "${searchQuery}". Try a different search term.`
+            }
+            actionLabel={groups.length === 0 ? "Create Your First Group" : "Clear Search"}
+            onAction={groups.length === 0 ? handleCreateGroup : () => setSearchQuery('')}
+          />
+        </div>
+      ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredGroups.map(group => (
             <div key={group.id} className="bg-white rounded-lg shadow hover:shadow-lg transition">
