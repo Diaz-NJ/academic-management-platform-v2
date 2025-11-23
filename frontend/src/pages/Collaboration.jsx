@@ -194,8 +194,8 @@ const Collaboration = () => {
               <div className="p-6 border-b border-gray-200">
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex items-center space-x-3">
-                    <div className="w-12 h-12 bg-primary rounded-full flex items-center justify-center text-white text-lg font-bold">
-                      {group.groupNumber || group.groupName.charAt(0)}
+                    <div className="w-14 h-14 bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500 rounded-xl flex items-center justify-center text-white text-2xl font-bold shadow-lg">
+                      {group.groupName.charAt(0).toUpperCase()}
                     </div>
                     <div>
                       {group.groupNumber && (
@@ -270,7 +270,7 @@ const Collaboration = () => {
                     {group.members.slice(0, 4).map((member, idx) => (
                       <div
                         key={idx}
-                        className="w-8 h-8 bg-gray-300 rounded-full border-2 border-white flex items-center justify-center text-xs font-medium text-gray-700"
+                        className="w-8 h-8 bg-gradient-to-br from-indigo-400 to-cyan-400 rounded-full border-2 border-white flex items-center justify-center text-xs font-medium text-white shadow-md"
                         title={member.name}
                       >
                         {member.name.charAt(0).toUpperCase()}

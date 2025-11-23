@@ -9,6 +9,6 @@ import java.util.List;
 
 @Repository
 public interface GroupRepository extends JpaRepository<Group, Long> {
-    @Query("SELECT DISTINCT g FROM Group g LEFT JOIN FETCH g.members m WHERE m.userId = :userId ORDER BY g.createdAt DESC")
+    @Query("SELECT DISTINCT g FROM Group g LEFT JOIN FETCH g.members m WHERE g.createdBy = :userId OR m.userId = :userId ORDER BY g.createdAt DESC")
     List<Group> findByUserId(@Param("userId") Long userId);
 }

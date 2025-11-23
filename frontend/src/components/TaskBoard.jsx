@@ -81,32 +81,32 @@ const TaskBoard = ({ tasks, onTasksChange }) => {
                   )}
                   
                   {/* Status Change Buttons - NO DELETE ON DASHBOARD */}
-<div className="mt-3 flex gap-2 flex-wrap">
-  {column.id !== 'Pending' && (
-    <button
-      onClick={() => handleStatusChange(task.id, 'Pending')}
-      className="text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition"
-    >
-      ← Pending
-    </button>
-  )}
-  {column.id !== 'In Progress' && (
-    <button
-      onClick={() => handleStatusChange(task.id, 'In Progress')}
-      className="text-xs px-2 py-1 bg-yellow-100 text-yellow-700 rounded hover:bg-yellow-200 transition"
-    >
-      In Progress
-    </button>
-  )}
-  {column.id !== 'Completed' && (
-    <button
-      onClick={() => handleStatusChange(task.id, 'Completed')}
-      className="text-xs px-2 py-1 bg-green-100 text-green-700 rounded hover:bg-green-200 transition"
-    >
-      Complete →
-    </button>
-  )}
-</div>
+                  <div className="mt-3 flex gap-2 flex-wrap">
+                    {column.id !== 'Pending' && (
+                      <button
+                        onClick={() => handleStatusChange(task.id, 'Pending')}
+                        className="text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition"
+                      >
+                        ← Pending
+                      </button>
+                    )}
+                    {column.id !== 'In Progress' && (
+                      <button
+                        onClick={() => handleStatusChange(task.id, 'In Progress')}
+                        className="text-xs px-2 py-1 bg-yellow-100 text-yellow-700 rounded hover:bg-yellow-200 transition"
+                      >
+                        In Progress
+                      </button>
+                    )}
+                    {column.id !== 'Completed' && (
+                      <button
+                        onClick={() => handleStatusChange(task.id, 'Completed')}
+                        className="text-xs px-2 py-1 bg-green-100 text-green-700 rounded hover:bg-green-200 transition"
+                      >
+                        Complete →
+                      </button>
+                    )}
+                  </div>
                 </div>
               ))}
             {tasks.filter((task) => task.status === column.id).length === 0 && (

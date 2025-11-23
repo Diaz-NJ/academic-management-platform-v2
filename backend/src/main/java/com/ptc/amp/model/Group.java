@@ -64,7 +64,7 @@ public class Group {
         private String name;
 
         @Column(length = 20)
-        private String role; // "Admin" or "Member"
+        private String role; // "Leader" or "Member"
 
         public GroupMember() {}
 

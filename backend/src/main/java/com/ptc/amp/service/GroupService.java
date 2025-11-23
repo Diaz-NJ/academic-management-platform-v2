@@ -3,10 +3,12 @@ package com.ptc.amp.service;
 import com.ptc.amp.model.Group;
 import com.ptc.amp.repository.GroupRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.Optional;
 
 @Service
+@Transactional
 public class GroupService {
     private final GroupRepository groupRepository;
 
@@ -15,6 +17,10 @@ public class GroupService {
     }
 
     public Group createGroup(Group group) {
+        // Ensure bidirectional relationship is set
+        if (group.getMembers() != null) {
+            group.getMembers().forEach(member -> member.setGroup(group));
+        }
         return groupRepository.save(group);
     }
 
@@ -26,12 +32,37 @@ public class GroupService {
         return groupRepository.findByUserId(userId);
     }
 
-    public Group updateGroup(Group group) {
-        return groupRepository.save(group);
+    public Group updateGroup(Group updatedGroup) {
+        Optional<Group> existingGroupOpt = groupRepository.findById(updatedGroup.getId());
+        
+        if (existingGroupOpt.isPresent()) {
+            Group existingGroup = existingGroupOpt.get();
+            
+            // Update basic fields
+            existingGroup.setGroupNumber(updatedGroup.getGroupNumber());
+            existingGroup.setGroupName(updatedGroup.getGroupName());
+            existingGroup.setSubject(updatedGroup.getSubject());
+            existingGroup.setTaskDescription(updatedGroup.getTaskDescription());
+            
+            // Clear existing members
+            existingGroup.getMembers().clear();
+            
+            // Add new members with proper bidirectional relationship
+            if (updatedGroup.getMembers() != null) {
+                updatedGroup.getMembers().forEach(member -> {
+                    member.setGroup(existingGroup);
+                    existingGroup.getMembers().add(member);
+                });
+            }
+            
+            return groupRepository.save(existingGroup);
+        }
+        
+        return updatedGroup;
     }
 
     public boolean deleteGroup(Long id) {
-        if (groupRepository.findById(id).isPresent()) {
+        if (groupRepository.existsById(id)) {
             groupRepository.deleteById(id);
             return true;
         }
@@ -42,7 +73,8 @@ public class GroupService {
         Optional<Group> groupOpt = groupRepository.findById(groupId);
         if (groupOpt.isPresent()) {
             Group group = groupOpt.get();
-            group.addMember(member);
+            member.setGroup(group);
+            group.getMembers().add(member);
             groupRepository.save(group);
             return true;
         }
@@ -53,7 +85,7 @@ public class GroupService {
         Optional<Group> groupOpt = groupRepository.findById(groupId);
         if (groupOpt.isPresent()) {
             Group group = groupOpt.get();
-            group.removeMember(userId);
+            group.getMembers().removeIf(m -> m.getUserId().equals(userId));
             groupRepository.save(group);
             return true;
         }
