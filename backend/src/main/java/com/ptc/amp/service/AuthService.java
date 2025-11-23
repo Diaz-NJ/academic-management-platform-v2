@@ -2,6 +2,7 @@ package com.ptc.amp.service;
 
 import com.ptc.amp.model.User;
 import com.ptc.amp.repository.UserRepository;
+import com.ptc.amp.util.PasswordUtil;
 import org.springframework.stereotype.Service;
 import java.util.*;
 
@@ -22,6 +23,10 @@ public class AuthService {
             return Map.of("success", false, "message", "Student ID already registered");
         }
 
+        // ✅ HASH PASSWORD BEFORE SAVING
+        String hashedPassword = PasswordUtil.hashPassword(user.getPassword());
+        user.setPassword(hashedPassword);
+
         User saved = userRepository.save(user);
         return Map.of(
             "success", true,
@@ -33,11 +38,17 @@ public class AuthService {
     public Map<String, Object> login(String email, String password) {
         Optional<User> userOpt = userRepository.findByEmail(email);
         
-        if (userOpt.isEmpty() || !userOpt.get().getPassword().equals(password)) {
+        if (userOpt.isEmpty()) {
             return Map.of("success", false, "message", "Invalid credentials");
         }
 
         User user = userOpt.get();
+        
+        // ✅ CHECK HASHED PASSWORD
+        if (!PasswordUtil.checkPassword(password, user.getPassword())) {
+            return Map.of("success", false, "message", "Invalid credentials");
+        }
+
         String sessionId = UUID.randomUUID().toString();
         sessions.put(sessionId, user.getId());
 
