@@ -1,17 +1,39 @@
 package com.ptc.amp.model;
 
+import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
+@Entity
+@Table(name = "events")
 public class Event {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @Column(nullable = false)
     private Long userId;
+
+    @Column(nullable = false, length = 255)
     private String title;
+
+    @Column(columnDefinition = "TEXT")
     private String description;
+
+    @Column(length = 50)
     private String eventType; // Class, Exam, Deadline, Meeting, Other
+
+    @Column(nullable = false)
     private LocalDateTime startDateTime;
+
     private LocalDateTime endDateTime;
+
+    @Column(length = 255)
     private String location;
+
+    @Column(length = 7)
     private String colorCode;
+
+    @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
     public Event() {

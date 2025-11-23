@@ -23,7 +23,7 @@ public class TaskService {
     }
 
     public List<Task> getTasksByUserId(Long userId) {
-        return taskRepository.findByUserId(userId);
+        return taskRepository.findByUserIdOrderByDueDateAsc(userId);
     }
 
     public Task updateTask(Task task) {
@@ -31,7 +31,7 @@ public class TaskService {
     }
 
     public boolean deleteTask(Long id) {
-        if (taskRepository.findById(id).isPresent()) {
+        if (taskRepository.existsById(id)) {
             taskRepository.deleteById(id);
             return true;
         }

@@ -23,7 +23,7 @@ public class EventService {
     }
 
     public List<Event> getEventsByUserId(Long userId) {
-        return eventRepository.findByUserId(userId);
+        return eventRepository.findByUserIdOrderByStartDateTimeAsc(userId);
     }
 
     public Event updateEvent(Event event) {
@@ -31,7 +31,7 @@ public class EventService {
     }
 
     public boolean deleteEvent(Long id) {
-        if (eventRepository.findById(id).isPresent()) {
+        if (eventRepository.existsById(id)) {
             eventRepository.deleteById(id);
             return true;
         }

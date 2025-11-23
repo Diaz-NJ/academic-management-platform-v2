@@ -1,17 +1,40 @@
 package com.ptc.amp.model;
 
+import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
+@Entity
+@Table(name = "tasks")
 public class Task {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @Column(nullable = false)
     private Long userId;
+
+    @Column(nullable = false, length = 255)
     private String title;
+
+    @Column(columnDefinition = "TEXT")
     private String description;
+
+    @Column(length = 100)
     private String subject;
+
+    @Column(nullable = false)
     private LocalDateTime dueDate;
+
+    @Column(length = 20)
     private String priority; // Low, Medium, High, Urgent
+
+    @Column(length = 20)
     private String status; // Pending, In Progress, Completed
+
+    @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
+
+    @Column(nullable = false)
     private LocalDateTime updatedAt;
 
     public Task() {

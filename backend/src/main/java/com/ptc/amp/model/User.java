@@ -1,15 +1,34 @@
 package com.ptc.amp.model;
 
+import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
+@Entity
+@Table(name = "users")
 public class User {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @Column(nullable = false, unique = true, length = 50)
     private String studentId;
+
+    @Column(nullable = false, length = 100)
     private String firstName;
+
+    @Column(nullable = false, length = 100)
     private String lastName;
+
+    @Column(nullable = false, unique = true, length = 255)
     private String email;
+
+    @Column(nullable = false, length = 255)
     private String password;
+
+    @Column(length = 50)
     private String section;
+
+    @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
     public User() {

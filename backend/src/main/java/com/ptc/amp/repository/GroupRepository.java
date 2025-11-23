@@ -1,42 +1,14 @@
 package com.ptc.amp.repository;
 
 import com.ptc.amp.model.Group;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
-import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.stream.Collectors;
+import java.util.List;
 
 @Repository
-public class GroupRepository {
-    private final Map<Long, Group> groups = new ConcurrentHashMap<>();
-    private final AtomicLong idGenerator = new AtomicLong(1);
-
-    public Group save(Group group) {
-        if (group.getId() == null) {
-            group.setId(idGenerator.getAndIncrement());
-        }
-        groups.put(group.getId(), group);
-        return group;
-    }
-
-    public Optional<Group> findById(Long id) {
-        return Optional.ofNullable(groups.get(id));
-    }
-
-    public List<Group> findByUserId(Long userId) {
-        return groups.values().stream()
-                .filter(g -> g.getMembers().stream()
-                        .anyMatch(m -> m.getUserId().equals(userId)))
-                .sorted(Comparator.comparing(Group::getCreatedAt).reversed())
-                .collect(Collectors.toList());
-    }
-
-    public List<Group> findAll() {
-        return new ArrayList<>(groups.values());
-    }
-
-    public void deleteById(Long id) {
-        groups.remove(id);
-    }
+public interface GroupRepository extends JpaRepository<Group, Long> {
+    @Query("SELECT DISTINCT g FROM Group g LEFT JOIN FETCH g.members m WHERE m.userId = :userId ORDER BY g.createdAt DESC")
+    List<Group> findByUserId(@Param("userId") Long userId);
 }

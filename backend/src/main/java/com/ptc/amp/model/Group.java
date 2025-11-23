@@ -1,30 +1,69 @@
 package com.ptc.amp.model;
 
+import com.fasterxml.jackson.annotation.JsonManagedReference;
+import com.fasterxml.jackson.annotation.JsonBackReference;
+import jakarta.persistence.*;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
+@Entity
+@Table(name = "`groups`")
 public class Group {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    private Long createdBy; // User ID of creator
-    private String groupNumber; // e.g., "Group 1", "Team A" (nullable)
-    private String groupName;   // Name of the group
-    private String subject;     // Subject this group is for
-    private String taskDescription; // What task/project this group is working on
-    private List<GroupMember> members; // List of member IDs and names
+
+    @Column(nullable = false)
+    private Long createdBy;
+
+    @Column(length = 100)
+    private String groupNumber;
+
+    @Column(nullable = false, length = 255)
+    private String groupName;
+
+    @Column(nullable = false, length = 255)
+    private String subject;
+
+    @Column(nullable = false, columnDefinition = "TEXT")
+    private String taskDescription;
+
+    @OneToMany(mappedBy = "group", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
+    @JsonManagedReference
+    private List<GroupMember> members = new ArrayList<>();
+
+    @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
+
+    @Column(nullable = false)
     private LocalDateTime updatedAt;
 
     public Group() {
-        this.members = new ArrayList<>();
         this.createdAt = LocalDateTime.now();
         this.updatedAt = LocalDateTime.now();
     }
 
     // Inner class for members
+    @Entity
+    @Table(name = "group_members")
     public static class GroupMember {
+        @Id
+        @GeneratedValue(strategy = GenerationType.IDENTITY)
+        private Long id;
+
+        @ManyToOne
+        @JoinColumn(name = "group_id", nullable = false)
+        @JsonBackReference
+        private Group group;
+
+        @Column(nullable = false)
         private Long userId;
+
+        @Column(nullable = false, length = 255)
         private String name;
+
+        @Column(length = 20)
         private String role; // "Admin" or "Member"
 
         public GroupMember() {}
@@ -36,6 +75,12 @@ public class Group {
         }
 
         // Getters and Setters
+        public Long getId() { return id; }
+        public void setId(Long id) { this.id = id; }
+
+        public Group getGroup() { return group; }
+        public void setGroup(Group group) { this.group = group; }
+
         public Long getUserId() { return userId; }
         public void setUserId(Long userId) { this.userId = userId; }
 
@@ -66,7 +111,12 @@ public class Group {
     public void setTaskDescription(String taskDescription) { this.taskDescription = taskDescription; }
 
     public List<GroupMember> getMembers() { return members; }
-    public void setMembers(List<GroupMember> members) { this.members = members; }
+    public void setMembers(List<GroupMember> members) { 
+        this.members.clear();
+        if (members != null) {
+            members.forEach(this::addMember);
+        }
+    }
 
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
@@ -76,6 +126,7 @@ public class Group {
 
     // Helper methods
     public void addMember(GroupMember member) {
+        member.setGroup(this);
         this.members.add(member);
         this.updatedAt = LocalDateTime.now();
     }
