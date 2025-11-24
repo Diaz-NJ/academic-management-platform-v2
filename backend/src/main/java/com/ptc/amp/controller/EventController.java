@@ -22,12 +22,6 @@ public class EventController {
 
     @PostMapping
     public ResponseEntity<Event> createEvent(@RequestBody Map<String, Object> eventData) {
-        // ✅ DEBUG: Log what we receive
-        System.out.println("=== CREATE EVENT DEBUG ===");
-        System.out.println("Received data: " + eventData);
-        System.out.println("isRecurring: " + eventData.get("isRecurring"));
-        System.out.println("recurrencePattern: " + eventData.get("recurrencePattern"));
-        
         Event event = new Event();
         event.setUserId(((Number) eventData.get("userId")).longValue());
         event.setTitle((String) eventData.get("title"));
@@ -42,11 +36,10 @@ public class EventController {
         event.setStartDateTime(startDT);
         event.setEndDateTime(endDT);
         
-        // ✅ FIX: Handle recurring fields properly
+        // Recurring fields
         if (eventData.containsKey("isRecurring")) {
             Boolean isRecurring = (Boolean) eventData.get("isRecurring");
             event.setIsRecurring(isRecurring != null ? isRecurring : false);
-            System.out.println("Set isRecurring to: " + event.getIsRecurring());
         } else {
             event.setIsRecurring(false);
         }
@@ -72,13 +65,26 @@ public class EventController {
                 event.setRecurrenceDaysOfWeek(days);
             }
         }
+
+        // ✅ NEW: Handle recurrenceCount
+        if (eventData.containsKey("recurrenceCount") && eventData.get("recurrenceCount") != null) {
+            event.setRecurrenceCount(((Number) eventData.get("recurrenceCount")).intValue());
+        }
+
+        // ✅ NEW: Handle exception fields
+        if (eventData.containsKey("parentEventId") && eventData.get("parentEventId") != null) {
+            event.setParentEventId(((Number) eventData.get("parentEventId")).longValue());
+        }
+
+        if (eventData.containsKey("isException") && eventData.get("isException") != null) {
+            event.setIsException((Boolean) eventData.get("isException"));
+        }
+
+        if (eventData.containsKey("exceptionDate") && eventData.get("exceptionDate") != null) {
+            event.setExceptionDate(parseDateTime((String) eventData.get("exceptionDate")));
+        }
         
         Event created = eventService.createEvent(event);
-        
-        // ✅ DEBUG: Log what we saved
-        System.out.println("Saved event - isRecurring: " + created.getIsRecurring());
-        System.out.println("========================");
-        
         return ResponseEntity.ok(created);
     }
 
@@ -92,24 +98,32 @@ public class EventController {
     @GetMapping("/user/{userId}")
     public ResponseEntity<List<Event>> getUserEvents(@PathVariable Long userId) {
         List<Event> events = eventService.getEventsByUserId(userId);
-        
-        // ✅ DEBUG: Log what we're returning
-        System.out.println("=== FETCHING USER EVENTS ===");
-        for (Event e : events) {
-            System.out.println("Event: " + e.getTitle() + " - isRecurring: " + e.getIsRecurring());
-        }
-        System.out.println("===========================");
-        
         return ResponseEntity.ok(events);
+    }
+
+    // ✅ NEW: Cancel a single instance
+    @PostMapping("/{id}/cancel-instance")
+    public ResponseEntity<Event> cancelInstance(
+            @PathVariable Long id,
+            @RequestBody Map<String, String> data) {
+        String dateStr = data.get("date");
+        if (dateStr == null || dateStr.isEmpty()) {
+            return ResponseEntity.badRequest().build();
+        }
+        
+        Event updated = eventService.cancelInstance(id, dateStr);
+        return ResponseEntity.ok(updated);
+    }
+
+    // ✅ NEW: Get exceptions for a recurring event
+    @GetMapping("/{id}/exceptions")
+    public ResponseEntity<List<Event>> getExceptions(@PathVariable Long id) {
+        List<Event> exceptions = eventService.getExceptionsByParentId(id);
+        return ResponseEntity.ok(exceptions);
     }
 
     @PutMapping("/{id}")
     public ResponseEntity<Event> updateEvent(@PathVariable Long id, @RequestBody Map<String, Object> eventData) {
-        // ✅ DEBUG: Log what we receive
-        System.out.println("=== UPDATE EVENT DEBUG ===");
-        System.out.println("Updating event ID: " + id);
-        System.out.println("isRecurring: " + eventData.get("isRecurring"));
-        
         Event event = new Event();
         event.setId(id);
         event.setUserId(((Number) eventData.get("userId")).longValue());
@@ -122,7 +136,7 @@ public class EventController {
         event.setStartDateTime(parseDateTime((String) eventData.get("startDateTime")));
         event.setEndDateTime(parseDateTime((String) eventData.get("endDateTime")));
         
-        // ✅ FIX: Handle recurring fields on update
+        // Recurring fields
         if (eventData.containsKey("isRecurring")) {
             Boolean isRecurring = (Boolean) eventData.get("isRecurring");
             event.setIsRecurring(isRecurring != null ? isRecurring : false);
@@ -151,11 +165,18 @@ public class EventController {
                 event.setRecurrenceDaysOfWeek(days);
             }
         }
+
+        // ✅ NEW: Handle recurrenceCount
+        if (eventData.containsKey("recurrenceCount") && eventData.get("recurrenceCount") != null) {
+            event.setRecurrenceCount(((Number) eventData.get("recurrenceCount")).intValue());
+        }
+
+        // ✅ NEW: Preserve canceledDates
+        if (eventData.containsKey("canceledDates") && eventData.get("canceledDates") != null) {
+            event.setCanceledDates((String) eventData.get("canceledDates"));
+        }
         
         Event updated = eventService.updateEvent(event);
-        System.out.println("Updated - isRecurring: " + updated.getIsRecurring());
-        System.out.println("========================");
-        
         return ResponseEntity.ok(updated);
     }
 

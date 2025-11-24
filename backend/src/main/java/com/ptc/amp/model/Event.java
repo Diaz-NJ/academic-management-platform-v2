@@ -20,7 +20,7 @@ public class Event {
     private String description;
 
     @Column(length = 50)
-    private String eventType; // Class, Exam, Deadline, Meeting, Other
+    private String eventType;
 
     @Column(nullable = false)
     private LocalDateTime startDateTime;
@@ -33,21 +33,43 @@ public class Event {
     @Column(length = 7)
     private String colorCode;
 
-    // ✅ NEW: Recurring event fields
+    // Recurring event fields
     @Column(name = "is_recurring")
     private Boolean isRecurring = false;
 
     @Column(name = "recurrence_pattern", length = 20)
-    private String recurrencePattern; // DAILY, WEEKLY, MONTHLY, YEARLY
+    private String recurrencePattern;
 
     @Column(name = "recurrence_interval")
-    private Integer recurrenceInterval = 1; // Every X days/weeks/months
+    private Integer recurrenceInterval = 1;
 
     @Column(name = "recurrence_end_date")
     private LocalDateTime recurrenceEndDate;
 
     @Column(name = "recurrence_days_of_week", length = 50)
-    private String recurrenceDaysOfWeek; // For weekly: "MON,WED,FRI"
+    private String recurrenceDaysOfWeek;
+
+    // ✅ NEW: End after X occurrences
+    @Column(name = "recurrence_count")
+    private Integer recurrenceCount;
+
+    // ✅ NEW: For single instance exceptions
+    @Column(name = "parent_event_id")
+    private Long parentEventId;
+
+    @Column(name = "is_exception")
+    private Boolean isException = false;
+
+    @Column(name = "exception_date")
+    private LocalDateTime exceptionDate;
+
+    // ✅ NEW: For canceled instances
+    @Column(name = "is_canceled")
+    private Boolean isCanceled = false;
+
+    // ✅ NEW: Canceled dates (comma-separated ISO dates)
+    @Column(name = "canceled_dates", columnDefinition = "TEXT")
+    private String canceledDates;
 
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
@@ -57,9 +79,11 @@ public class Event {
         this.colorCode = "#3788d8";
         this.isRecurring = false;
         this.recurrenceInterval = 1;
+        this.isException = false;
+        this.isCanceled = false;
     }
 
-    // Getters and Setters
+    // Existing getters and setters
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 
@@ -89,7 +113,6 @@ public class Event {
 
     public LocalDateTime getCreatedAt() { return createdAt; }
 
-    // ✅ NEW: Recurring getters and setters
     public Boolean getIsRecurring() { return isRecurring; }
     public void setIsRecurring(Boolean isRecurring) { this.isRecurring = isRecurring; }
 
@@ -104,4 +127,23 @@ public class Event {
 
     public String getRecurrenceDaysOfWeek() { return recurrenceDaysOfWeek; }
     public void setRecurrenceDaysOfWeek(String recurrenceDaysOfWeek) { this.recurrenceDaysOfWeek = recurrenceDaysOfWeek; }
+
+    // ✅ NEW getters and setters
+    public Integer getRecurrenceCount() { return recurrenceCount; }
+    public void setRecurrenceCount(Integer recurrenceCount) { this.recurrenceCount = recurrenceCount; }
+
+    public Long getParentEventId() { return parentEventId; }
+    public void setParentEventId(Long parentEventId) { this.parentEventId = parentEventId; }
+
+    public Boolean getIsException() { return isException; }
+    public void setIsException(Boolean isException) { this.isException = isException; }
+
+    public LocalDateTime getExceptionDate() { return exceptionDate; }
+    public void setExceptionDate(LocalDateTime exceptionDate) { this.exceptionDate = exceptionDate; }
+
+    public Boolean getIsCanceled() { return isCanceled; }
+    public void setIsCanceled(Boolean isCanceled) { this.isCanceled = isCanceled; }
+
+    public String getCanceledDates() { return canceledDates; }
+    public void setCanceledDates(String canceledDates) { this.canceledDates = canceledDates; }
 }

@@ -38,17 +38,30 @@ const EventDetailsModal = ({ event, onClose, onEdit, onDelete }) => {
           <div className="flex justify-between items-start mb-4">
             <div className="flex-1">
               <div className="flex items-center space-x-2 mb-2">
-                <h2 className="text-2xl font-bold text-gray-800">{event.title}</h2>
-                {/* ✅ NEW: Recurring badge */}
-                {event.isRecurring && (
+                <h2 className={`text-2xl font-bold text-gray-800 ${
+                  event.isCanceled ? 'line-through' : '' // ✅ Strike through title if canceled
+                }`}>
+                  {event.title}
+                </h2>
+                {/* ✅ Recurring badge */}
+                {event.isRecurring && !event.isCanceled && (
                   <div className="flex items-center space-x-1 px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium">
                     <RefreshCw className="w-3 h-3" />
                     <span>Recurring</span>
                   </div>
                 )}
+                {/* ✅ NEW: Canceled badge */}
+                {event.isCanceled && (
+                  <div className="flex items-center space-x-1 px-2 py-1 bg-red-100 text-red-800 rounded-full text-xs font-medium">
+                    <span>🚫</span>
+                    <span>Canceled</span>
+                  </div>
+                )}
               </div>
               <span 
-                className="inline-block px-3 py-1 text-sm rounded-full text-white"
+                className={`inline-block px-3 py-1 text-sm rounded-full text-white ${
+                  event.isCanceled ? 'opacity-60' : ''
+                }`}
                 style={{ backgroundColor: event.colorCode || '#3788d8' }}
               >
                 {event.eventType}
@@ -61,6 +74,16 @@ const EventDetailsModal = ({ event, onClose, onEdit, onDelete }) => {
               <X className="w-6 h-6" />
             </button>
           </div>
+
+          {/* ✅ NEW: Cancellation Notice */}
+          {event.isCanceled && (
+            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+              <p className="text-sm text-red-800">
+                <strong>This event has been canceled.</strong> It will not appear in your upcoming events, 
+                but remains visible in the calendar for reference.
+              </p>
+            </div>
+          )}
 
           {/* Details */}
           <div className="space-y-4">
@@ -84,8 +107,8 @@ const EventDetailsModal = ({ event, onClose, onEdit, onDelete }) => {
               </div>
             </div>
 
-            {/* ✅ NEW: Recurring pattern description */}
-            {event.isRecurring && (
+            {/* Recurring pattern description */}
+            {event.isRecurring && !event.isCanceled && (
               <div>
                 <h3 className="text-sm font-semibold text-gray-700 mb-2">Recurrence</h3>
                 <div className="flex items-start space-x-2 text-gray-600">
@@ -115,20 +138,33 @@ const EventDetailsModal = ({ event, onClose, onEdit, onDelete }) => {
 
           {/* Actions */}
           <div className="flex space-x-3 mt-6 pt-6 border-t border-gray-200">
-            <button
-              onClick={onEdit}
-              className="flex-1 flex items-center justify-center space-x-2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-blue-600 transition"
-            >
-              <Edit className="w-4 h-4" />
-              <span>{event.isRecurring ? 'Edit Series' : 'Edit Event'}</span>
-            </button>
-            <button
-              onClick={onDelete}
-              className="flex-1 flex items-center justify-center space-x-2 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition"
-            >
-              <Trash2 className="w-4 h-4" />
-              <span>{event.isRecurring ? 'Delete Series' : 'Delete'}</span>
-            </button>
+            {/* ✅ UPDATED: Show different button if canceled */}
+            {!event.isCanceled ? (
+              <>
+                <button
+                  onClick={onEdit}
+                  className="flex-1 flex items-center justify-center space-x-2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-blue-600 transition"
+                >
+                  <Edit className="w-4 h-4" />
+                  <span>{event.isRecurring ? 'Edit Series' : 'Edit Event'}</span>
+                </button>
+                <button
+                  onClick={onDelete}
+                  className="flex-1 flex items-center justify-center space-x-2 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  <span>{event.isRecurring ? 'Delete Series' : 'Delete'}</span>
+                </button>
+              </>
+            ) : (
+              <button
+                onClick={onDelete}
+                className="flex-1 flex items-center justify-center space-x-2 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition"
+              >
+                <Trash2 className="w-4 h-4" />
+                <span>Delete Permanently</span>
+              </button>
+            )}
           </div>
         </div>
       </div>

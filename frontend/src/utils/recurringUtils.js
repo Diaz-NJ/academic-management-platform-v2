@@ -1,4 +1,4 @@
-// frontend/src/utils/recurringUtils.js
+// frontend/src/utils/recurringUtils.js - COMPLETE REPLACEMENT
 
 /**
  * Expands recurring events into individual instances for display
@@ -11,8 +11,13 @@ export const expandRecurringEvents = (events, viewStart, viewEnd) => {
   const expandedEvents = [];
 
   events.forEach(event => {
+    // ✅ Skip exception events - they'll be added manually
+    if (event.isException) {
+      expandedEvents.push(event);
+      return;
+    }
+
     if (!event.isRecurring) {
-      // Non-recurring event, add as-is
       expandedEvents.push(event);
       return;
     }
@@ -20,12 +25,32 @@ export const expandRecurringEvents = (events, viewStart, viewEnd) => {
     // Parse dates
     const eventStart = new Date(event.startDateTime);
     const eventEnd = new Date(event.endDateTime);
-    const recurrenceEnd = event.recurrenceEndDate 
-      ? new Date(event.recurrenceEndDate) 
-      : new Date(viewEnd.getTime() + 365 * 24 * 60 * 60 * 1000); // Default 1 year ahead
+    
+    // ✅ UPDATED: Handle multiple end conditions
+    let recurrenceEnd;
+    if (event.recurrenceCount) {
+      // Calculate end date based on count
+      recurrenceEnd = calculateEndDateFromCount(
+        eventStart,
+        event.recurrencePattern,
+        event.recurrenceInterval,
+        event.recurrenceCount,
+        event.recurrenceDaysOfWeek
+      );
+    } else if (event.recurrenceEndDate) {
+      recurrenceEnd = new Date(event.recurrenceEndDate);
+    } else {
+      // Default 1 year ahead if no end specified
+      recurrenceEnd = new Date(viewEnd.getTime() + 365 * 24 * 60 * 60 * 1000);
+    }
 
     // Calculate duration
     const duration = eventEnd - eventStart;
+
+    // ✅ Parse canceled dates
+    const canceledDates = event.canceledDates 
+      ? event.canceledDates.split(',').map(d => d.trim()) 
+      : [];
 
     // Determine which days to generate events for
     const daysToGenerate = event.recurrenceDaysOfWeek 
@@ -33,14 +58,19 @@ export const expandRecurringEvents = (events, viewStart, viewEnd) => {
       : [];
 
     let currentDate = new Date(eventStart);
+    let occurrenceCount = 0;
+    const maxOccurrences = event.recurrenceCount || Infinity;
 
     // Generate instances based on pattern
-    while (currentDate <= viewEnd && currentDate <= recurrenceEnd) {
+    while (
+      currentDate <= viewEnd && 
+      currentDate <= recurrenceEnd && 
+      occurrenceCount < maxOccurrences
+    ) {
       if (currentDate >= viewStart) {
         let shouldInclude = false;
 
         if (event.recurrencePattern === 'WEEKLY' && daysToGenerate.length > 0) {
-          // Check if current day matches selected days
           const dayNames = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
           const currentDay = dayNames[currentDate.getDay()];
           shouldInclude = daysToGenerate.includes(currentDay);
@@ -51,15 +81,29 @@ export const expandRecurringEvents = (events, viewStart, viewEnd) => {
         if (shouldInclude) {
           const instanceStart = new Date(currentDate);
           const instanceEnd = new Date(currentDate.getTime() + duration);
+          
+          // ✅ Check if this date is canceled
+          const instanceDateStr = instanceStart.toISOString();
+          const isCanceled = canceledDates.some(cd => {
+            const canceledDate = new Date(cd);
+            return (
+              canceledDate.getFullYear() === instanceStart.getFullYear() &&
+              canceledDate.getMonth() === instanceStart.getMonth() &&
+              canceledDate.getDate() === instanceStart.getDate()
+            );
+          });
 
           expandedEvents.push({
             ...event,
-            id: `${event.id}-${instanceStart.toISOString()}`, // Unique ID for each instance
-            originalId: event.id, // Keep reference to original
+            id: `${event.id}-${instanceStart.toISOString()}`,
+            originalId: event.id,
             startDateTime: instanceStart.toISOString(),
             endDateTime: instanceEnd.toISOString(),
             isRecurringInstance: true,
+            isCanceled: isCanceled, // ✅ Mark if canceled
           });
+          
+          occurrenceCount++;
         }
       }
 
@@ -69,7 +113,7 @@ export const expandRecurringEvents = (events, viewStart, viewEnd) => {
           currentDate.setDate(currentDate.getDate() + (event.recurrenceInterval || 1));
           break;
         case 'WEEKLY':
-          currentDate.setDate(currentDate.getDate() + 1); // Check each day for weekly
+          currentDate.setDate(currentDate.getDate() + 1);
           break;
         case 'MONTHLY':
           currentDate.setMonth(currentDate.getMonth() + (event.recurrenceInterval || 1));
@@ -87,14 +131,59 @@ export const expandRecurringEvents = (events, viewStart, viewEnd) => {
 };
 
 /**
+ * Calculate end date from occurrence count
+ */
+const calculateEndDateFromCount = (startDate, pattern, interval, count, daysOfWeek) => {
+  const start = new Date(startDate);
+  let occurrences = 0;
+  let current = new Date(start);
+  
+  const daysToGenerate = daysOfWeek ? daysOfWeek.split(',') : [];
+  const dayNames = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
+
+  while (occurrences < count) {
+    let shouldCount = false;
+
+    if (pattern === 'WEEKLY' && daysToGenerate.length > 0) {
+      const currentDay = dayNames[current.getDay()];
+      shouldCount = daysToGenerate.includes(currentDay);
+    } else {
+      shouldCount = true;
+    }
+
+    if (shouldCount) {
+      occurrences++;
+      if (occurrences >= count) break;
+    }
+
+    switch (pattern) {
+      case 'DAILY':
+        current.setDate(current.getDate() + (interval || 1));
+        break;
+      case 'WEEKLY':
+        current.setDate(current.getDate() + 1);
+        break;
+      case 'MONTHLY':
+        current.setMonth(current.getMonth() + (interval || 1));
+        break;
+      case 'YEARLY':
+        current.setFullYear(current.getFullYear() + (interval || 1));
+        break;
+      default:
+        current.setDate(current.getDate() + 1);
+    }
+  }
+
+  return current;
+};
+
+/**
  * Get a human-readable description of the recurrence pattern
- * @param {Object} event - Event with recurrence data
- * @returns {string} Description like "Every Monday and Wednesday"
  */
 export const getRecurrenceDescription = (event) => {
   if (!event.isRecurring) return '';
 
-  const { recurrencePattern, recurrenceInterval, recurrenceDaysOfWeek } = event;
+  const { recurrencePattern, recurrenceInterval, recurrenceDaysOfWeek, recurrenceCount, recurrenceEndDate } = event;
   
   let description = 'Repeats ';
   
@@ -141,8 +230,11 @@ export const getRecurrenceDescription = (event) => {
       description = 'Custom recurrence';
   }
 
-  if (event.recurrenceEndDate) {
-    const endDate = new Date(event.recurrenceEndDate);
+  // ✅ UPDATED: Handle count vs date
+  if (recurrenceCount) {
+    description += `, ${recurrenceCount} times`;
+  } else if (recurrenceEndDate) {
+    const endDate = new Date(recurrenceEndDate);
     description += ` until ${endDate.toLocaleDateString('en-US', { 
       month: 'short', 
       day: 'numeric', 

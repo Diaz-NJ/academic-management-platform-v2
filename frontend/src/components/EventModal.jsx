@@ -52,12 +52,14 @@ const EventModal = ({ onClose, onSave, userId, initialDate, event = null }) => {
     endDateTime: '',
     location: '',
     colorCode: '#3788d8',
-    // ✅ NEW: Recurring fields
     isRecurring: false,
     recurrencePattern: 'WEEKLY',
     recurrenceInterval: 1,
     recurrenceEndDate: '',
     recurrenceDaysOfWeek: '',
+    // ✅ NEW: End options
+    recurrenceEndType: 'never', // 'never', 'date', 'count'
+    recurrenceCount: 10,
   });
   const [loading, setLoading] = useState(false);
 
@@ -65,6 +67,14 @@ const EventModal = ({ onClose, onSave, userId, initialDate, event = null }) => {
     if (event) {
       const startDT = new Date(event.startDateTime);
       const endDT = new Date(event.endDateTime);
+      
+      // ✅ NEW: Determine end type
+      let endType = 'never';
+      if (event.recurrenceCount) {
+        endType = 'count';
+      } else if (event.recurrenceEndDate) {
+        endType = 'date';
+      }
       
       setFormData({
         title: event.title || '',
@@ -74,12 +84,14 @@ const EventModal = ({ onClose, onSave, userId, initialDate, event = null }) => {
         endDateTime: formatDateTimeLocal(endDT),
         location: event.location || '',
         colorCode: event.colorCode || '#3788d8',
-        // ✅ NEW: Load recurring data
         isRecurring: event.isRecurring || false,
         recurrencePattern: event.recurrencePattern || 'WEEKLY',
         recurrenceInterval: event.recurrenceInterval || 1,
         recurrenceEndDate: event.recurrenceEndDate ? formatDateLocal(event.recurrenceEndDate) : '',
         recurrenceDaysOfWeek: event.recurrenceDaysOfWeek || '',
+        // ✅ NEW: Load end options
+        recurrenceEndType: endType,
+        recurrenceCount: event.recurrenceCount || 10,
       });
     } else {
       const startDT = initialDate ? new Date(initialDate) : new Date();
@@ -98,6 +110,8 @@ const EventModal = ({ onClose, onSave, userId, initialDate, event = null }) => {
         recurrenceInterval: 1,
         recurrenceEndDate: '',
         recurrenceDaysOfWeek: '',
+        recurrenceEndType: 'never',
+        recurrenceCount: 10,
       });
     }
   }, [event, initialDate]);
@@ -110,7 +124,6 @@ const EventModal = ({ onClose, onSave, userId, initialDate, event = null }) => {
     });
   };
 
-  // ✅ NEW: Handle days of week toggle
   const toggleDayOfWeek = (day) => {
     const days = formData.recurrenceDaysOfWeek ? formData.recurrenceDaysOfWeek.split(',') : [];
     const index = days.indexOf(day);
@@ -144,16 +157,22 @@ const EventModal = ({ onClose, onSave, userId, initialDate, event = null }) => {
         userId,
         startDateTime: formatDateTimeForBackend(formData.startDateTime),
         endDateTime: formatDateTimeForBackend(formData.endDateTime),
-        // ✅ NEW: Include recurring data
         isRecurring: formData.isRecurring,
         recurrencePattern: formData.isRecurring ? formData.recurrencePattern : null,
         recurrenceInterval: formData.isRecurring ? formData.recurrenceInterval : 1,
-        recurrenceEndDate: formData.isRecurring && formData.recurrenceEndDate 
-          ? formData.recurrenceEndDate + 'T23:59:59' 
-          : null,
-        recurrenceDaysOfWeek: formData.isRecurring && formData.recurrencePattern === 'WEEKLY' 
-          ? formData.recurrenceDaysOfWeek 
-          : null,
+        // ✅ UPDATED: Handle end type
+        recurrenceEndDate: 
+          formData.isRecurring && formData.recurrenceEndType === 'date' && formData.recurrenceEndDate
+            ? formData.recurrenceEndDate + 'T23:59:59' 
+            : null,
+        recurrenceCount:
+          formData.isRecurring && formData.recurrenceEndType === 'count'
+            ? formData.recurrenceCount
+            : null,
+        recurrenceDaysOfWeek: 
+          formData.isRecurring && formData.recurrencePattern === 'WEEKLY' 
+            ? formData.recurrenceDaysOfWeek 
+            : null,
       };
 
       if (event) {
@@ -325,7 +344,7 @@ const EventModal = ({ onClose, onSave, userId, initialDate, event = null }) => {
             />
           </div>
 
-          {/* ✅ NEW: Recurring Event Section */}
+          {/* Recurring Event Section */}
           <div className="border-t pt-4 mt-4">
             <div className="flex items-center space-x-2 mb-4">
               <input
@@ -415,20 +434,77 @@ const EventModal = ({ onClose, onSave, userId, initialDate, event = null }) => {
                   </div>
                 )}
 
+                {/* ✅ NEW: End Options Section */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    End Repeat (Optional)
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Ends
                   </label>
-                  <input
-                    type="date"
-                    name="recurrenceEndDate"
-                    value={formData.recurrenceEndDate}
-                    onChange={handleChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
-                  />
-                  <p className="text-xs text-gray-500 mt-1">
-                    Leave empty to repeat indefinitely
-                  </p>
+                  
+                  {/* Radio buttons for end type */}
+                  <div className="space-y-2 mb-3">
+                    <label className="flex items-center space-x-2 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="recurrenceEndType"
+                        value="never"
+                        checked={formData.recurrenceEndType === 'never'}
+                        onChange={handleChange}
+                        className="w-4 h-4 text-primary focus:ring-2 focus:ring-primary"
+                      />
+                      <span className="text-sm text-gray-700">Never</span>
+                    </label>
+                    
+                    <label className="flex items-center space-x-2 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="recurrenceEndType"
+                        value="date"
+                        checked={formData.recurrenceEndType === 'date'}
+                        onChange={handleChange}
+                        className="w-4 h-4 text-primary focus:ring-2 focus:ring-primary"
+                      />
+                      <span className="text-sm text-gray-700">On date</span>
+                    </label>
+                    
+                    <label className="flex items-center space-x-2 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="recurrenceEndType"
+                        value="count"
+                        checked={formData.recurrenceEndType === 'count'}
+                        onChange={handleChange}
+                        className="w-4 h-4 text-primary focus:ring-2 focus:ring-primary"
+                      />
+                      <span className="text-sm text-gray-700">After</span>
+                    </label>
+                  </div>
+
+                  {/* Date picker - shown when 'date' is selected */}
+                  {formData.recurrenceEndType === 'date' && (
+                    <input
+                      type="date"
+                      name="recurrenceEndDate"
+                      value={formData.recurrenceEndDate}
+                      onChange={handleChange}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                    />
+                  )}
+
+                  {/* Count picker - shown when 'count' is selected */}
+                  {formData.recurrenceEndType === 'count' && (
+                    <div className="flex items-center space-x-2">
+                      <input
+                        type="number"
+                        name="recurrenceCount"
+                        value={formData.recurrenceCount}
+                        onChange={handleChange}
+                        min="1"
+                        max="365"
+                        className="w-24 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                      />
+                      <span className="text-sm text-gray-600">occurrences</span>
+                    </div>
+                  )}
                 </div>
               </div>
             )}

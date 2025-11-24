@@ -10,11 +10,14 @@ import LoadingSpinner from '../components/LoadingSpinner';
 import EmptyState from '../components/EmptyState';
 import { Calendar as CalendarIcon } from 'lucide-react';
 import { expandRecurringEvents } from '../utils/recurringUtils';
+import RecurringEditDialog from '../components/RecurringEditDialog';
+import RecurringDeleteDialog from '../components/RecurringDeleteDialog';
 
 const Calendar = () => {
   const { user } = useAuth();
   const { showToast } = useToast();
   const [events, setEvents] = useState([]);
+  const [originalEvents, setOriginalEvents] = useState([]);
   const [currentDate, setCurrentDate] = useState(new Date());
   const [showEventModal, setShowEventModal] = useState(false);
   const [selectedDate, setSelectedDate] = useState(null);
@@ -26,6 +29,9 @@ const Calendar = () => {
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [showEventDetailsModal, setShowEventDetailsModal] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [showRecurringEditDialog, setShowRecurringEditDialog] = useState(false);
+  const [showRecurringDeleteDialog, setShowRecurringDeleteDialog] = useState(false);
+  const [selectedRecurringEvent, setSelectedRecurringEvent] = useState(null);
 
   useEffect(() => {
     loadEvents();
@@ -50,12 +56,16 @@ const Calendar = () => {
       setLoading(true);
       const response = await eventAPI.getEvents(user.id);
       
-      // ✅ NEW: Expand recurring events for current month view
+      // ✅ CHANGED: Store original events separately
+      const originalEvents = response.data;
+      
+      // Expand recurring events for current month view
       const startOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
       const endOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
-      const expanded = expandRecurringEvents(response.data, startOfMonth, endOfMonth);
+      const expanded = expandRecurringEvents(originalEvents, startOfMonth, endOfMonth);
       
       setEvents(expanded);
+      setOriginalEvents(originalEvents); // ✅ ADD THIS LINE
     } catch (error) {
       console.error('Error loading events:', error);
     } finally {
@@ -71,19 +81,114 @@ const Calendar = () => {
 
   const handleEditFromDetails = () => {
     setShowEventDetailsModal(false);
-    // ✅ If editing a recurring instance, edit the original event
-    const eventToEdit = selectedEvent.isRecurringInstance 
-      ? events.find(e => e.id === selectedEvent.originalId)
-      : selectedEvent;
+    
+    // If it's a recurring event (either original or instance), show dialog
+    if (selectedEvent.isRecurring || selectedEvent.isRecurringInstance) {
+      setSelectedRecurringEvent(selectedEvent);
+      setShowRecurringEditDialog(true);
+    } else {
+      // Non-recurring, edit normally
+      setEditingEvent(selectedEvent);
+      setSelectedDate(null);
+      setShowEventModal(true);
+    }
+  };
+
+  const handleEditSeriesClick = () => {
+    setShowRecurringEditDialog(false);
+    
+    // Find the original event
+    const eventToEdit = selectedRecurringEvent.isRecurringInstance 
+      ? originalEvents.find(e => e.id === selectedRecurringEvent.originalId)
+      : selectedRecurringEvent;
+    
+    if (!eventToEdit) {
+      showToast('Error loading event for editing', 'error');
+      return;
+    }
+    
     setEditingEvent(eventToEdit);
     setSelectedDate(null);
     setShowEventModal(true);
   };
 
+  const handleEditInstanceClick = async () => {
+    setShowRecurringEditDialog(false);
+    
+    try {
+      // Create an exception event
+      const instanceDate = new Date(selectedRecurringEvent.startDateTime);
+      const originalEvent = originalEvents.find(e => e.id === selectedRecurringEvent.originalId);
+      
+      if (!originalEvent) {
+        showToast('Error loading original event', 'error');
+        return;
+      }
+
+      // Create a new event that's an exception
+      const exceptionEvent = {
+        ...originalEvent,
+        id: null, // New event
+        isRecurring: false, // Single event now
+        isException: true,
+        parentEventId: originalEvent.id,
+        exceptionDate: instanceDate.toISOString(),
+        startDateTime: selectedRecurringEvent.startDateTime,
+        endDateTime: selectedRecurringEvent.endDateTime,
+      };
+      
+      // Set as editing (will open modal)
+      setEditingEvent(exceptionEvent);
+      setSelectedDate(null);
+      setShowEventModal(true);
+    } catch (error) {
+      console.error('Error creating exception:', error);
+      showToast('Failed to edit instance', 'error');
+    }
+  };
+
   const handleDeleteFromDetails = () => {
     setShowEventDetailsModal(false);
-    setEventToDelete(selectedEvent);
-    setShowDeleteDialog(true);
+    
+    // If it's a recurring event, show options dialog
+    if (selectedEvent.isRecurring || selectedEvent.isRecurringInstance) {
+      setSelectedRecurringEvent(selectedEvent);
+      setShowRecurringDeleteDialog(true);
+    } else {
+      // Non-recurring, delete normally
+      setEventToDelete(selectedEvent);
+      setShowDeleteDialog(true);
+    }
+  };
+
+const handleDeleteSeriesClick = () => {
+  setShowRecurringDeleteDialog(false);
+  
+  // Find the original event to delete
+  const eventToDelete = selectedRecurringEvent.isRecurringInstance 
+    ? originalEvents.find(e => e.id === selectedRecurringEvent.originalId) || selectedRecurringEvent
+    : selectedRecurringEvent;
+  
+  setEventToDelete(eventToDelete);
+  setShowDeleteDialog(true);
+  }; 
+
+  const handleCancelInstanceClick = async () => {
+    setShowRecurringDeleteDialog(false);
+    
+    try {
+      const instanceDate = new Date(selectedRecurringEvent.startDateTime).toISOString();
+      const originalId = selectedRecurringEvent.isRecurringInstance 
+        ? selectedRecurringEvent.originalId 
+        : selectedRecurringEvent.id;
+      
+      await eventAPI.cancelInstance(originalId, instanceDate);
+      showToast('Event occurrence canceled', 'success');
+      loadEvents();
+    } catch (error) {
+      console.error('Error canceling instance:', error);
+      showToast('Failed to cancel event occurrence', 'error');
+    }
   };
 
   const handleDeleteClick = (event, e) => {
@@ -112,15 +217,25 @@ const Calendar = () => {
     }
   };
 
-  const handleEditEvent = (event, e) => {
-    e.stopPropagation();
-    const eventToEdit = event.isRecurringInstance 
-      ? events.find(e => e.id === event.originalId)
-      : event;
-    setEditingEvent(eventToEdit);
-    setSelectedDate(null);
-    setShowEventModal(true);
-  };
+const handleEditEvent = (event, e) => {
+  e.stopPropagation();
+  
+  // ✅ CHANGED: Use originalEvents
+  const eventToEdit = event.isRecurringInstance 
+    ? originalEvents.find(e => e.id === event.originalId)
+    : event;
+  
+  // ✅ ADD: Error handling
+  if (!eventToEdit) {
+    console.error('Could not find event to edit');
+    showToast('Error loading event for editing', 'error');
+    return;
+  }
+  
+  setEditingEvent(eventToEdit);
+  setSelectedDate(null);
+  setShowEventModal(true);
+};
 
   const getDaysInMonth = (date) => {
     const year = date.getFullYear();
@@ -245,7 +360,9 @@ const Calendar = () => {
                 .map(event => (
                   <div 
                     key={event.id} 
-                    className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition cursor-pointer"
+                    className={`flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition cursor-pointer ${
+                      event.isCanceled ? 'opacity-60' : '' // ✅ Dim canceled in search
+                    }`}
                     onClick={() => {
                       setSelectedEvent(event);
                       setShowEventDetailsModal(true);
@@ -258,10 +375,18 @@ const Calendar = () => {
                       />
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center space-x-2">
-                          <h4 className="font-medium text-gray-800 truncate">{event.title}</h4>
-                          {/* ✅ NEW: Recurring indicator in search results */}
-                          {event.isRecurring && (
+                          <h4 className={`font-medium text-gray-800 truncate ${
+                            event.isCanceled ? 'line-through' : '' // ✅ Strike through in search
+                          }`}>
+                            {event.title}
+                          </h4>
+                          {event.isRecurring && !event.isCanceled && (
                             <RefreshCw className="w-4 h-4 text-blue-500 flex-shrink-0" title="Recurring event" />
+                          )}
+                          {event.isCanceled && ( // ✅ Show canceled badge
+                            <span className="px-2 py-1 bg-red-100 text-red-800 rounded-full text-xs font-medium">
+                              Canceled
+                            </span>
                           )}
                         </div>
                         <p className="text-sm text-gray-600">
@@ -347,15 +472,23 @@ const Calendar = () => {
                     <div
                       key={event.id}
                       onClick={(e) => handleEventClick(event, e)}
-                      className="relative text-xs text-white rounded px-1 py-0.5 truncate cursor-pointer hover:opacity-80 transition"
-                      style={{ backgroundColor: event.colorCode || '#3788d8' }}
-                      title={event.title}
-                    >
+                      className={`relative text-xs text-white rounded px-1 py-0.5 truncate cursor-pointer hover:opacity-80 transition ${
+                        event.isCanceled ? 'opacity-50' : '' // ✅ ADD THIS
+                      }`}           
+                          style={{ 
+                            backgroundColor: event.colorCode || '#3788d8',
+                            textDecoration: event.isCanceled ? 'line-through' : 'none' // ✅ ADD THIS
+                          }}
+                          title={event.isCanceled ? `${event.title} (Canceled)` : event.title} // ✅ UPDATE THIS
+                        >
                       {/* ✅ NEW: Recurring indicator on calendar */}
                       <div className="flex items-center space-x-1">
-                        {event.isRecurring && (
+                        {event.isRecurring && !event.isCanceled && (
                           <RefreshCw className="w-3 h-3 flex-shrink-0" />
                         )}
+                        {event.isCanceled && ( // ✅ ADD THIS
+                            <span className="text-xs">🚫</span>
+                          )}
                         <span className="truncate">{event.title}</span>
                       </div>
                     </div>
@@ -383,7 +516,7 @@ const Calendar = () => {
                 const now = new Date();
                 now.setHours(0, 0, 0, 0);
                 eventDate.setHours(0, 0, 0, 0);
-                return eventDate >= now;
+                return eventDate >= now && !e.isCanceled;
               })
               .sort((a, b) => new Date(a.startDateTime) - new Date(b.startDateTime))
               .slice(0, 5)
@@ -502,6 +635,30 @@ const Calendar = () => {
           onDelete={handleDeleteFromDetails}
         />
       )}
+
+      {/* Recurring Edit Dialog */}
+      <RecurringEditDialog
+        isOpen={showRecurringEditDialog}
+        onClose={() => {
+          setShowRecurringEditDialog(false);
+          setSelectedRecurringEvent(null);
+        }}
+        onEditSeries={handleEditSeriesClick}
+        onEditInstance={handleEditInstanceClick}
+        eventTitle={selectedRecurringEvent?.title || ''}
+      />
+
+      {/* Recurring Delete Dialog */}
+      <RecurringDeleteDialog
+        isOpen={showRecurringDeleteDialog}
+        onClose={() => {
+          setShowRecurringDeleteDialog(false);
+          setSelectedRecurringEvent(null);
+        }}
+        onDeleteSeries={handleDeleteSeriesClick}
+        onCancelInstance={handleCancelInstanceClick}
+        eventTitle={selectedRecurringEvent?.title || ''}
+      />
     </div>
   );
 };
