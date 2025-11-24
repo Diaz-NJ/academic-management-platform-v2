@@ -1,13 +1,13 @@
+
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { taskAPI } from '../services/api';
-import { Plus, Trash2, Edit, Filter } from 'lucide-react';
+import { Plus, Trash2, Edit, Filter, CheckSquare, Square } from 'lucide-react';
 import TaskModal from '../components/TaskModal';
 import { useToast } from '../context/ToastContext';
 import ConfirmDialog from '../components/ConfirmDialog';
 import LoadingSpinner from '../components/LoadingSpinner';
 import EmptyState from '../components/EmptyState';
-import { CheckSquare } from 'lucide-react';
 import { formatRelativeDate } from '../utils/dateUtils';
 
 const Tasks = () => {
@@ -24,6 +24,11 @@ const Tasks = () => {
   const [taskToDelete, setTaskToDelete] = useState(null);
   const { showToast } = useToast();
   const [searchQuery, setSearchQuery] = useState('');
+  
+  // ✅ NEW: Bulk Actions State
+  const [selectedTasks, setSelectedTasks] = useState([]);
+  const [showBulkDeleteDialog, setShowBulkDeleteDialog] = useState(false);
+  const [bulkStatusChange, setBulkStatusChange] = useState('');
 
   useEffect(() => {
     loadTasks();
@@ -37,6 +42,7 @@ const Tasks = () => {
     try {
       const response = await taskAPI.getTasks(user.id);
       setTasks(response.data);
+      setSelectedTasks([]); // Clear selections on reload
     } catch (error) {
       console.error('Error loading tasks:', error);
     } finally {
@@ -67,6 +73,56 @@ const Tasks = () => {
     }
 
     setFilteredTasks(filtered);
+  };
+
+  // ✅ NEW: Toggle individual task selection
+  const toggleTaskSelection = (taskId) => {
+    setSelectedTasks(prev => 
+      prev.includes(taskId) 
+        ? prev.filter(id => id !== taskId)
+        : [...prev, taskId]
+    );
+  };
+
+  // ✅ NEW: Select/Deselect all tasks
+  const toggleSelectAll = () => {
+    if (selectedTasks.length === filteredTasks.length) {
+      setSelectedTasks([]);
+    } else {
+      setSelectedTasks(filteredTasks.map(t => t.id));
+    }
+  };
+
+  // ✅ NEW: Bulk delete
+  const handleBulkDelete = async () => {
+    try {
+      await Promise.all(selectedTasks.map(id => taskAPI.deleteTask(id)));
+      showToast(`${selectedTasks.length} task(s) deleted successfully`, 'success');
+      setSelectedTasks([]);
+      loadTasks();
+    } catch (error) {
+      console.error('Error deleting tasks:', error);
+      showToast('Failed to delete some tasks', 'error');
+    }
+  };
+
+  // ✅ NEW: Bulk status change
+  const handleBulkStatusChange = async (newStatus) => {
+    try {
+      const tasksToUpdate = tasks.filter(t => selectedTasks.includes(t.id));
+      await Promise.all(
+        tasksToUpdate.map(task => 
+          taskAPI.updateTask(task.id, { ...task, status: newStatus })
+        )
+      );
+      showToast(`${selectedTasks.length} task(s) updated to ${newStatus}`, 'success');
+      setSelectedTasks([]);
+      setBulkStatusChange('');
+      loadTasks();
+    } catch (error) {
+      console.error('Error updating tasks:', error);
+      showToast('Failed to update some tasks', 'error');
+    }
   };
 
   const handleDeleteClick = (task) => {
@@ -177,7 +233,7 @@ const Tasks = () => {
 
       {/* Filters */}
       <div className="bg-white rounded-lg shadow p-4">
-        <div className="flex items-center space-x-4">
+        <div className="flex items-center space-x-4 flex-wrap gap-2">
           <Filter className="w-5 h-5 text-gray-500" />
           <select
             value={filterStatus}
@@ -230,6 +286,53 @@ const Tasks = () => {
         </div>
       </div>
 
+      {/* ✅ NEW: Bulk Actions Bar */}
+      {selectedTasks.length > 0 && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-4">
+              <span className="font-semibold text-blue-900">
+                {selectedTasks.length} task(s) selected
+              </span>
+              <button
+                onClick={() => setSelectedTasks([])}
+                className="text-sm text-blue-600 hover:text-blue-800"
+              >
+                Clear Selection
+              </button>
+            </div>
+            
+            <div className="flex items-center space-x-2">
+              {/* Bulk Status Change */}
+              <select
+                value={bulkStatusChange}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  if (value) {
+                    handleBulkStatusChange(value);
+                  }
+                }}
+                className="px-3 py-2 border border-blue-300 rounded-lg bg-white text-sm"
+              >
+                <option value="">Change Status...</option>
+                <option value="Pending">→ Pending</option>
+                <option value="In Progress">→ In Progress</option>
+                <option value="Completed">→ Completed</option>
+              </select>
+
+              {/* Bulk Delete */}
+              <button
+                onClick={() => setShowBulkDeleteDialog(true)}
+                className="flex items-center space-x-2 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition"
+              >
+                <Trash2 className="w-4 h-4" />
+                <span>Delete Selected</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Task List */}
       <div className="bg-white rounded-lg shadow">
         <div className="divide-y divide-gray-200">
@@ -246,81 +349,119 @@ const Tasks = () => {
               onAction={searchQuery ? undefined : () => setShowTaskModal(true)}
             />
           ) : (
-            filteredTasks.map(task => (
-              <div key={task.id} className="p-6 hover:bg-gray-50 transition">
-                <div className="flex justify-between items-start">
-                  <div className="flex-1">
-                    <div className="flex items-center space-x-3 mb-2">
-                      <h3 className="text-lg font-semibold text-gray-800">
-                        {task.title}
-                      </h3>
-                      <span className={`px-2 py-1 text-xs rounded-full ${getPriorityColor(task.priority)}`}>
-                        {task.priority}
-                      </span>
-                      <span className={`px-2 py-1 text-xs rounded-full ${getStatusColor(task.status)}`}>
-                        {task.status}
-                      </span>
-                    </div>
-
-                    {task.description && (
-                      <p className="text-gray-600 mb-3">{task.description}</p>
+            <>
+              {/* ✅ NEW: Select All Header */}
+              {filteredTasks.length > 0 && (
+                <div className="p-4 bg-gray-50 border-b border-gray-200">
+                  <button
+                    onClick={toggleSelectAll}
+                    className="flex items-center space-x-2 text-sm text-gray-700 hover:text-primary"
+                  >
+                    {selectedTasks.length === filteredTasks.length ? (
+                      <CheckSquare className="w-5 h-5 text-primary" />
+                    ) : (
+                      <Square className="w-5 h-5" />
                     )}
+                    <span className="font-medium">
+                      {selectedTasks.length === filteredTasks.length 
+                        ? 'Deselect All' 
+                        : 'Select All'}
+                    </span>
+                  </button>
+                </div>
+              )}
 
-                    <div className="flex items-center space-x-4 text-sm text-gray-500">
-                      {task.subject && (
-                        <span className="flex items-center">
-                          📚 {task.subject}
-                        </span>
+              {/* Task Items */}
+              {filteredTasks.map(task => (
+                <div key={task.id} className="p-6 hover:bg-gray-50 transition">
+                  <div className="flex items-start space-x-4">
+                    {/* ✅ NEW: Checkbox for selection */}
+                    <button
+                      onClick={() => toggleTaskSelection(task.id)}
+                      className="mt-1 flex-shrink-0"
+                    >
+                      {selectedTasks.includes(task.id) ? (
+                        <CheckSquare className="w-6 h-6 text-primary" />
+                      ) : (
+                        <Square className="w-6 h-6 text-gray-400 hover:text-primary" />
                       )}
-                      <span className="flex items-center">
-                        📅 {formatRelativeDate(task.dueDate)}
-                      </span>
-                    </div>
-                  </div>
+                    </button>
 
-                  <div className="flex items-center space-x-2 ml-4">
-                    {task.status !== 'Completed' && (
+                    {/* Task Content */}
+                    <div className="flex-1">
+                      <div className="flex items-center space-x-3 mb-2">
+                        <h3 className="text-lg font-semibold text-gray-800">
+                          {task.title}
+                        </h3>
+                        <span className={`px-2 py-1 text-xs rounded-full ${getPriorityColor(task.priority)}`}>
+                          {task.priority}
+                        </span>
+                        <span className={`px-2 py-1 text-xs rounded-full ${getStatusColor(task.status)}`}>
+                          {task.status}
+                        </span>
+                      </div>
+
+                      {task.description && (
+                        <p className="text-gray-600 mb-3">{task.description}</p>
+                      )}
+
+                      <div className="flex items-center space-x-4 text-sm text-gray-500">
+                        {task.subject && (
+                          <span className="flex items-center">
+                            📚 {task.subject}
+                          </span>
+                        )}
+                        <span className="flex items-center">
+                          📅 {formatRelativeDate(task.dueDate)}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Action Buttons */}
+                    <div className="flex items-center space-x-2 ml-4">
+                      {task.status !== 'Completed' && (
+                        <button
+                          onClick={() => handleStatusChange(task.id, 'Completed')}
+                          className="px-3 py-1 bg-green-100 text-green-700 rounded hover:bg-green-200 text-sm transition"
+                        >
+                          Mark Complete
+                        </button>
+                      )}
+                      {task.status === 'Pending' && (
+                        <button
+                          onClick={() => handleStatusChange(task.id, 'In Progress')}
+                          className="px-3 py-1 bg-yellow-100 text-yellow-700 rounded hover:bg-yellow-200 text-sm transition"
+                        >
+                          Start
+                        </button>
+                      )}
                       <button
-                        onClick={() => handleStatusChange(task.id, 'Completed')}
-                        className="px-3 py-1 bg-green-100 text-green-700 rounded hover:bg-green-200 text-sm transition"
+                        onClick={() => {
+                          setEditingTask(task);
+                          setShowTaskModal(true);
+                        }}
+                        className="p-2 text-primary hover:bg-blue-50 rounded transition"
+                        title="Edit task"
                       >
-                        Mark Complete
+                        <Edit className="w-4 h-4" />
                       </button>
-                    )}
-                    {task.status === 'Pending' && (
                       <button
-                        onClick={() => handleStatusChange(task.id, 'In Progress')}
-                        className="px-3 py-1 bg-yellow-100 text-yellow-700 rounded hover:bg-yellow-200 text-sm transition"
+                        onClick={() => handleDeleteClick(task)}
+                        className="p-2 text-red-500 hover:bg-red-50 rounded transition"
+                        title="Delete task"
                       >
-                        Start
+                        <Trash2 className="w-4 h-4" />
                       </button>
-                    )}
-                    <button
-                      onClick={() => {
-                        setEditingTask(task);
-                        setShowTaskModal(true);
-                      }}
-                      className="p-2 text-primary hover:bg-blue-50 rounded transition"
-                      title="Edit task"
-                    >
-                      <Edit className="w-4 h-4" />
-                    </button>
-                    <button
-                      onClick={() => handleDeleteClick(task)}
-                      className="p-2 text-red-500 hover:bg-red-50 rounded transition"
-                      title="Delete task"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))
+              ))}
+            </>
           )}
         </div>
       </div>
 
-      {/* Delete Confirmation Dialog */}
+      {/* Delete Single Task Dialog */}
       <ConfirmDialog
         isOpen={showDeleteDialog}
         onClose={() => {
@@ -331,6 +472,18 @@ const Tasks = () => {
         title="Delete Task"
         message={`Are you sure you want to delete "${taskToDelete?.title}"? This action cannot be undone.`}
         confirmText="Delete"
+        cancelText="Cancel"
+        type="danger"
+      />
+
+      {/* ✅ NEW: Bulk Delete Dialog */}
+      <ConfirmDialog
+        isOpen={showBulkDeleteDialog}
+        onClose={() => setShowBulkDeleteDialog(false)}
+        onConfirm={handleBulkDelete}
+        title="Delete Multiple Tasks"
+        message={`Are you sure you want to delete ${selectedTasks.length} task(s)? This action cannot be undone.`}
+        confirmText="Delete All"
         cancelText="Cancel"
         type="danger"
       />

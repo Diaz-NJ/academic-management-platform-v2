@@ -1,17 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { eventAPI } from '../services/api';
 import { useToast } from '../context/ToastContext';
-import { X } from 'lucide-react';
+import { X, RefreshCw } from 'lucide-react';
 
 const EventModal = ({ onClose, onSave, userId, initialDate, event = null }) => {
   const { showToast } = useToast();
   
-  // ✅ IMPROVED: Better datetime formatting that preserves exact local time
   const formatDateTimeLocal = (dateInput) => {
     let d;
     
     if (typeof dateInput === 'string') {
-      // If it's a string from the backend, parse it as local time
       d = new Date(dateInput);
     } else {
       d = new Date(dateInput);
@@ -24,6 +22,14 @@ const EventModal = ({ onClose, onSave, userId, initialDate, event = null }) => {
     const minutes = String(d.getMinutes()).padStart(2, '0');
     
     return `${year}-${month}-${day}T${hours}:${minutes}`;
+  };
+
+  const formatDateLocal = (dateInput) => {
+    const d = new Date(dateInput);
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
   };
 
   const getInitialDateTime = () => {
@@ -46,12 +52,17 @@ const EventModal = ({ onClose, onSave, userId, initialDate, event = null }) => {
     endDateTime: '',
     location: '',
     colorCode: '#3788d8',
+    // ✅ NEW: Recurring fields
+    isRecurring: false,
+    recurrencePattern: 'WEEKLY',
+    recurrenceInterval: 1,
+    recurrenceEndDate: '',
+    recurrenceDaysOfWeek: '',
   });
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (event) {
-      // ✅ FIX: When editing, use the EXACT datetime from the event
       const startDT = new Date(event.startDateTime);
       const endDT = new Date(event.endDateTime);
       
@@ -63,9 +74,14 @@ const EventModal = ({ onClose, onSave, userId, initialDate, event = null }) => {
         endDateTime: formatDateTimeLocal(endDT),
         location: event.location || '',
         colorCode: event.colorCode || '#3788d8',
+        // ✅ NEW: Load recurring data
+        isRecurring: event.isRecurring || false,
+        recurrencePattern: event.recurrencePattern || 'WEEKLY',
+        recurrenceInterval: event.recurrenceInterval || 1,
+        recurrenceEndDate: event.recurrenceEndDate ? formatDateLocal(event.recurrenceEndDate) : '',
+        recurrenceDaysOfWeek: event.recurrenceDaysOfWeek || '',
       });
     } else {
-      // Creating new event
       const startDT = initialDate ? new Date(initialDate) : new Date();
       const endDT = new Date(startDT.getTime() + 60 * 60 * 1000);
       
@@ -77,12 +93,35 @@ const EventModal = ({ onClose, onSave, userId, initialDate, event = null }) => {
         endDateTime: formatDateTimeLocal(endDT),
         location: '',
         colorCode: '#3788d8',
+        isRecurring: false,
+        recurrencePattern: 'WEEKLY',
+        recurrenceInterval: 1,
+        recurrenceEndDate: '',
+        recurrenceDaysOfWeek: '',
       });
     }
   }, [event, initialDate]);
 
   const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    const { name, value, type, checked } = e.target;
+    setFormData({ 
+      ...formData, 
+      [name]: type === 'checkbox' ? checked : value 
+    });
+  };
+
+  // ✅ NEW: Handle days of week toggle
+  const toggleDayOfWeek = (day) => {
+    const days = formData.recurrenceDaysOfWeek ? formData.recurrenceDaysOfWeek.split(',') : [];
+    const index = days.indexOf(day);
+    
+    if (index > -1) {
+      days.splice(index, 1);
+    } else {
+      days.push(day);
+    }
+    
+    setFormData({ ...formData, recurrenceDaysOfWeek: days.join(',') });
   };
 
   const handleSubmit = async (e) => {
@@ -90,10 +129,7 @@ const EventModal = ({ onClose, onSave, userId, initialDate, event = null }) => {
     setLoading(true);
 
     try {
-      // Format datetime for backend (local time, no timezone conversion)
       const formatDateTimeForBackend = (datetimeLocal) => {
-        // datetime-local input gives us "2024-11-25T14:30"
-        // Backend expects "2024-11-25T14:30:00"
         return datetimeLocal.includes(':00', datetimeLocal.length - 3) 
           ? datetimeLocal 
           : datetimeLocal + ':00';
@@ -108,6 +144,16 @@ const EventModal = ({ onClose, onSave, userId, initialDate, event = null }) => {
         userId,
         startDateTime: formatDateTimeForBackend(formData.startDateTime),
         endDateTime: formatDateTimeForBackend(formData.endDateTime),
+        // ✅ NEW: Include recurring data
+        isRecurring: formData.isRecurring,
+        recurrencePattern: formData.isRecurring ? formData.recurrencePattern : null,
+        recurrenceInterval: formData.isRecurring ? formData.recurrenceInterval : 1,
+        recurrenceEndDate: formData.isRecurring && formData.recurrenceEndDate 
+          ? formData.recurrenceEndDate + 'T23:59:59' 
+          : null,
+        recurrenceDaysOfWeek: formData.isRecurring && formData.recurrencePattern === 'WEEKLY' 
+          ? formData.recurrenceDaysOfWeek 
+          : null,
       };
 
       if (event) {
@@ -115,7 +161,10 @@ const EventModal = ({ onClose, onSave, userId, initialDate, event = null }) => {
         showToast('Event updated successfully!', 'success');
       } else {
         await eventAPI.createEvent(eventData);
-        showToast('Event created successfully!', 'success');
+        showToast(
+          formData.isRecurring ? 'Recurring event created successfully!' : 'Event created successfully!', 
+          'success'
+        );
       }
       
       onSave();
@@ -147,9 +196,19 @@ const EventModal = ({ onClose, onSave, userId, initialDate, event = null }) => {
     });
   };
 
+  const daysOfWeek = [
+    { short: 'MON', full: 'Monday' },
+    { short: 'TUE', full: 'Tuesday' },
+    { short: 'WED', full: 'Wednesday' },
+    { short: 'THU', full: 'Thursday' },
+    { short: 'FRI', full: 'Friday' },
+    { short: 'SAT', full: 'Saturday' },
+    { short: 'SUN', full: 'Sunday' },
+  ];
+
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-2xl font-bold text-gray-800">
             {event ? 'Edit Event' : 'Create New Event'}
@@ -190,49 +249,66 @@ const EventModal = ({ onClose, onSave, userId, initialDate, event = null }) => {
             />
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Event Type *
-            </label>
-            <select
-              name="eventType"
-              value={formData.eventType}
-              onChange={handleEventTypeChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
-            >
-              <option value="Class">Class</option>
-              <option value="Exam">Exam</option>
-              <option value="Deadline">Deadline</option>
-              <option value="Meeting">Meeting</option>
-              <option value="Other">Other</option>
-            </select>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Event Type *
+              </label>
+              <select
+                name="eventType"
+                value={formData.eventType}
+                onChange={handleEventTypeChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+              >
+                <option value="Class">Class</option>
+                <option value="Exam">Exam</option>
+                <option value="Deadline">Deadline</option>
+                <option value="Meeting">Meeting</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Color
+              </label>
+              <input
+                type="color"
+                name="colorCode"
+                value={formData.colorCode}
+                onChange={handleChange}
+                className="w-full h-10 border border-gray-300 rounded-lg cursor-pointer"
+              />
+            </div>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Start Date & Time *
-            </label>
-            <input
-              type="datetime-local"
-              name="startDateTime"
-              value={formData.startDateTime}
-              onChange={handleChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
-              required
-            />
-          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Start Date & Time *
+              </label>
+              <input
+                type="datetime-local"
+                name="startDateTime"
+                value={formData.startDateTime}
+                onChange={handleChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                required
+              />
+            </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              End Date & Time
-            </label>
-            <input
-              type="datetime-local"
-              name="endDateTime"
-              value={formData.endDateTime}
-              onChange={handleChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
-            />
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                End Date & Time
+              </label>
+              <input
+                type="datetime-local"
+                name="endDateTime"
+                value={formData.endDateTime}
+                onChange={handleChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+              />
+            </div>
           </div>
 
           <div>
@@ -249,17 +325,113 @@ const EventModal = ({ onClose, onSave, userId, initialDate, event = null }) => {
             />
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Color
-            </label>
-            <input
-              type="color"
-              name="colorCode"
-              value={formData.colorCode}
-              onChange={handleChange}
-              className="w-full h-10 border border-gray-300 rounded-lg cursor-pointer"
-            />
+          {/* ✅ NEW: Recurring Event Section */}
+          <div className="border-t pt-4 mt-4">
+            <div className="flex items-center space-x-2 mb-4">
+              <input
+                type="checkbox"
+                id="isRecurring"
+                name="isRecurring"
+                checked={formData.isRecurring}
+                onChange={handleChange}
+                className="w-4 h-4 text-primary focus:ring-2 focus:ring-primary rounded"
+              />
+              <label htmlFor="isRecurring" className="flex items-center text-sm font-medium text-gray-700 cursor-pointer">
+                <RefreshCw className="w-4 h-4 mr-2" />
+                Recurring Event
+              </label>
+            </div>
+
+            {formData.isRecurring && (
+              <div className="space-y-4 pl-6 border-l-2 border-blue-200">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Repeat Pattern
+                    </label>
+                    <select
+                      name="recurrencePattern"
+                      value={formData.recurrencePattern}
+                      onChange={handleChange}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                    >
+                      <option value="DAILY">Daily</option>
+                      <option value="WEEKLY">Weekly</option>
+                      <option value="MONTHLY">Monthly</option>
+                      <option value="YEARLY">Yearly</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Every
+                    </label>
+                    <div className="flex items-center space-x-2">
+                      <input
+                        type="number"
+                        name="recurrenceInterval"
+                        value={formData.recurrenceInterval}
+                        onChange={handleChange}
+                        min="1"
+                        max="30"
+                        className="w-20 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                      />
+                      <span className="text-sm text-gray-600">
+                        {formData.recurrencePattern === 'DAILY' && 'day(s)'}
+                        {formData.recurrencePattern === 'WEEKLY' && 'week(s)'}
+                        {formData.recurrencePattern === 'MONTHLY' && 'month(s)'}
+                        {formData.recurrencePattern === 'YEARLY' && 'year(s)'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Days of Week Selection (only for weekly) */}
+                {formData.recurrencePattern === 'WEEKLY' && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Repeat On
+                    </label>
+                    <div className="flex flex-wrap gap-2">
+                      {daysOfWeek.map(day => {
+                        const isSelected = formData.recurrenceDaysOfWeek.includes(day.short);
+                        return (
+                          <button
+                            key={day.short}
+                            type="button"
+                            onClick={() => toggleDayOfWeek(day.short)}
+                            className={`px-3 py-2 rounded-lg text-sm font-medium transition ${
+                              isSelected
+                                ? 'bg-primary text-white'
+                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                            }`}
+                            title={day.full}
+                          >
+                            {day.short}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    End Repeat (Optional)
+                  </label>
+                  <input
+                    type="date"
+                    name="recurrenceEndDate"
+                    value={formData.recurrenceEndDate}
+                    onChange={handleChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Leave empty to repeat indefinitely
+                  </p>
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="flex space-x-3 pt-4">

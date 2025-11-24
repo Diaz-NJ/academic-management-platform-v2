@@ -33,12 +33,30 @@ public class Event {
     @Column(length = 7)
     private String colorCode;
 
+    // ✅ NEW: Recurring event fields
+    @Column(name = "is_recurring")
+    private Boolean isRecurring = false;
+
+    @Column(name = "recurrence_pattern", length = 20)
+    private String recurrencePattern; // DAILY, WEEKLY, MONTHLY, YEARLY
+
+    @Column(name = "recurrence_interval")
+    private Integer recurrenceInterval = 1; // Every X days/weeks/months
+
+    @Column(name = "recurrence_end_date")
+    private LocalDateTime recurrenceEndDate;
+
+    @Column(name = "recurrence_days_of_week", length = 50)
+    private String recurrenceDaysOfWeek; // For weekly: "MON,WED,FRI"
+
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
     public Event() {
         this.createdAt = LocalDateTime.now();
         this.colorCode = "#3788d8";
+        this.isRecurring = false;
+        this.recurrenceInterval = 1;
     }
 
     // Getters and Setters
@@ -70,4 +88,20 @@ public class Event {
     public void setColorCode(String colorCode) { this.colorCode = colorCode; }
 
     public LocalDateTime getCreatedAt() { return createdAt; }
+
+    // ✅ NEW: Recurring getters and setters
+    public Boolean getIsRecurring() { return isRecurring; }
+    public void setIsRecurring(Boolean isRecurring) { this.isRecurring = isRecurring; }
+
+    public String getRecurrencePattern() { return recurrencePattern; }
+    public void setRecurrencePattern(String recurrencePattern) { this.recurrencePattern = recurrencePattern; }
+
+    public Integer getRecurrenceInterval() { return recurrenceInterval; }
+    public void setRecurrenceInterval(Integer recurrenceInterval) { this.recurrenceInterval = recurrenceInterval; }
+
+    public LocalDateTime getRecurrenceEndDate() { return recurrenceEndDate; }
+    public void setRecurrenceEndDate(LocalDateTime recurrenceEndDate) { this.recurrenceEndDate = recurrenceEndDate; }
+
+    public String getRecurrenceDaysOfWeek() { return recurrenceDaysOfWeek; }
+    public void setRecurrenceDaysOfWeek(String recurrenceDaysOfWeek) { this.recurrenceDaysOfWeek = recurrenceDaysOfWeek; }
 }

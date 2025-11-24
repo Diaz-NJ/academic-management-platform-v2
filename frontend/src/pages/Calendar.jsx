@@ -2,13 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { eventAPI } from '../services/api';
-import { Plus, ChevronLeft, ChevronRight, Edit, Trash2 } from 'lucide-react';
+import { Plus, ChevronLeft, ChevronRight, RefreshCw } from 'lucide-react';
 import EventModal from '../components/EventModal';
 import ConfirmDialog from '../components/ConfirmDialog';
 import EventDetailsModal from '../components/EventDetailsModal';
 import LoadingSpinner from '../components/LoadingSpinner';
 import EmptyState from '../components/EmptyState';
 import { Calendar as CalendarIcon } from 'lucide-react';
+import { expandRecurringEvents } from '../utils/recurringUtils';
 
 const Calendar = () => {
   const { user } = useAuth();
@@ -25,11 +26,10 @@ const Calendar = () => {
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [showEventDetailsModal, setShowEventDetailsModal] = useState(false);
   const [loading, setLoading] = useState(true);
-  
 
   useEffect(() => {
     loadEvents();
-  }, [user]);
+  }, [user, currentDate]);
 
   useEffect(() => {
     if (searchQuery.trim()) {
@@ -49,7 +49,13 @@ const Calendar = () => {
     try {
       setLoading(true);
       const response = await eventAPI.getEvents(user.id);
-      setEvents(response.data);
+      
+      // ✅ NEW: Expand recurring events for current month view
+      const startOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+      const endOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
+      const expanded = expandRecurringEvents(response.data, startOfMonth, endOfMonth);
+      
+      setEvents(expanded);
     } catch (error) {
       console.error('Error loading events:', error);
     } finally {
@@ -65,19 +71,21 @@ const Calendar = () => {
 
   const handleEditFromDetails = () => {
     setShowEventDetailsModal(false);
-    setEditingEvent(selectedEvent);
+    // ✅ If editing a recurring instance, edit the original event
+    const eventToEdit = selectedEvent.isRecurringInstance 
+      ? events.find(e => e.id === selectedEvent.originalId)
+      : selectedEvent;
+    setEditingEvent(eventToEdit);
     setSelectedDate(null);
     setShowEventModal(true);
   };
 
-  // ✅ FIX #1: Fixed delete function - no longer expects 'e' parameter
   const handleDeleteFromDetails = () => {
     setShowEventDetailsModal(false);
     setEventToDelete(selectedEvent);
     setShowDeleteDialog(true);
   };
 
-  // ✅ FIX #2: Delete click handler for direct delete (with event parameter)
   const handleDeleteClick = (event, e) => {
     if (e) e.stopPropagation();
     setEventToDelete(event);
@@ -88,7 +96,12 @@ const Calendar = () => {
     if (!eventToDelete) return;
 
     try {
-      await eventAPI.deleteEvent(eventToDelete.id);
+      // ✅ Delete the original event if it's a recurring instance
+      const idToDelete = eventToDelete.isRecurringInstance 
+        ? eventToDelete.originalId 
+        : eventToDelete.id;
+      
+      await eventAPI.deleteEvent(idToDelete);
       showToast('Event deleted successfully', 'success');
       loadEvents();
     } catch (error) {
@@ -101,7 +114,10 @@ const Calendar = () => {
 
   const handleEditEvent = (event, e) => {
     e.stopPropagation();
-    setEditingEvent(event);
+    const eventToEdit = event.isRecurringInstance 
+      ? events.find(e => e.id === event.originalId)
+      : event;
+    setEditingEvent(eventToEdit);
     setSelectedDate(null);
     setShowEventModal(true);
   };
@@ -136,10 +152,9 @@ const Calendar = () => {
     setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1));
   };
 
-  // ✅ FIX #3: Better date click handler
   const handleDateClick = (day) => {
     const clickedDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), day);
-    clickedDate.setHours(12, 0, 0, 0); // Set to noon to avoid timezone issues
+    clickedDate.setHours(12, 0, 0, 0);
     setSelectedDate(clickedDate);
     setEditingEvent(null);
     setShowEventModal(true);
@@ -157,8 +172,8 @@ const Calendar = () => {
   }
 
   if (loading) {
-  return <LoadingSpinner message="Loading your calendar..." />;
-}
+    return <LoadingSpinner message="Loading your calendar..." />;
+  }
 
   return (
     <div className="space-y-6">
@@ -219,7 +234,7 @@ const Calendar = () => {
         )}
       </div>
 
-      {/* ✅ FIX #4: Search Results Section - MOVED OUTSIDE calendar grid */}
+      {/* Search Results Section */}
       {searchQuery && (
         <div className="bg-white rounded-lg shadow p-6">
           <h3 className="text-xl font-semibold mb-4">Search Results</h3>
@@ -242,7 +257,13 @@ const Calendar = () => {
                         style={{ backgroundColor: event.colorCode || '#3788d8' }}
                       />
                       <div className="flex-1 min-w-0">
-                        <h4 className="font-medium text-gray-800 truncate">{event.title}</h4>
+                        <div className="flex items-center space-x-2">
+                          <h4 className="font-medium text-gray-800 truncate">{event.title}</h4>
+                          {/* ✅ NEW: Recurring indicator in search results */}
+                          {event.isRecurring && (
+                            <RefreshCw className="w-4 h-4 text-blue-500 flex-shrink-0" title="Recurring event" />
+                          )}
+                        </div>
                         <p className="text-sm text-gray-600">
                           {new Date(event.startDateTime).toLocaleString('en-US', {
                             month: 'short',
@@ -326,11 +347,17 @@ const Calendar = () => {
                     <div
                       key={event.id}
                       onClick={(e) => handleEventClick(event, e)}
-                      className="text-xs text-white rounded px-1 py-0.5 truncate cursor-pointer hover:opacity-80 transition"
+                      className="relative text-xs text-white rounded px-1 py-0.5 truncate cursor-pointer hover:opacity-80 transition"
                       style={{ backgroundColor: event.colorCode || '#3788d8' }}
                       title={event.title}
                     >
-                      {event.title}
+                      {/* ✅ NEW: Recurring indicator on calendar */}
+                      <div className="flex items-center space-x-1">
+                        {event.isRecurring && (
+                          <RefreshCw className="w-3 h-3 flex-shrink-0" />
+                        )}
+                        <span className="truncate">{event.title}</span>
+                      </div>
                     </div>
                   ))}
                   {dayEvents.length > 2 && (
@@ -345,7 +372,7 @@ const Calendar = () => {
         </div>
       </div>
 
-      {/* Upcoming Events - Only show when NOT searching */}
+      {/* Upcoming Events */}
       {!searchQuery && (
         <div className="bg-white rounded-lg shadow p-6">
           <h3 className="text-xl font-semibold mb-4">Upcoming Events</h3>
@@ -375,7 +402,13 @@ const Calendar = () => {
                       style={{ backgroundColor: event.colorCode || '#3788d8' }}
                     />
                     <div className="flex-1 min-w-0">
-                      <h4 className="font-medium text-gray-800 truncate">{event.title}</h4>
+                      <div className="flex items-center space-x-2">
+                        <h4 className="font-medium text-gray-800 truncate">{event.title}</h4>
+                        {/* ✅ NEW: Recurring indicator */}
+                        {event.isRecurring && (
+                          <RefreshCw className="w-4 h-4 text-blue-500 flex-shrink-0" title="Recurring event" />
+                        )}
+                      </div>
                       <p className="text-sm text-gray-600">
                         {new Date(event.startDateTime).toLocaleString('en-US', {
                           month: 'short',
@@ -427,13 +460,17 @@ const Calendar = () => {
         }}
         onConfirm={handleDeleteConfirm}
         title="Delete Event"
-        message={`Are you sure you want to delete "${eventToDelete?.title}"? This action cannot be undone.`}
+        message={`Are you sure you want to delete "${eventToDelete?.title}"?${
+          eventToDelete?.isRecurring 
+            ? ' This will delete all instances of this recurring event.' 
+            : ' This action cannot be undone.'
+        }`}
         confirmText="Delete"
         cancelText="Cancel"
         type="danger"
       />
 
-      {/* Event Modal - ✅ FIX #5: Added callback to reload events after save */}
+      {/* Event Modal */}
       {showEventModal && (
         <EventModal
           onClose={() => {
@@ -442,7 +479,7 @@ const Calendar = () => {
             setEditingEvent(null);
           }}
           onSave={() => {
-            loadEvents(); // This will refresh events and update colors
+            loadEvents();
             setShowEventModal(false);
             setSelectedDate(null);
             setEditingEvent(null);

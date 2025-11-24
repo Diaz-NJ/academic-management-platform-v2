@@ -22,10 +22,6 @@ public class EventController {
 
     @PostMapping
     public ResponseEntity<Event> createEvent(@RequestBody Map<String, Object> eventData) {
-        // ✅ DEBUG: Log what we receive
-        System.out.println("=== CREATE EVENT DEBUG ===");
-        System.out.println("Received startDateTime: " + eventData.get("startDateTime"));
-        
         Event event = new Event();
         event.setUserId(((Number) eventData.get("userId")).longValue());
         event.setTitle((String) eventData.get("title"));
@@ -37,18 +33,31 @@ public class EventController {
         LocalDateTime startDT = parseDateTime((String) eventData.get("startDateTime"));
         LocalDateTime endDT = parseDateTime((String) eventData.get("endDateTime"));
         
-        // ✅ DEBUG: Log what we parsed
-        System.out.println("Parsed startDateTime: " + startDT);
-        
         event.setStartDateTime(startDT);
         event.setEndDateTime(endDT);
         
+        // ✅ NEW: Handle recurring fields
+        if (eventData.containsKey("isRecurring")) {
+            event.setIsRecurring((Boolean) eventData.get("isRecurring"));
+        }
+        
+        if (eventData.containsKey("recurrencePattern")) {
+            event.setRecurrencePattern((String) eventData.get("recurrencePattern"));
+        }
+        
+        if (eventData.containsKey("recurrenceInterval")) {
+            event.setRecurrenceInterval(((Number) eventData.get("recurrenceInterval")).intValue());
+        }
+        
+        if (eventData.containsKey("recurrenceEndDate") && eventData.get("recurrenceEndDate") != null) {
+            event.setRecurrenceEndDate(parseDateTime((String) eventData.get("recurrenceEndDate")));
+        }
+        
+        if (eventData.containsKey("recurrenceDaysOfWeek")) {
+            event.setRecurrenceDaysOfWeek((String) eventData.get("recurrenceDaysOfWeek"));
+        }
+        
         Event created = eventService.createEvent(event);
-        
-        // ✅ DEBUG: Log what we're returning
-        System.out.println("Returning startDateTime: " + created.getStartDateTime());
-        System.out.println("========================");
-        
         return ResponseEntity.ok(created);
     }
 
@@ -76,9 +85,29 @@ public class EventController {
         event.setLocation((String) eventData.get("location"));
         event.setColorCode((String) eventData.get("colorCode"));
         
-        // Parse datetime strings properly
         event.setStartDateTime(parseDateTime((String) eventData.get("startDateTime")));
         event.setEndDateTime(parseDateTime((String) eventData.get("endDateTime")));
+        
+        // ✅ NEW: Handle recurring fields on update
+        if (eventData.containsKey("isRecurring")) {
+            event.setIsRecurring((Boolean) eventData.get("isRecurring"));
+        }
+        
+        if (eventData.containsKey("recurrencePattern")) {
+            event.setRecurrencePattern((String) eventData.get("recurrencePattern"));
+        }
+        
+        if (eventData.containsKey("recurrenceInterval")) {
+            event.setRecurrenceInterval(((Number) eventData.get("recurrenceInterval")).intValue());
+        }
+        
+        if (eventData.containsKey("recurrenceEndDate") && eventData.get("recurrenceEndDate") != null) {
+            event.setRecurrenceEndDate(parseDateTime((String) eventData.get("recurrenceEndDate")));
+        }
+        
+        if (eventData.containsKey("recurrenceDaysOfWeek")) {
+            event.setRecurrenceDaysOfWeek((String) eventData.get("recurrenceDaysOfWeek"));
+        }
         
         Event updated = eventService.updateEvent(event);
         return ResponseEntity.ok(updated);
@@ -92,19 +121,15 @@ public class EventController {
                 ResponseEntity.notFound().build();
     }
     
-    // Helper method to parse ISO datetime string to LocalDateTime
     private LocalDateTime parseDateTime(String dateTimeStr) {
         if (dateTimeStr == null || dateTimeStr.isEmpty()) {
             return null;
         }
         
         try {
-            // Parse ISO string (2024-11-25T14:30:00.000Z) and convert to LocalDateTime
-            // This strips the timezone, keeping only the date/time values
             ZonedDateTime zonedDateTime = ZonedDateTime.parse(dateTimeStr, DateTimeFormatter.ISO_DATE_TIME);
             return zonedDateTime.toLocalDateTime();
         } catch (Exception e) {
-            // Fallback: if it's already LocalDateTime format (2024-11-25T14:30:00)
             try {
                 return LocalDateTime.parse(dateTimeStr, DateTimeFormatter.ISO_LOCAL_DATE_TIME);
             } catch (Exception ex) {
