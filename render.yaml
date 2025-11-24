@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: amp-backend
+    runtime: java
+    buildCommand: cd backend && ./mvnw clean install -DskipTests
+    startCommand: cd backend && java -jar target/amp-0.0.1-SNAPSHOT.jar
+    envVars:
+      - key: SPRING_PROFILES_ACTIVE
+        value: prod
+      - key: DATABASE_URL
+        value: postgresql://amp_db_dhqn_user:4wmAw9ifFcvPJkY8vMAZPDwZdtTg4GyL@dpg-d4hrcaf5r7bs73c2f2g0-a/amp_db_dhqn
+      - key: ALLOWED_ORIGINS
+        value: http://localhost:3000
