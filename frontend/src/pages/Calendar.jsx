@@ -79,6 +79,14 @@ const Calendar = () => {
     setShowEventDetailsModal(true);
   };
 
+  const handleEventSaved = async () => {
+    console.log('Event saved, reloading...'); 
+    setShowEventModal(false);
+    setEditingEvent(null);
+    await loadEvents(); // Reload to show changes
+    showToast('Changes saved successfully!', 'success');
+  };
+
   const handleEditFromDetails = () => {
     setShowEventDetailsModal(false);
     
@@ -107,45 +115,77 @@ const Calendar = () => {
       return;
     }
     
+    console.log('Editing series:', eventToEdit); // Debug log
     setEditingEvent(eventToEdit);
     setSelectedDate(null);
     setShowEventModal(true);
   };
 
-  const handleEditInstanceClick = async () => {
-    setShowRecurringEditDialog(false);
+const handleEditInstanceClick = async () => {
+  setShowRecurringEditDialog(false);
+  
+  try {
+    // Get the original recurring event
+    const originalEventId = selectedRecurringEvent.isRecurringInstance 
+      ? selectedRecurringEvent.originalId 
+      : selectedRecurringEvent.id;
     
-    try {
-      // Create an exception event
-      const instanceDate = new Date(selectedRecurringEvent.startDateTime);
-      const originalEvent = originalEvents.find(e => e.id === selectedRecurringEvent.originalId);
-      
-      if (!originalEvent) {
-        showToast('Error loading original event', 'error');
-        return;
-      }
+    const originalEvent = originalEvents.find(e => e.id === originalEventId);
+    
+    if (!originalEvent) {
+      showToast('Error: Could not find original event', 'error');
+      console.error('Original event not found for ID:', originalEventId);
+      return;
+    }
 
-      // Create a new event that's an exception
-      const exceptionEvent = {
+    // Check if an exception already exists for this date
+    const instanceDate = new Date(selectedRecurringEvent.startDateTime);
+    const existingExceptions = await eventAPI.getExceptions(originalEvent.id);
+    
+    const existingException = existingExceptions.data?.find(exc => {
+      const excDate = new Date(exc.exceptionDate);
+      return (
+        excDate.getFullYear() === instanceDate.getFullYear() &&
+        excDate.getMonth() === instanceDate.getMonth() &&
+        excDate.getDate() === instanceDate.getDate()
+      );
+    });
+
+    if (existingException) {
+      // Edit existing exception
+      console.log('Editing existing exception:', existingException);
+      setEditingEvent(existingException);
+    } else {
+      // Create new exception event data
+      const exceptionEventData = {
         ...originalEvent,
-        id: null, // New event
-        isRecurring: false, // Single event now
+        id: null, // This will be a NEW event
+        isRecurring: false, // Single event
         isException: true,
         parentEventId: originalEvent.id,
         exceptionDate: instanceDate.toISOString(),
         startDateTime: selectedRecurringEvent.startDateTime,
         endDateTime: selectedRecurringEvent.endDateTime,
+        // Clear recurring fields
+        recurrencePattern: null,
+        recurrenceInterval: null,
+        recurrenceEndDate: null,
+        recurrenceDaysOfWeek: null,
+        recurrenceEndType: 'never',
+        recurrenceCount: null,
       };
       
-      // Set as editing (will open modal)
-      setEditingEvent(exceptionEvent);
-      setSelectedDate(null);
-      setShowEventModal(true);
-    } catch (error) {
-      console.error('Error creating exception:', error);
-      showToast('Failed to edit instance', 'error');
+      console.log('Creating new exception:', exceptionEventData);
+      setEditingEvent(exceptionEventData);
     }
-  };
+    
+    setSelectedDate(null);
+    setShowEventModal(true);
+  } catch (error) {
+    console.error('Error setting up instance edit:', error);
+    showToast('Failed to prepare event for editing', 'error');
+  }
+};
 
   const handleDeleteFromDetails = () => {
     setShowEventDetailsModal(false);
@@ -611,12 +651,7 @@ const handleEditEvent = (event, e) => {
             setSelectedDate(null);
             setEditingEvent(null);
           }}
-          onSave={() => {
-            loadEvents();
-            setShowEventModal(false);
-            setSelectedDate(null);
-            setEditingEvent(null);
-          }}
+          onSave={handleEventSaved}  // ✅ CHANGE: was just loadEvents
           userId={user.id}
           initialDate={selectedDate}
           event={editingEvent}

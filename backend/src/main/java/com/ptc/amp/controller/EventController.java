@@ -22,70 +22,87 @@ public class EventController {
 
     @PostMapping
     public ResponseEntity<Event> createEvent(@RequestBody Map<String, Object> eventData) {
-        Event event = new Event();
-        event.setUserId(((Number) eventData.get("userId")).longValue());
-        event.setTitle((String) eventData.get("title"));
-        event.setDescription((String) eventData.get("description"));
-        event.setEventType((String) eventData.get("eventType"));
-        event.setLocation((String) eventData.get("location"));
-        event.setColorCode((String) eventData.get("colorCode"));
-        
-        LocalDateTime startDT = parseDateTime((String) eventData.get("startDateTime"));
-        LocalDateTime endDT = parseDateTime((String) eventData.get("endDateTime"));
-        
-        event.setStartDateTime(startDT);
-        event.setEndDateTime(endDT);
-        
-        // Recurring fields
-        if (eventData.containsKey("isRecurring")) {
+        try {
+            Event event = new Event();
+            event.setUserId(((Number) eventData.get("userId")).longValue());
+            event.setTitle((String) eventData.get("title"));
+            event.setDescription((String) eventData.get("description"));
+            event.setEventType((String) eventData.get("eventType"));
+            event.setLocation((String) eventData.get("location"));
+            event.setColorCode((String) eventData.get("colorCode"));
+            
+            LocalDateTime startDT = parseDateTime((String) eventData.get("startDateTime"));
+            LocalDateTime endDT = parseDateTime((String) eventData.get("endDateTime"));
+            
+            event.setStartDateTime(startDT);
+            event.setEndDateTime(endDT);
+            
+            // Recurring fields - with null safety
             Boolean isRecurring = (Boolean) eventData.get("isRecurring");
             event.setIsRecurring(isRecurring != null ? isRecurring : false);
-        } else {
-            event.setIsRecurring(false);
-        }
-        
-        if (eventData.containsKey("recurrencePattern") && eventData.get("recurrencePattern") != null) {
-            event.setRecurrencePattern((String) eventData.get("recurrencePattern"));
-        }
-        
-        if (eventData.containsKey("recurrenceInterval") && eventData.get("recurrenceInterval") != null) {
-            event.setRecurrenceInterval(((Number) eventData.get("recurrenceInterval")).intValue());
-        }
-        
-        if (eventData.containsKey("recurrenceEndDate") && eventData.get("recurrenceEndDate") != null) {
-            String endDateStr = (String) eventData.get("recurrenceEndDate");
-            if (!endDateStr.isEmpty()) {
-                event.setRecurrenceEndDate(parseDateTime(endDateStr));
+            
+            if (Boolean.TRUE.equals(isRecurring)) {
+                // Only set recurring fields if isRecurring is true
+                Object patternObj = eventData.get("recurrencePattern");
+                if (patternObj != null) {
+                    event.setRecurrencePattern((String) patternObj);
+                }
+                
+                Object intervalObj = eventData.get("recurrenceInterval");
+                if (intervalObj != null) {
+                    event.setRecurrenceInterval(((Number) intervalObj).intValue());
+                } else {
+                    event.setRecurrenceInterval(1);
+                }
+                
+                // Handle recurrence end date
+                Object endDateObj = eventData.get("recurrenceEndDate");
+                if (endDateObj != null && !endDateObj.toString().isEmpty()) {
+                    String endDateStr = (String) endDateObj;
+                    try {
+                        event.setRecurrenceEndDate(parseDateTime(endDateStr));
+                    } catch (Exception e) {
+                        System.err.println("Failed to parse recurrence end date: " + endDateStr);
+                        event.setRecurrenceEndDate(null);
+                    }
+                }
+                
+                // Handle recurrence count
+                Object countObj = eventData.get("recurrenceCount");
+                if (countObj != null) {
+                    event.setRecurrenceCount(((Number) countObj).intValue());
+                }
+                
+                // Handle days of week
+                Object daysObj = eventData.get("recurrenceDaysOfWeek");
+                if (daysObj != null && !daysObj.toString().isEmpty()) {
+                    event.setRecurrenceDaysOfWeek((String) daysObj);
+                }
             }
-        }
-        
-        if (eventData.containsKey("recurrenceDaysOfWeek") && eventData.get("recurrenceDaysOfWeek") != null) {
-            String days = (String) eventData.get("recurrenceDaysOfWeek");
-            if (!days.isEmpty()) {
-                event.setRecurrenceDaysOfWeek(days);
+            
+            // Handle exception fields
+            Object parentIdObj = eventData.get("parentEventId");
+            if (parentIdObj != null) {
+                event.setParentEventId(((Number) parentIdObj).longValue());
             }
-        }
 
-        // ✅ NEW: Handle recurrenceCount
-        if (eventData.containsKey("recurrenceCount") && eventData.get("recurrenceCount") != null) {
-            event.setRecurrenceCount(((Number) eventData.get("recurrenceCount")).intValue());
-        }
+            Object isExceptionObj = eventData.get("isException");
+            if (isExceptionObj != null) {
+                event.setIsException((Boolean) isExceptionObj);
+            }
 
-        // ✅ NEW: Handle exception fields
-        if (eventData.containsKey("parentEventId") && eventData.get("parentEventId") != null) {
-            event.setParentEventId(((Number) eventData.get("parentEventId")).longValue());
+            Object exceptionDateObj = eventData.get("exceptionDate");
+            if (exceptionDateObj != null && !exceptionDateObj.toString().isEmpty()) {
+                event.setExceptionDate(parseDateTime((String) exceptionDateObj));
+            }
+            
+            Event created = eventService.createEvent(event);
+            return ResponseEntity.ok(created);
+        } catch (Exception e) {
+            System.err.println("Error creating event: " + e.getMessage());
+            e.printStackTrace();
+            throw e;
         }
-
-        if (eventData.containsKey("isException") && eventData.get("isException") != null) {
-            event.setIsException((Boolean) eventData.get("isException"));
-        }
-
-        if (eventData.containsKey("exceptionDate") && eventData.get("exceptionDate") != null) {
-            event.setExceptionDate(parseDateTime((String) eventData.get("exceptionDate")));
-        }
-        
-        Event created = eventService.createEvent(event);
-        return ResponseEntity.ok(created);
     }
 
     @GetMapping("/{id}")
@@ -101,7 +118,6 @@ public class EventController {
         return ResponseEntity.ok(events);
     }
 
-    // ✅ NEW: Cancel a single instance
     @PostMapping("/{id}/cancel-instance")
     public ResponseEntity<Event> cancelInstance(
             @PathVariable Long id,
@@ -115,7 +131,6 @@ public class EventController {
         return ResponseEntity.ok(updated);
     }
 
-    // ✅ NEW: Get exceptions for a recurring event
     @GetMapping("/{id}/exceptions")
     public ResponseEntity<List<Event>> getExceptions(@PathVariable Long id) {
         List<Event> exceptions = eventService.getExceptionsByParentId(id);
@@ -124,60 +139,71 @@ public class EventController {
 
     @PutMapping("/{id}")
     public ResponseEntity<Event> updateEvent(@PathVariable Long id, @RequestBody Map<String, Object> eventData) {
-        Event event = new Event();
-        event.setId(id);
-        event.setUserId(((Number) eventData.get("userId")).longValue());
-        event.setTitle((String) eventData.get("title"));
-        event.setDescription((String) eventData.get("description"));
-        event.setEventType((String) eventData.get("eventType"));
-        event.setLocation((String) eventData.get("location"));
-        event.setColorCode((String) eventData.get("colorCode"));
-        
-        event.setStartDateTime(parseDateTime((String) eventData.get("startDateTime")));
-        event.setEndDateTime(parseDateTime((String) eventData.get("endDateTime")));
-        
-        // Recurring fields
-        if (eventData.containsKey("isRecurring")) {
+        try {
+            Event event = new Event();
+            event.setId(id);
+            event.setUserId(((Number) eventData.get("userId")).longValue());
+            event.setTitle((String) eventData.get("title"));
+            event.setDescription((String) eventData.get("description"));
+            event.setEventType((String) eventData.get("eventType"));
+            event.setLocation((String) eventData.get("location"));
+            event.setColorCode((String) eventData.get("colorCode"));
+            
+            event.setStartDateTime(parseDateTime((String) eventData.get("startDateTime")));
+            event.setEndDateTime(parseDateTime((String) eventData.get("endDateTime")));
+            
+            // Recurring fields - with null safety
             Boolean isRecurring = (Boolean) eventData.get("isRecurring");
             event.setIsRecurring(isRecurring != null ? isRecurring : false);
-        } else {
-            event.setIsRecurring(false);
-        }
-        
-        if (eventData.containsKey("recurrencePattern") && eventData.get("recurrencePattern") != null) {
-            event.setRecurrencePattern((String) eventData.get("recurrencePattern"));
-        }
-        
-        if (eventData.containsKey("recurrenceInterval") && eventData.get("recurrenceInterval") != null) {
-            event.setRecurrenceInterval(((Number) eventData.get("recurrenceInterval")).intValue());
-        }
-        
-        if (eventData.containsKey("recurrenceEndDate") && eventData.get("recurrenceEndDate") != null) {
-            String endDateStr = (String) eventData.get("recurrenceEndDate");
-            if (!endDateStr.isEmpty()) {
-                event.setRecurrenceEndDate(parseDateTime(endDateStr));
+            
+            if (Boolean.TRUE.equals(isRecurring)) {
+                Object patternObj = eventData.get("recurrencePattern");
+                if (patternObj != null) {
+                    event.setRecurrencePattern((String) patternObj);
+                }
+                
+                Object intervalObj = eventData.get("recurrenceInterval");
+                if (intervalObj != null) {
+                    event.setRecurrenceInterval(((Number) intervalObj).intValue());
+                } else {
+                    event.setRecurrenceInterval(1);
+                }
+                
+                Object endDateObj = eventData.get("recurrenceEndDate");
+                if (endDateObj != null && !endDateObj.toString().isEmpty()) {
+                    String endDateStr = (String) endDateObj;
+                    try {
+                        event.setRecurrenceEndDate(parseDateTime(endDateStr));
+                    } catch (Exception e) {
+                        System.err.println("Failed to parse recurrence end date: " + endDateStr);
+                        event.setRecurrenceEndDate(null);
+                    }
+                }
+                
+                Object countObj = eventData.get("recurrenceCount");
+                if (countObj != null) {
+                    event.setRecurrenceCount(((Number) countObj).intValue());
+                }
+                
+                Object daysObj = eventData.get("recurrenceDaysOfWeek");
+                if (daysObj != null && !daysObj.toString().isEmpty()) {
+                    event.setRecurrenceDaysOfWeek((String) daysObj);
+                }
             }
-        }
-        
-        if (eventData.containsKey("recurrenceDaysOfWeek") && eventData.get("recurrenceDaysOfWeek") != null) {
-            String days = (String) eventData.get("recurrenceDaysOfWeek");
-            if (!days.isEmpty()) {
-                event.setRecurrenceDaysOfWeek(days);
+
+            // Preserve canceledDates
+            Object canceledDatesObj = eventData.get("canceledDates");
+            if (canceledDatesObj != null) {
+                event.setCanceledDates((String) canceledDatesObj);
             }
+            
+            Event updated = eventService.updateEvent(event);
+            return ResponseEntity.ok(updated);
+        } catch (Exception e) {
+            System.err.println("Error updating event: " + e.getMessage());
+            e.printStackTrace();
+            throw e;
         }
-
-        // ✅ NEW: Handle recurrenceCount
-        if (eventData.containsKey("recurrenceCount") && eventData.get("recurrenceCount") != null) {
-            event.setRecurrenceCount(((Number) eventData.get("recurrenceCount")).intValue());
-        }
-
-        // ✅ NEW: Preserve canceledDates
-        if (eventData.containsKey("canceledDates") && eventData.get("canceledDates") != null) {
-            event.setCanceledDates((String) eventData.get("canceledDates"));
-        }
-        
-        Event updated = eventService.updateEvent(event);
-        return ResponseEntity.ok(updated);
     }
 
     @DeleteMapping("/{id}")

@@ -64,16 +64,21 @@ const EventModal = ({ onClose, onSave, userId, initialDate, event = null }) => {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
+    console.log('EventModal received event:', event); // ✅ Debug log
+    
     if (event) {
       const startDT = new Date(event.startDateTime);
       const endDT = new Date(event.endDateTime);
       
-      // ✅ NEW: Determine end type
+      // ✅ UPDATED: Determine end type (handle exception events)
       let endType = 'never';
-      if (event.recurrenceCount) {
-        endType = 'count';
-      } else if (event.recurrenceEndDate) {
-        endType = 'date';
+      // Exception events should not show recurring options
+      if (!event.isException && !event.parentEventId) {
+        if (event.recurrenceCount) {
+          endType = 'count';
+        } else if (event.recurrenceEndDate) {
+          endType = 'date';
+        }
       }
       
       setFormData({
@@ -84,12 +89,12 @@ const EventModal = ({ onClose, onSave, userId, initialDate, event = null }) => {
         endDateTime: formatDateTimeLocal(endDT),
         location: event.location || '',
         colorCode: event.colorCode || '#3788d8',
-        isRecurring: event.isRecurring || false,
+        // ✅ FIXED: Exception events should not be recurring
+        isRecurring: event.isException || event.parentEventId ? false : (event.isRecurring || false),
         recurrencePattern: event.recurrencePattern || 'WEEKLY',
         recurrenceInterval: event.recurrenceInterval || 1,
         recurrenceEndDate: event.recurrenceEndDate ? formatDateLocal(event.recurrenceEndDate) : '',
         recurrenceDaysOfWeek: event.recurrenceDaysOfWeek || '',
-        // ✅ NEW: Load end options
         recurrenceEndType: endType,
         recurrenceCount: event.recurrenceCount || 10,
       });
@@ -175,10 +180,36 @@ const EventModal = ({ onClose, onSave, userId, initialDate, event = null }) => {
             : null,
       };
 
+      // ✅ FIXED: Handle exception events properly
       if (event) {
-        await eventAPI.updateEvent(event.id, eventData);
-        showToast('Event updated successfully!', 'success');
+        // Check if this is an exception event
+        if (event.isException || event.parentEventId) {
+          // Include exception-specific fields
+          eventData.isException = true;
+          eventData.parentEventId = event.parentEventId;
+          eventData.exceptionDate = event.exceptionDate;
+          
+          // If the event has an ID, update it; otherwise create new
+          if (event.id) {
+            await eventAPI.updateEvent(event.id, eventData);
+            showToast('Event instance updated successfully!', 'success');
+          } else {
+            // First time saving this exception
+            await eventAPI.createEvent(eventData);
+            
+            // Mark the date as canceled in the parent event
+            const instanceDate = new Date(event.exceptionDate);
+            await eventAPI.cancelInstance(event.parentEventId, instanceDate.toISOString());
+            
+            showToast('Event instance created successfully!', 'success');
+          }
+        } else {
+          // Regular event update
+          await eventAPI.updateEvent(event.id, eventData);
+          showToast('Event updated successfully!', 'success');
+        }
       } else {
+        // Creating new event
         await eventAPI.createEvent(eventData);
         showToast(
           formData.isRecurring ? 'Recurring event created successfully!' : 'Event created successfully!', 
@@ -230,7 +261,11 @@ const EventModal = ({ onClose, onSave, userId, initialDate, event = null }) => {
       <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-2xl font-bold text-gray-800">
-            {event ? 'Edit Event' : 'Create New Event'}
+            {event 
+              ? (event.isException || event.parentEventId 
+                  ? 'Edit Event Instance' 
+                  : 'Edit Event')
+              : 'Create New Event'}
           </h2>
           <button
             onClick={onClose}
