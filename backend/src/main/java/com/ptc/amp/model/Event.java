@@ -71,7 +71,6 @@ public class Event {
     @Column(name = "canceled_dates", columnDefinition = "TEXT")
     private String canceledDates;
 
-    @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
     public Event() {

@@ -21,28 +21,67 @@ public class EventController {
     }
 
     @PostMapping
-    public ResponseEntity<Event> createEvent(@RequestBody Map<String, Object> eventData) {
+    public ResponseEntity<?> createEvent(@RequestBody Map<String, Object> eventData) {
         try {
+            // ✅ VALIDATION: Check required fields
+            if (!eventData.containsKey("userId") || eventData.get("userId") == null) {
+                return ResponseEntity.badRequest().body(Map.of(
+                    "success", false,
+                    "message", "userId is required"
+                ));
+            }
+            
+            if (!eventData.containsKey("title") || eventData.get("title") == null || 
+                eventData.get("title").toString().trim().isEmpty()) {
+                return ResponseEntity.badRequest().body(Map.of(
+                    "success", false,
+                    "message", "title is required"
+                ));
+            }
+            
+            if (!eventData.containsKey("startDateTime") || eventData.get("startDateTime") == null) {
+                return ResponseEntity.badRequest().body(Map.of(
+                    "success", false,
+                    "message", "startDateTime is required"
+                ));
+            }
+
             Event event = new Event();
             event.setUserId(((Number) eventData.get("userId")).longValue());
             event.setTitle((String) eventData.get("title"));
-            event.setDescription((String) eventData.get("description"));
-            event.setEventType((String) eventData.get("eventType"));
-            event.setLocation((String) eventData.get("location"));
-            event.setColorCode((String) eventData.get("colorCode"));
+            
+            // Optional fields with null checks
+            event.setDescription(eventData.get("description") != null 
+                ? (String) eventData.get("description") 
+                : null);
+            event.setEventType(eventData.get("eventType") != null 
+                ? (String) eventData.get("eventType") 
+                : "Other");
+            event.setLocation(eventData.get("location") != null 
+                ? (String) eventData.get("location") 
+                : null);
+            event.setColorCode(eventData.get("colorCode") != null 
+                ? (String) eventData.get("colorCode") 
+                : "#3788d8");
             
             LocalDateTime startDT = parseDateTime((String) eventData.get("startDateTime"));
-            LocalDateTime endDT = parseDateTime((String) eventData.get("endDateTime"));
-            
             event.setStartDateTime(startDT);
-            event.setEndDateTime(endDT);
+            
+            // ✅ Handle optional endDateTime
+            if (eventData.get("endDateTime") != null && 
+                !eventData.get("endDateTime").toString().isEmpty()) {
+                LocalDateTime endDT = parseDateTime((String) eventData.get("endDateTime"));
+                event.setEndDateTime(endDT);
+            } else {
+                // Default to 1 hour after start if not provided
+                event.setEndDateTime(startDT.plusHours(1));
+            }
             
             // Recurring fields - with null safety
             Boolean isRecurring = (Boolean) eventData.get("isRecurring");
             event.setIsRecurring(isRecurring != null ? isRecurring : false);
             
             if (Boolean.TRUE.equals(isRecurring)) {
-                // Only set recurring fields if isRecurring is true
                 Object patternObj = eventData.get("recurrencePattern");
                 if (patternObj != null) {
                     event.setRecurrencePattern((String) patternObj);
@@ -55,7 +94,6 @@ public class EventController {
                     event.setRecurrenceInterval(1);
                 }
                 
-                // Handle recurrence end date
                 Object endDateObj = eventData.get("recurrenceEndDate");
                 if (endDateObj != null && !endDateObj.toString().isEmpty()) {
                     String endDateStr = (String) endDateObj;
@@ -67,20 +105,18 @@ public class EventController {
                     }
                 }
                 
-                // Handle recurrence count
                 Object countObj = eventData.get("recurrenceCount");
                 if (countObj != null) {
                     event.setRecurrenceCount(((Number) countObj).intValue());
                 }
                 
-                // Handle days of week
                 Object daysObj = eventData.get("recurrenceDaysOfWeek");
                 if (daysObj != null && !daysObj.toString().isEmpty()) {
                     event.setRecurrenceDaysOfWeek((String) daysObj);
                 }
             }
             
-            // Handle exception fields
+            // Exception fields
             Object parentIdObj = eventData.get("parentEventId");
             if (parentIdObj != null) {
                 event.setParentEventId(((Number) parentIdObj).longValue());
@@ -98,10 +134,28 @@ public class EventController {
             
             Event created = eventService.createEvent(event);
             return ResponseEntity.ok(created);
+            
+        } catch (NumberFormatException e) {
+            System.err.println("Number format error: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.badRequest().body(Map.of(
+                "success", false,
+                "message", "Invalid number format in request data"
+            ));
+        } catch (ClassCastException e) {
+            System.err.println("Type casting error: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.badRequest().body(Map.of(
+                "success", false,
+                "message", "Invalid data type in request"
+            ));
         } catch (Exception e) {
             System.err.println("Error creating event: " + e.getMessage());
             e.printStackTrace();
-            throw e;
+            return ResponseEntity.internalServerError().body(Map.of(
+                "success", false,
+                "message", "Failed to create event: " + e.getMessage()
+            ));
         }
     }
 
@@ -138,7 +192,7 @@ public class EventController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Event> updateEvent(@PathVariable Long id, @RequestBody Map<String, Object> eventData) {
+    public ResponseEntity<?> updateEvent(@PathVariable Long id, @RequestBody Map<String, Object> eventData) {
         try {
             Event event = new Event();
             event.setId(id);
@@ -152,7 +206,6 @@ public class EventController {
             event.setStartDateTime(parseDateTime((String) eventData.get("startDateTime")));
             event.setEndDateTime(parseDateTime((String) eventData.get("endDateTime")));
             
-            // Recurring fields - with null safety
             Boolean isRecurring = (Boolean) eventData.get("isRecurring");
             event.setIsRecurring(isRecurring != null ? isRecurring : false);
             
@@ -191,7 +244,6 @@ public class EventController {
                 }
             }
 
-            // Preserve canceledDates
             Object canceledDatesObj = eventData.get("canceledDates");
             if (canceledDatesObj != null) {
                 event.setCanceledDates((String) canceledDatesObj);
@@ -199,10 +251,14 @@ public class EventController {
             
             Event updated = eventService.updateEvent(event);
             return ResponseEntity.ok(updated);
+            
         } catch (Exception e) {
             System.err.println("Error updating event: " + e.getMessage());
             e.printStackTrace();
-            throw e;
+            return ResponseEntity.internalServerError().body(Map.of(
+                "success", false,
+                "message", "Failed to update event: " + e.getMessage()
+            ));
         }
     }
 
@@ -227,7 +283,7 @@ public class EventController {
                 return LocalDateTime.parse(dateTimeStr, DateTimeFormatter.ISO_LOCAL_DATE_TIME);
             } catch (Exception ex) {
                 System.err.println("Failed to parse datetime: " + dateTimeStr);
-                return LocalDateTime.now();
+                throw new IllegalArgumentException("Invalid datetime format: " + dateTimeStr);
             }
         }
     }

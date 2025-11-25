@@ -159,10 +159,10 @@ const EventModal = ({ onClose, onSave, userId, initialDate, event = null }) => {
         eventType: formData.eventType,
         location: formData.location,
         colorCode: formData.colorCode,
-        userId,
+        userId: Number(userId),
         startDateTime: formatDateTimeForBackend(formData.startDateTime),
         endDateTime: formatDateTimeForBackend(formData.endDateTime),
-        isRecurring: formData.isRecurring,
+        isRecurring: Boolean(formData.isRecurring),
         recurrencePattern: formData.isRecurring ? formData.recurrencePattern : null,
         recurrenceInterval: formData.isRecurring ? formData.recurrenceInterval : 1,
         // ✅ UPDATED: Handle end type
@@ -172,7 +172,7 @@ const EventModal = ({ onClose, onSave, userId, initialDate, event = null }) => {
             : null,
         recurrenceCount:
           formData.isRecurring && formData.recurrenceEndType === 'count'
-            ? formData.recurrenceCount
+            ? Number(formData.recurrenceCount)  // ✅ FIXED - Convert to number
             : null,
         recurrenceDaysOfWeek: 
           formData.isRecurring && formData.recurrencePattern === 'WEEKLY' 
