@@ -167,17 +167,20 @@ public class EventController {
     }
 
     @PostMapping("/{id}/cancel-instance")
-    public ResponseEntity<Event> cancelInstance(
-            @PathVariable Long id,
-            @RequestBody Map<String, String> data) {
-        String dateStr = data.get("date");
-        if (dateStr == null || dateStr.isEmpty()) {
-            return ResponseEntity.badRequest().build();
+        public ResponseEntity<Event> cancelInstance(
+                @PathVariable Long id,
+                @RequestBody Map<String, String> data) {
+            String dateStr = data.get("date");
+            if (dateStr == null || dateStr.isEmpty()) {
+                return ResponseEntity.badRequest().build();
+            }
+            
+            // ✅ LOG for debugging
+            System.out.println("Canceling instance - Event ID: " + id + ", Date: " + dateStr);
+            
+            Event updated = eventService.cancelInstance(id, dateStr);
+            return ResponseEntity.ok(updated);
         }
-        
-        Event updated = eventService.cancelInstance(id, dateStr);
-        return ResponseEntity.ok(updated);
-    }
 
     // ✅ NEW: Un-cancel an instance
     @DeleteMapping("/{id}/cancel-instance")

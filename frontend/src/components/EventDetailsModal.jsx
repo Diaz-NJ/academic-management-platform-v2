@@ -136,17 +136,17 @@ const EventDetailsModal = ({ event, onClose, onEdit, onDelete, onUncancel, onVie
           </div>
 
           {/* ✅ NEW: View Series Button for Recurring Events */}
-          {(event.isRecurring || event.isRecurringInstance) && !event.isCanceled && onViewSeries && (
-            <div className="mt-6 pt-6 border-t border-gray-200">
-              <button
-                onClick={onViewSeries}
-                className="w-full flex items-center justify-center space-x-2 px-4 py-3 bg-indigo-500 text-white rounded-lg hover:bg-indigo-600 transition font-medium"
-              >
-                <List className="w-4 h-4" />
-                <span>View All Instances in Series</span>
-              </button>
-            </div>
-          )}
+            {event.isRecurring && !event.isCanceled && onViewSeries && (
+              <div className="mt-4">
+                <button
+                  onClick={onViewSeries}
+                  className="w-full flex items-center justify-center space-x-2 px-4 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition"
+                >
+                  <CalendarIcon className="w-4 h-4" />
+                  <span>View All Instances in Series</span>
+                </button>
+              </div>
+            )}
 
           {/* Actions */}
           <div className="flex flex-col space-y-2 mt-6 pt-6 border-t border-gray-200">

@@ -88,24 +88,20 @@ export const expandRecurringEvents = (events, viewStart, viewEnd) => {
           const instanceEnd = new Date(currentDate.getTime() + duration);
           
           // ✅ Check if this date is canceled
+          // Check if this date is canceled
           const instanceDateStr = instanceStart.toISOString();
           const isCanceled = canceledDates.some(cd => {
-            const canceledDate = new Date(cd);
-            return (
-              canceledDate.getFullYear() === instanceStart.getFullYear() &&
-              canceledDate.getMonth() === instanceStart.getMonth() &&
-              canceledDate.getDate() === instanceStart.getDate()
-            );
+            // ✅ Extract just date part for comparison
+            const canceledDatePart = cd.includes('T') ? cd.substring(0, 10) : cd;
+            const instanceDatePart = instanceDateStr.substring(0, 10);
+            return canceledDatePart === instanceDatePart;
           });
 
-          // ✅ NEW: Check if this date is permanently deleted
+          // Check if this date is permanently deleted
           const isDeleted = deletedDates.some(dd => {
-            const deletedDate = new Date(dd);
-            return (
-              deletedDate.getFullYear() === instanceStart.getFullYear() &&
-              deletedDate.getMonth() === instanceStart.getMonth() &&
-              deletedDate.getDate() === instanceStart.getDate()
-            );
+            const deletedDatePart = dd.includes('T') ? dd.substring(0, 10) : dd;
+            const instanceDatePart = instanceDateStr.substring(0, 10);
+            return deletedDatePart === instanceDatePart;
           });
 
           // ✅ UPDATED: Don't include deleted instances at all

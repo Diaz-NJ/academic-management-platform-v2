@@ -48,6 +48,9 @@ public class EventService {
 
         Event event = eventOpt.get();
         
+        // ✅ Extract just the date part (YYYY-MM-DD) from ISO string
+        String datePart = dateStr.substring(0, 10);
+        
         String currentCanceled = event.getCanceledDates();
         List<String> canceledList = new ArrayList<>();
         
@@ -55,8 +58,8 @@ public class EventService {
             canceledList = new ArrayList<>(Arrays.asList(currentCanceled.split(",")));
         }
         
-        if (!canceledList.contains(dateStr)) {
-            canceledList.add(dateStr);
+        if (!canceledList.contains(datePart)) {
+            canceledList.add(datePart);
         }
         
         event.setCanceledDates(String.join(",", canceledList));
