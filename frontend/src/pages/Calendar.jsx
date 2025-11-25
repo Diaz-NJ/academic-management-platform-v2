@@ -423,6 +423,12 @@ const Calendar = () => {
     days.push(i);
   }
 
+  const handleEventClick = (event, e) => {
+    if (e) e.stopPropagation();
+    setSelectedEvent(event);
+    setShowEventDetailsModal(true);
+  };
+
   if (loading) {
     return <LoadingSpinner message="Loading your calendar..." />;
   }
