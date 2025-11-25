@@ -164,15 +164,15 @@ const EventModal = ({ onClose, onSave, userId, initialDate, event = null }) => {
         endDateTime: formatDateTimeForBackend(formData.endDateTime),
         isRecurring: Boolean(formData.isRecurring),
         recurrencePattern: formData.isRecurring ? formData.recurrencePattern : null,
-        recurrenceInterval: formData.isRecurring ? formData.recurrenceInterval : 1,
-        // ✅ UPDATED: Handle end type
+        recurrenceInterval: formData.isRecurring ? Number(formData.recurrenceInterval) : 1, // ✅ FIXED: Convert to number
+        // ✅ FIXED: Handle end type properly
         recurrenceEndDate: 
           formData.isRecurring && formData.recurrenceEndType === 'date' && formData.recurrenceEndDate
             ? formData.recurrenceEndDate + 'T23:59:59' 
             : null,
         recurrenceCount:
           formData.isRecurring && formData.recurrenceEndType === 'count'
-            ? Number(formData.recurrenceCount)  // ✅ FIXED - Convert to number
+            ? Number(formData.recurrenceCount)  // ✅ FIXED: Convert to number
             : null,
         recurrenceDaysOfWeek: 
           formData.isRecurring && formData.recurrencePattern === 'WEEKLY' 
