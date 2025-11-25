@@ -1,8 +1,8 @@
 import React from 'react';
-import { X, Edit, Trash2, Clock, MapPin, Calendar, RefreshCw } from 'lucide-react';
+import { X, Edit, Trash2, Clock, MapPin, Calendar, RefreshCw, RotateCcw } from 'lucide-react';
 import { getRecurrenceDescription } from '../utils/recurringUtils';
 
-const EventDetailsModal = ({ event, onClose, onEdit, onDelete }) => {
+const EventDetailsModal = ({ event, onClose, onEdit, onDelete, onUncancel }) => {
   if (!event) return null;
 
   const getEventTypeColor = (type) => {
@@ -39,18 +39,16 @@ const EventDetailsModal = ({ event, onClose, onEdit, onDelete }) => {
             <div className="flex-1">
               <div className="flex items-center space-x-2 mb-2">
                 <h2 className={`text-2xl font-bold text-gray-800 ${
-                  event.isCanceled ? 'line-through' : '' // ✅ Strike through title if canceled
+                  event.isCanceled ? 'line-through' : ''
                 }`}>
                   {event.title}
                 </h2>
-                {/* ✅ Recurring badge */}
                 {event.isRecurring && !event.isCanceled && (
                   <div className="flex items-center space-x-1 px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium">
                     <RefreshCw className="w-3 h-3" />
                     <span>Recurring</span>
                   </div>
                 )}
-                {/* ✅ NEW: Canceled badge */}
                 {event.isCanceled && (
                   <div className="flex items-center space-x-1 px-2 py-1 bg-red-100 text-red-800 rounded-full text-xs font-medium">
                     <span>🚫</span>
@@ -75,12 +73,12 @@ const EventDetailsModal = ({ event, onClose, onEdit, onDelete }) => {
             </button>
           </div>
 
-          {/* ✅ NEW: Cancellation Notice */}
+          {/* Cancellation Notice */}
           {event.isCanceled && (
             <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
               <p className="text-sm text-red-800">
                 <strong>This event has been canceled.</strong> It will not appear in your upcoming events, 
-                but remains visible in the calendar for reference.
+                but remains visible in the calendar for reference. You can restore it or delete it permanently.
               </p>
             </div>
           )}
@@ -107,7 +105,6 @@ const EventDetailsModal = ({ event, onClose, onEdit, onDelete }) => {
               </div>
             </div>
 
-            {/* Recurring pattern description */}
             {event.isRecurring && !event.isCanceled && (
               <div>
                 <h3 className="text-sm font-semibold text-gray-700 mb-2">Recurrence</h3>
@@ -137,33 +134,48 @@ const EventDetailsModal = ({ event, onClose, onEdit, onDelete }) => {
           </div>
 
           {/* Actions */}
-          <div className="flex space-x-3 mt-6 pt-6 border-t border-gray-200">
-            {/* ✅ UPDATED: Show different button if canceled */}
-            {!event.isCanceled ? (
+          <div className="flex flex-col space-y-2 mt-6 pt-6 border-t border-gray-200">
+            {/* ✅ NEW: Show different buttons based on canceled status */}
+            {event.isCanceled ? (
               <>
+                {/* Un-cancel Button */}
+                {onUncancel && (
+                  <button
+                    onClick={onUncancel}
+                    className="flex items-center justify-center space-x-2 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition"
+                  >
+                    <RotateCcw className="w-4 h-4" />
+                    <span>Restore Event</span>
+                  </button>
+                )}
+                {/* Delete Permanently Button */}
+                <button
+                  onClick={onDelete}
+                  className="flex items-center justify-center space-x-2 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  <span>Delete Permanently</span>
+                </button>
+              </>
+            ) : (
+              <>
+                {/* Edit Button */}
                 <button
                   onClick={onEdit}
-                  className="flex-1 flex items-center justify-center space-x-2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-blue-600 transition"
+                  className="flex items-center justify-center space-x-2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-blue-600 transition"
                 >
                   <Edit className="w-4 h-4" />
                   <span>{event.isRecurring ? 'Edit Series' : 'Edit Event'}</span>
                 </button>
+                {/* Delete Button */}
                 <button
                   onClick={onDelete}
-                  className="flex-1 flex items-center justify-center space-x-2 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition"
+                  className="flex items-center justify-center space-x-2 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition"
                 >
                   <Trash2 className="w-4 h-4" />
                   <span>{event.isRecurring ? 'Delete Series' : 'Delete'}</span>
                 </button>
               </>
-            ) : (
-              <button
-                onClick={onDelete}
-                className="flex-1 flex items-center justify-center space-x-2 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition"
-              >
-                <Trash2 className="w-4 h-4" />
-                <span>Remove from Calendar</span>
-              </button>
             )}
           </div>
         </div>

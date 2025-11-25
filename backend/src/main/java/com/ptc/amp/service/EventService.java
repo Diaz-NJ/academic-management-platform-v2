@@ -35,12 +35,11 @@ public class EventService {
         return eventRepository.findByUserIdOrderByStartDateTimeAsc(userId);
     }
 
-    // ✅ NEW: Get exception events by parent ID
     public List<Event> getExceptionsByParentId(Long parentId) {
         return eventRepository.findByParentEventId(parentId);
     }
 
-    // ✅ NEW: Cancel a single instance of a recurring event
+    // Cancel a single instance of a recurring event
     public Event cancelInstance(Long eventId, String dateStr) {
         Optional<Event> eventOpt = eventRepository.findById(eventId);
         if (eventOpt.isEmpty()) {
@@ -49,7 +48,6 @@ public class EventService {
 
         Event event = eventOpt.get();
         
-        // Add date to canceledDates list
         String currentCanceled = event.getCanceledDates();
         List<String> canceledList = new ArrayList<>();
         
@@ -65,7 +63,7 @@ public class EventService {
         return eventRepository.save(event);
     }
 
-    // ✅ NEW: Remove a date from canceledDates list
+    // ✅ Un-cancel an instance (restore it to normal)
     public Event removeCanceledInstance(Long eventId, String dateStr) {
         Optional<Event> eventOpt = eventRepository.findById(eventId);
         if (eventOpt.isEmpty()) {
@@ -74,10 +72,9 @@ public class EventService {
 
         Event event = eventOpt.get();
         
-        // Remove date from canceledDates list
         String currentCanceled = event.getCanceledDates();
         if (currentCanceled == null || currentCanceled.isEmpty()) {
-            return event; // Nothing to remove
+            return event;
         }
         
         List<String> canceledList = new ArrayList<>(Arrays.asList(currentCanceled.split(",")));
@@ -92,13 +89,51 @@ public class EventService {
         return eventRepository.save(event);
     }
 
+    // ✅ NEW: Permanently delete an instance
+    public Event deleteInstance(Long eventId, String dateStr) {
+        Optional<Event> eventOpt = eventRepository.findById(eventId);
+        if (eventOpt.isEmpty()) {
+            throw new RuntimeException("Event not found");
+        }
+
+        Event event = eventOpt.get();
+        
+        // Add date to deletedDates list
+        String currentDeleted = event.getDeletedDates();
+        List<String> deletedList = new ArrayList<>();
+        
+        if (currentDeleted != null && !currentDeleted.isEmpty()) {
+            deletedList = new ArrayList<>(Arrays.asList(currentDeleted.split(",")));
+        }
+        
+        if (!deletedList.contains(dateStr)) {
+            deletedList.add(dateStr);
+        }
+        
+        event.setDeletedDates(String.join(",", deletedList));
+        
+        // Also remove from canceledDates if it was there
+        String currentCanceled = event.getCanceledDates();
+        if (currentCanceled != null && !currentCanceled.isEmpty()) {
+            List<String> canceledList = new ArrayList<>(Arrays.asList(currentCanceled.split(",")));
+            canceledList.remove(dateStr);
+            
+            if (canceledList.isEmpty()) {
+                event.setCanceledDates(null);
+            } else {
+                event.setCanceledDates(String.join(",", canceledList));
+            }
+        }
+        
+        return eventRepository.save(event);
+    }
+
     public Event updateEvent(Event event) {
         Optional<Event> existingEventOpt = eventRepository.findById(event.getId());
         
         if (existingEventOpt.isPresent()) {
             Event existingEvent = existingEventOpt.get();
             
-            // Update all basic fields
             existingEvent.setTitle(event.getTitle());
             existingEvent.setDescription(event.getDescription());
             existingEvent.setEventType(event.getEventType());
@@ -107,17 +142,13 @@ public class EventService {
             existingEvent.setLocation(event.getLocation());
             existingEvent.setColorCode(event.getColorCode());
             
-            // Update recurring fields
             existingEvent.setIsRecurring(event.getIsRecurring() != null ? event.getIsRecurring() : false);
             existingEvent.setRecurrencePattern(event.getRecurrencePattern());
             existingEvent.setRecurrenceInterval(event.getRecurrenceInterval());
             existingEvent.setRecurrenceEndDate(event.getRecurrenceEndDate());
             existingEvent.setRecurrenceDaysOfWeek(event.getRecurrenceDaysOfWeek());
-            
-            // ✅ NEW: Update new fields
             existingEvent.setRecurrenceCount(event.getRecurrenceCount());
             
-            // Preserve canceledDates if provided
             if (event.getCanceledDates() != null) {
                 existingEvent.setCanceledDates(event.getCanceledDates());
             }
@@ -131,31 +162,28 @@ public class EventService {
         return eventRepository.save(event);
     }
 
-            public boolean deleteEvent(Long id) {
-                if (eventRepository.existsById(id)) {
-                    Optional<Event> eventOpt = eventRepository.findById(id);
-                    if (eventOpt.isEmpty()) {
-                        return false;
-                    }
-                    
-                    Event event = eventOpt.get();
-                    
-                    // ✅ NEW: If it's a cancelled instance, just remove from parent's canceledDates
-                    if (event.getIsCanceled() != null && event.getIsCanceled()) {
-                        // This is a cancelled instance marker - we can safely delete it
-                        eventRepository.deleteById(id);
-                        return true;
-                    }
-                    
-                    // ✅ For regular events, also delete all exception events
-                    List<Event> exceptions = getExceptionsByParentId(id);
-                    for (Event exception : exceptions) {
-                        eventRepository.deleteById(exception.getId());
-                    }
-                    
-                    eventRepository.deleteById(id);
-                    return true;
-                }
+    public boolean deleteEvent(Long id) {
+        if (eventRepository.existsById(id)) {
+            Optional<Event> eventOpt = eventRepository.findById(id);
+            if (eventOpt.isEmpty()) {
                 return false;
             }
+            
+            Event event = eventOpt.get();
+            
+            if (event.getIsCanceled() != null && event.getIsCanceled()) {
+                eventRepository.deleteById(id);
+                return true;
+            }
+            
+            List<Event> exceptions = getExceptionsByParentId(id);
+            for (Event exception : exceptions) {
+                eventRepository.deleteById(exception.getId());
+            }
+            
+            eventRepository.deleteById(id);
+            return true;
+        }
+        return false;
+    }
 }

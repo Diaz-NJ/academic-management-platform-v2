@@ -49,11 +49,10 @@ public class Event {
     @Column(name = "recurrence_days_of_week", length = 50)
     private String recurrenceDaysOfWeek;
 
-    // ✅ NEW: End after X occurrences
     @Column(name = "recurrence_count")
     private Integer recurrenceCount;
 
-    // ✅ NEW: For single instance exceptions
+    // For single instance exceptions
     @Column(name = "parent_event_id")
     private Long parentEventId;
 
@@ -63,13 +62,16 @@ public class Event {
     @Column(name = "exception_date")
     private LocalDateTime exceptionDate;
 
-    // ✅ NEW: For canceled instances
     @Column(name = "is_canceled")
     private Boolean isCanceled = false;
 
-    // ✅ NEW: Canceled dates (comma-separated ISO dates)
+    // Canceled dates (comma-separated ISO dates)
     @Column(name = "canceled_dates", columnDefinition = "TEXT")
     private String canceledDates;
+
+    // ✅ NEW: Permanently deleted dates (comma-separated ISO dates)
+    @Column(name = "deleted_dates", columnDefinition = "TEXT")
+    private String deletedDates;
 
     private LocalDateTime createdAt;
 
@@ -127,7 +129,6 @@ public class Event {
     public String getRecurrenceDaysOfWeek() { return recurrenceDaysOfWeek; }
     public void setRecurrenceDaysOfWeek(String recurrenceDaysOfWeek) { this.recurrenceDaysOfWeek = recurrenceDaysOfWeek; }
 
-    // ✅ NEW getters and setters
     public Integer getRecurrenceCount() { return recurrenceCount; }
     public void setRecurrenceCount(Integer recurrenceCount) { this.recurrenceCount = recurrenceCount; }
 
@@ -145,4 +146,8 @@ public class Event {
 
     public String getCanceledDates() { return canceledDates; }
     public void setCanceledDates(String canceledDates) { this.canceledDates = canceledDates; }
+
+    // ✅ NEW: Getter and setter for deletedDates
+    public String getDeletedDates() { return deletedDates; }
+    public void setDeletedDates(String deletedDates) { this.deletedDates = deletedDates; }
 }

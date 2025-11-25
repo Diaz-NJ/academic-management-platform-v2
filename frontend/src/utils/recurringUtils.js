@@ -26,7 +26,7 @@ export const expandRecurringEvents = (events, viewStart, viewEnd) => {
     const eventStart = new Date(event.startDateTime);
     const eventEnd = new Date(event.endDateTime);
     
-    // ✅ UPDATED: Handle multiple end conditions
+    // ✅ Handle multiple end conditions
     let recurrenceEnd;
     if (event.recurrenceCount) {
       // Calculate end date based on count
@@ -50,6 +50,11 @@ export const expandRecurringEvents = (events, viewStart, viewEnd) => {
     // ✅ Parse canceled dates
     const canceledDates = event.canceledDates 
       ? event.canceledDates.split(',').map(d => d.trim()) 
+      : [];
+
+    // ✅ NEW: Parse deleted dates
+    const deletedDates = event.deletedDates 
+      ? event.deletedDates.split(',').map(d => d.trim()) 
       : [];
 
     // Determine which days to generate events for
@@ -93,15 +98,28 @@ export const expandRecurringEvents = (events, viewStart, viewEnd) => {
             );
           });
 
-          expandedEvents.push({
-            ...event,
-            id: `${event.id}-${instanceStart.toISOString()}`,
-            originalId: event.id,
-            startDateTime: instanceStart.toISOString(),
-            endDateTime: instanceEnd.toISOString(),
-            isRecurringInstance: true,
-            isCanceled: isCanceled, // ✅ Mark if canceled
+          // ✅ NEW: Check if this date is permanently deleted
+          const isDeleted = deletedDates.some(dd => {
+            const deletedDate = new Date(dd);
+            return (
+              deletedDate.getFullYear() === instanceStart.getFullYear() &&
+              deletedDate.getMonth() === instanceStart.getMonth() &&
+              deletedDate.getDate() === instanceStart.getDate()
+            );
           });
+
+          // ✅ UPDATED: Don't include deleted instances at all
+          if (!isDeleted) {
+            expandedEvents.push({
+              ...event,
+              id: `${event.id}-${instanceStart.toISOString()}`,
+              originalId: event.id,
+              startDateTime: instanceStart.toISOString(),
+              endDateTime: instanceEnd.toISOString(),
+              isRecurringInstance: true,
+              isCanceled: isCanceled,
+            });
+          }
           
           occurrenceCount++;
         }
@@ -230,7 +248,7 @@ export const getRecurrenceDescription = (event) => {
       description = 'Custom recurrence';
   }
 
-  // ✅ UPDATED: Handle count vs date
+  // ✅ Handle count vs date
   if (recurrenceCount) {
     description += `, ${recurrenceCount} times`;
   } else if (recurrenceEndDate) {

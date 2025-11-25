@@ -56,16 +56,14 @@ const Calendar = () => {
       setLoading(true);
       const response = await eventAPI.getEvents(user.id);
       
-      // ✅ CHANGED: Store original events separately
       const originalEvents = response.data;
       
-      // Expand recurring events for current month view
       const startOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
       const endOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
       const expanded = expandRecurringEvents(originalEvents, startOfMonth, endOfMonth);
       
       setEvents(expanded);
-      setOriginalEvents(originalEvents); // ✅ ADD THIS LINE
+      setOriginalEvents(originalEvents);
     } catch (error) {
       console.error('Error loading events:', error);
     } finally {
@@ -83,19 +81,17 @@ const Calendar = () => {
     console.log('Event saved, reloading...'); 
     setShowEventModal(false);
     setEditingEvent(null);
-    await loadEvents(); // Reload to show changes
+    await loadEvents();
     showToast('Changes saved successfully!', 'success');
   };
 
   const handleEditFromDetails = () => {
     setShowEventDetailsModal(false);
     
-    // If it's a recurring event (either original or instance), show dialog
     if (selectedEvent.isRecurring || selectedEvent.isRecurringInstance) {
       setSelectedRecurringEvent(selectedEvent);
       setShowRecurringEditDialog(true);
     } else {
-      // Non-recurring, edit normally
       setEditingEvent(selectedEvent);
       setSelectedDate(null);
       setShowEventModal(true);
@@ -105,7 +101,6 @@ const Calendar = () => {
   const handleEditSeriesClick = () => {
     setShowRecurringEditDialog(false);
     
-    // Find the original event
     const eventToEdit = selectedRecurringEvent.isRecurringInstance 
       ? originalEvents.find(e => e.id === selectedRecurringEvent.originalId)
       : selectedRecurringEvent;
@@ -115,109 +110,109 @@ const Calendar = () => {
       return;
     }
     
-    console.log('Editing series:', eventToEdit); // Debug log
+    console.log('Editing series:', eventToEdit);
     setEditingEvent(eventToEdit);
     setSelectedDate(null);
     setShowEventModal(true);
   };
 
-const handleEditInstanceClick = async () => {
-  setShowRecurringEditDialog(false);
-  
-  try {
-    // Get the original recurring event
-    const originalEventId = selectedRecurringEvent.isRecurringInstance 
-      ? selectedRecurringEvent.originalId 
-      : selectedRecurringEvent.id;
+  const handleEditInstanceClick = async () => {
+    setShowRecurringEditDialog(false);
     
-    const originalEvent = originalEvents.find(e => e.id === originalEventId);
-    
-    if (!originalEvent) {
-      showToast('Error: Could not find original event', 'error');
-      console.error('Original event not found for ID:', originalEventId);
-      return;
-    }
-
-    // Check if an exception already exists for this date
-    const instanceDate = new Date(selectedRecurringEvent.startDateTime);
-    const existingExceptions = await eventAPI.getExceptions(originalEvent.id);
-    
-    const existingException = existingExceptions.data?.find(exc => {
-      const excDate = new Date(exc.exceptionDate);
-      return (
-        excDate.getFullYear() === instanceDate.getFullYear() &&
-        excDate.getMonth() === instanceDate.getMonth() &&
-        excDate.getDate() === instanceDate.getDate()
-      );
-    });
-
-    if (existingException) {
-      // Edit existing exception
-      console.log('Editing existing exception:', existingException);
-      setEditingEvent(existingException);
-    } else {
-      // Create new exception event data
-      const exceptionEventData = {
-        ...originalEvent,
-        id: null, // This will be a NEW event
-        isRecurring: false, // Single event
-        isException: true,
-        parentEventId: originalEvent.id,
-        exceptionDate: instanceDate.toISOString(),
-        startDateTime: selectedRecurringEvent.startDateTime,
-        endDateTime: selectedRecurringEvent.endDateTime,
-        // Clear recurring fields
-        recurrencePattern: null,
-        recurrenceInterval: null,
-        recurrenceEndDate: null,
-        recurrenceDaysOfWeek: null,
-        recurrenceEndType: 'never',
-        recurrenceCount: null,
-      };
+    try {
+      const originalEventId = selectedRecurringEvent.isRecurringInstance 
+        ? selectedRecurringEvent.originalId 
+        : selectedRecurringEvent.id;
       
-      console.log('Creating new exception:', exceptionEventData);
-      setEditingEvent(exceptionEventData);
+      const originalEvent = originalEvents.find(e => e.id === originalEventId);
+      
+      if (!originalEvent) {
+        showToast('Error: Could not find original event', 'error');
+        console.error('Original event not found for ID:', originalEventId);
+        return;
+      }
+
+      const instanceDate = new Date(selectedRecurringEvent.startDateTime);
+      const existingExceptions = await eventAPI.getExceptions(originalEvent.id);
+      
+      const existingException = existingExceptions.data?.find(exc => {
+        const excDate = new Date(exc.exceptionDate);
+        return (
+          excDate.getFullYear() === instanceDate.getFullYear() &&
+          excDate.getMonth() === instanceDate.getMonth() &&
+          excDate.getDate() === instanceDate.getDate()
+        );
+      });
+
+      if (existingException) {
+        console.log('Editing existing exception:', existingException);
+        setEditingEvent(existingException);
+      } else {
+        const exceptionEventData = {
+          ...originalEvent,
+          id: null,
+          isRecurring: false,
+          isException: true,
+          parentEventId: originalEvent.id,
+          exceptionDate: instanceDate.toISOString(),
+          startDateTime: selectedRecurringEvent.startDateTime,
+          endDateTime: selectedRecurringEvent.endDateTime,
+          recurrencePattern: null,
+          recurrenceInterval: null,
+          recurrenceEndDate: null,
+          recurrenceDaysOfWeek: null,
+          recurrenceEndType: 'never',
+          recurrenceCount: null,
+        };
+        
+        console.log('Creating new exception:', exceptionEventData);
+        setEditingEvent(exceptionEventData);
+      }
+      
+      setSelectedDate(null);
+      setShowEventModal(true);
+    } catch (error) {
+      console.error('Error setting up instance edit:', error);
+      showToast('Failed to prepare event for editing', 'error');
     }
+  };
+
+  const handleDeleteFromDetails = () => {
+    setShowEventDetailsModal(false);
     
-    setSelectedDate(null);
-    setShowEventModal(true);
-  } catch (error) {
-    console.error('Error setting up instance edit:', error);
-    showToast('Failed to prepare event for editing', 'error');
-  }
-};
-
-const handleDeleteFromDetails = () => {
-  setShowEventDetailsModal(false);
-  
-  // ✅ NEW: If it's cancelled, just delete it directly
-  if (selectedEvent.isCanceled) {
+    // For canceled or non-canceled instances, just show simple delete dialog
     setEventToDelete(selectedEvent);
     setShowDeleteDialog(true);
-    return;
-  }
-  
-  // If it's a recurring event, show options dialog
-  if (selectedEvent.isRecurring || selectedEvent.isRecurringInstance) {
-    setSelectedRecurringEvent(selectedEvent);
-    setShowRecurringDeleteDialog(true);
-  } else {
-    // Non-recurring, delete normally
-    setEventToDelete(selectedEvent);
-    setShowDeleteDialog(true);
-  }
-};
+  };
 
-const handleDeleteSeriesClick = () => {
-  setShowRecurringDeleteDialog(false);
-  
-  // Find the original event to delete
-  const eventToDelete = selectedRecurringEvent.isRecurringInstance 
-    ? originalEvents.find(e => e.id === selectedRecurringEvent.originalId) || selectedRecurringEvent
-    : selectedRecurringEvent;
-  
-  setEventToDelete(eventToDelete);
-  setShowDeleteDialog(true);
+  // ✅ NEW: Un-cancel handler
+  const handleUncancelFromDetails = async () => {
+    setShowEventDetailsModal(false);
+    
+    try {
+      const instanceDate = new Date(selectedEvent.startDateTime).toISOString();
+      const originalId = selectedEvent.isRecurringInstance 
+        ? selectedEvent.originalId 
+        : selectedEvent.id;
+      
+      await eventAPI.uncancelInstance(originalId, instanceDate);
+      showToast('Event restored successfully', 'success');
+      loadEvents();
+    } catch (error) {
+      console.error('Error un-canceling event:', error);
+      showToast('Failed to restore event', 'error');
+    }
+  };
+
+  const handleDeleteSeriesClick = () => {
+    setShowRecurringDeleteDialog(false);
+    
+    const eventToDelete = selectedRecurringEvent.isRecurringInstance 
+      ? originalEvents.find(e => e.id === selectedRecurringEvent.originalId) || selectedRecurringEvent
+      : selectedRecurringEvent;
+    
+    setEventToDelete(eventToDelete);
+    setShowDeleteDialog(true);
   }; 
 
   const handleCancelInstanceClick = async () => {
@@ -248,23 +243,27 @@ const handleDeleteSeriesClick = () => {
     if (!eventToDelete) return;
 
     try {
-      // ✅ NEW: Handle cancelled recurring instances differently
+      // ✅ FIXED: Permanently delete canceled or regular recurring instances
       if (eventToDelete.isCanceled && eventToDelete.isRecurringInstance) {
-        // This is a cancelled instance - remove from parent's canceledDates
+        // This is a canceled instance - permanently delete it
         const instanceDate = new Date(eventToDelete.startDateTime).toISOString();
-        await eventAPI.removeCanceledInstance(eventToDelete.originalId, instanceDate);
-        showToast('Cancelled event removed from calendar', 'success');
-      } else if (eventToDelete.isRecurringInstance) {
-        // Regular recurring instance - delete the whole series
-        await eventAPI.deleteEvent(eventToDelete.originalId);
-        showToast('Event series deleted successfully', 'success');
+        const originalId = eventToDelete.originalId;
+        
+        await eventAPI.deleteInstance(originalId, instanceDate);
+        showToast('Canceled event permanently deleted', 'success');
+        loadEvents();
+      } else if (eventToDelete.isRecurringInstance && !eventToDelete.isCanceled) {
+        // Regular recurring instance (not canceled) - show recurring delete dialog instead
+        setShowDeleteDialog(false);
+        setSelectedRecurringEvent(eventToDelete);
+        setShowRecurringDeleteDialog(true);
+        return;
       } else {
-        // Non-recurring event - delete normally
+        // Non-recurring event or original recurring event - delete normally
         await eventAPI.deleteEvent(eventToDelete.id);
         showToast('Event deleted successfully', 'success');
+        loadEvents();
       }
-      
-      loadEvents();
     } catch (error) {
       console.error('Error deleting event:', error);
       showToast('Failed to delete event', 'error');
@@ -273,25 +272,23 @@ const handleDeleteSeriesClick = () => {
     }
   };
 
-const handleEditEvent = (event, e) => {
-  e.stopPropagation();
-  
-  // ✅ CHANGED: Use originalEvents
-  const eventToEdit = event.isRecurringInstance 
-    ? originalEvents.find(e => e.id === event.originalId)
-    : event;
-  
-  // ✅ ADD: Error handling
-  if (!eventToEdit) {
-    console.error('Could not find event to edit');
-    showToast('Error loading event for editing', 'error');
-    return;
-  }
-  
-  setEditingEvent(eventToEdit);
-  setSelectedDate(null);
-  setShowEventModal(true);
-};
+  const handleEditEvent = (event, e) => {
+    e.stopPropagation();
+    
+    const eventToEdit = event.isRecurringInstance 
+      ? originalEvents.find(e => e.id === event.originalId)
+      : event;
+    
+    if (!eventToEdit) {
+      console.error('Could not find event to edit');
+      showToast('Error loading event for editing', 'error');
+      return;
+    }
+    
+    setEditingEvent(eventToEdit);
+    setSelectedDate(null);
+    setShowEventModal(true);
+  };
 
   const getDaysInMonth = (date) => {
     const year = date.getFullYear();
@@ -345,6 +342,19 @@ const handleEditEvent = (event, e) => {
   if (loading) {
     return <LoadingSpinner message="Loading your calendar..." />;
   }
+
+  // ✅ UPDATED: Better delete message for canceled events
+  const getDeleteMessage = () => {
+    if (!eventToDelete) return '';
+    
+    if (eventToDelete.isCanceled) {
+      return `Are you sure you want to permanently remove this canceled event from your calendar? This will hide it completely.`;
+    } else if (eventToDelete.isRecurring || eventToDelete.isRecurringInstance) {
+      return `Are you sure you want to delete "${eventToDelete.title}"? This will delete all instances of this recurring event. This action cannot be undone.`;
+    } else {
+      return `Are you sure you want to delete "${eventToDelete.title}"? This action cannot be undone.`;
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -417,7 +427,7 @@ const handleEditEvent = (event, e) => {
                   <div 
                     key={event.id} 
                     className={`flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition cursor-pointer ${
-                      event.isCanceled ? 'opacity-60' : '' // ✅ Dim canceled in search
+                      event.isCanceled ? 'opacity-60' : ''
                     }`}
                     onClick={() => {
                       setSelectedEvent(event);
@@ -432,14 +442,14 @@ const handleEditEvent = (event, e) => {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center space-x-2">
                           <h4 className={`font-medium text-gray-800 truncate ${
-                            event.isCanceled ? 'line-through' : '' // ✅ Strike through in search
+                            event.isCanceled ? 'line-through' : ''
                           }`}>
                             {event.title}
                           </h4>
                           {event.isRecurring && !event.isCanceled && (
                             <RefreshCw className="w-4 h-4 text-blue-500 flex-shrink-0" title="Recurring event" />
                           )}
-                          {event.isCanceled && ( // ✅ Show canceled badge
+                          {event.isCanceled && (
                             <span className="px-2 py-1 bg-red-100 text-red-800 rounded-full text-xs font-medium">
                               Canceled
                             </span>
@@ -529,22 +539,21 @@ const handleEditEvent = (event, e) => {
                       key={event.id}
                       onClick={(e) => handleEventClick(event, e)}
                       className={`relative text-xs text-white rounded px-1 py-0.5 truncate cursor-pointer hover:opacity-80 transition ${
-                        event.isCanceled ? 'opacity-50' : '' // ✅ ADD THIS
+                        event.isCanceled ? 'opacity-50' : ''
                       }`}           
-                          style={{ 
-                            backgroundColor: event.colorCode || '#3788d8',
-                            textDecoration: event.isCanceled ? 'line-through' : 'none' // ✅ ADD THIS
-                          }}
-                          title={event.isCanceled ? `${event.title} (Canceled)` : event.title} // ✅ UPDATE THIS
-                        >
-                      {/* ✅ NEW: Recurring indicator on calendar */}
+                      style={{ 
+                        backgroundColor: event.colorCode || '#3788d8',
+                        textDecoration: event.isCanceled ? 'line-through' : 'none'
+                      }}
+                      title={event.isCanceled ? `${event.title} (Canceled)` : event.title}
+                    >
                       <div className="flex items-center space-x-1">
                         {event.isRecurring && !event.isCanceled && (
                           <RefreshCw className="w-3 h-3 flex-shrink-0" />
                         )}
-                        {event.isCanceled && ( // ✅ ADD THIS
-                            <span className="text-xs">🚫</span>
-                          )}
+                        {event.isCanceled && (
+                          <span className="text-xs">🚫</span>
+                        )}
                         <span className="truncate">{event.title}</span>
                       </div>
                     </div>
@@ -593,7 +602,6 @@ const handleEditEvent = (event, e) => {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center space-x-2">
                         <h4 className="font-medium text-gray-800 truncate">{event.title}</h4>
-                        {/* ✅ NEW: Recurring indicator */}
                         {event.isRecurring && (
                           <RefreshCw className="w-4 h-4 text-blue-500 flex-shrink-0" title="Recurring event" />
                         )}
@@ -648,13 +656,9 @@ const handleEditEvent = (event, e) => {
           setEventToDelete(null);
         }}
         onConfirm={handleDeleteConfirm}
-        title="Delete Event"
-        message={`Are you sure you want to delete "${eventToDelete?.title}"?${
-          eventToDelete?.isRecurring 
-            ? ' This will delete all instances of this recurring event.' 
-            : ' This action cannot be undone.'
-        }`}
-        confirmText="Delete"
+        title={eventToDelete?.isCanceled ? "Remove Canceled Event" : "Delete Event"}
+        message={getDeleteMessage()}
+        confirmText={eventToDelete?.isCanceled ? "Remove" : "Delete"}
         cancelText="Cancel"
         type="danger"
       />
@@ -667,7 +671,7 @@ const handleEditEvent = (event, e) => {
             setSelectedDate(null);
             setEditingEvent(null);
           }}
-          onSave={handleEventSaved}  // ✅ CHANGE: was just loadEvents
+          onSave={handleEventSaved}
           userId={user.id}
           initialDate={selectedDate}
           event={editingEvent}
@@ -684,6 +688,7 @@ const handleEditEvent = (event, e) => {
           }}
           onEdit={handleEditFromDetails}
           onDelete={handleDeleteFromDetails}
+          onUncancel={selectedEvent.isCanceled ? handleUncancelFromDetails : null}
         />
       )}
 

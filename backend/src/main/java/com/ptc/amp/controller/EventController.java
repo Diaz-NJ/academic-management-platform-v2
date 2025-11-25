@@ -23,7 +23,6 @@ public class EventController {
     @PostMapping
     public ResponseEntity<?> createEvent(@RequestBody Map<String, Object> eventData) {
         try {
-            // ✅ VALIDATION: Check required fields
             if (!eventData.containsKey("userId") || eventData.get("userId") == null) {
                 return ResponseEntity.badRequest().body(Map.of(
                     "success", false,
@@ -50,7 +49,6 @@ public class EventController {
             event.setUserId(((Number) eventData.get("userId")).longValue());
             event.setTitle((String) eventData.get("title"));
             
-            // Optional fields with null checks
             event.setDescription(eventData.get("description") != null 
                 ? (String) eventData.get("description") 
                 : null);
@@ -67,17 +65,14 @@ public class EventController {
             LocalDateTime startDT = parseDateTime((String) eventData.get("startDateTime"));
             event.setStartDateTime(startDT);
             
-            // ✅ Handle optional endDateTime
             if (eventData.get("endDateTime") != null && 
                 !eventData.get("endDateTime").toString().isEmpty()) {
                 LocalDateTime endDT = parseDateTime((String) eventData.get("endDateTime"));
                 event.setEndDateTime(endDT);
             } else {
-                // Default to 1 hour after start if not provided
                 event.setEndDateTime(startDT.plusHours(1));
             }
             
-            // Recurring fields - with null safety
             Boolean isRecurring = (Boolean) eventData.get("isRecurring");
             event.setIsRecurring(isRecurring != null ? isRecurring : false);
             
@@ -116,7 +111,6 @@ public class EventController {
                 }
             }
             
-            // Exception fields
             Object parentIdObj = eventData.get("parentEventId");
             if (parentIdObj != null) {
                 event.setParentEventId(((Number) parentIdObj).longValue());
@@ -185,8 +179,9 @@ public class EventController {
         return ResponseEntity.ok(updated);
     }
 
-        @DeleteMapping("/{id}/cancel-instance")
-    public ResponseEntity<?> removeCanceledInstance(
+    // ✅ NEW: Un-cancel an instance
+    @DeleteMapping("/{id}/cancel-instance")
+    public ResponseEntity<?> uncancelInstance(
             @PathVariable Long id,
             @RequestBody Map<String, String> data) {
         String dateStr = data.get("date");
@@ -206,6 +201,20 @@ public class EventController {
                 "message", "Event not found"
             ));
         }
+    }
+
+    // ✅ NEW: Permanently delete an instance
+    @PostMapping("/{id}/delete-instance")
+    public ResponseEntity<Event> deleteInstance(
+            @PathVariable Long id,
+            @RequestBody Map<String, String> data) {
+        String dateStr = data.get("date");
+        if (dateStr == null || dateStr.isEmpty()) {
+            return ResponseEntity.badRequest().build();
+        }
+        
+        Event updated = eventService.deleteInstance(id, dateStr);
+        return ResponseEntity.ok(updated);
     }
 
     @GetMapping("/{id}/exceptions")

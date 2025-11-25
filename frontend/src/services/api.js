@@ -38,7 +38,16 @@ export const eventAPI = {
   updateEvent: (id, event) => api.put(`/events/${id}`, event),
   deleteEvent: (id) => api.delete(`/events/${id}`),
   cancelInstance: (id, date) => api.post(`/events/${id}/cancel-instance`, { date }),
-  removeCanceledInstance: (id, date) => api.delete(`/events/${id}/cancel-instance`, { data: { date } }),
+  // ✅ Un-cancel an instance (restore it to normal)
+  uncancelInstance: (id, date) => {
+    return api.request({
+      method: 'delete',
+      url: `/events/${id}/cancel-instance`,
+      data: { date }
+    });
+  },
+  // ✅ NEW: Permanently delete an instance
+  deleteInstance: (id, date) => api.post(`/events/${id}/delete-instance`, { date }),
   getExceptions: (parentId) => api.get(`/events/${parentId}/exceptions`),
 };
 
