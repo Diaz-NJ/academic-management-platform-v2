@@ -1,8 +1,10 @@
+// frontend/src/components/EventDetailsModal.jsx
+
 import React from 'react';
-import { X, Edit, Trash2, Clock, MapPin, Calendar, RefreshCw, RotateCcw } from 'lucide-react';
+import { X, Edit, Trash2, Clock, MapPin, Calendar, RefreshCw, RotateCcw, List } from 'lucide-react';
 import { getRecurrenceDescription } from '../utils/recurringUtils';
 
-const EventDetailsModal = ({ event, onClose, onEdit, onDelete, onUncancel }) => {
+const EventDetailsModal = ({ event, onClose, onEdit, onDelete, onUncancel, onViewSeries }) => {
   if (!event) return null;
 
   const getEventTypeColor = (type) => {
@@ -133,9 +135,21 @@ const EventDetailsModal = ({ event, onClose, onEdit, onDelete, onUncancel }) => 
             )}
           </div>
 
+          {/* ✅ NEW: View Series Button for Recurring Events */}
+          {(event.isRecurring || event.isRecurringInstance) && !event.isCanceled && onViewSeries && (
+            <div className="mt-6 pt-6 border-t border-gray-200">
+              <button
+                onClick={onViewSeries}
+                className="w-full flex items-center justify-center space-x-2 px-4 py-3 bg-indigo-500 text-white rounded-lg hover:bg-indigo-600 transition font-medium"
+              >
+                <List className="w-4 h-4" />
+                <span>View All Instances in Series</span>
+              </button>
+            </div>
+          )}
+
           {/* Actions */}
           <div className="flex flex-col space-y-2 mt-6 pt-6 border-t border-gray-200">
-            {/* ✅ NEW: Show different buttons based on canceled status */}
             {event.isCanceled ? (
               <>
                 {/* Un-cancel Button */}

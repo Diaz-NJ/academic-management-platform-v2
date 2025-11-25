@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { eventAPI } from '../services/api';
-import { Plus, ChevronLeft, ChevronRight, RefreshCw } from 'lucide-react';
+import { Plus, ChevronLeft, ChevronRight, RefreshCw, AlertTriangle, List } from 'lucide-react';
 import EventModal from '../components/EventModal';
 import ConfirmDialog from '../components/ConfirmDialog';
 import EventDetailsModal from '../components/EventDetailsModal';
@@ -12,6 +12,9 @@ import { Calendar as CalendarIcon } from 'lucide-react';
 import { expandRecurringEvents } from '../utils/recurringUtils';
 import RecurringEditDialog from '../components/RecurringEditDialog';
 import RecurringDeleteDialog from '../components/RecurringDeleteDialog';
+import RecurringSeriesView from '../components/RecurringSeriesView';
+import ConflictWarningModal from '../components/ConflictWarningModal';
+import useConflictDetection from '../hooks/useConflictDetection';
 
 const Calendar = () => {
   const { user } = useAuth();
@@ -32,6 +35,16 @@ const Calendar = () => {
   const [showRecurringEditDialog, setShowRecurringEditDialog] = useState(false);
   const [showRecurringDeleteDialog, setShowRecurringDeleteDialog] = useState(false);
   const [selectedRecurringEvent, setSelectedRecurringEvent] = useState(null);
+  
+  // ✅ NEW: Recurring Series View
+  const [showRecurringSeriesView, setShowRecurringSeriesView] = useState(false);
+  const [seriesEvent, setSeriesEvent] = useState(null);
+  
+  // ✅ NEW: Conflict Detection
+  const { conflicts, checkEventConflict, hasConflicts } = useConflictDetection(events);
+  const [showConflictWarning, setShowConflictWarning] = useState(false);
+  const [pendingEvent, setPendingEvent] = useState(null);
+  const [detectedConflicts, setDetectedConflicts] = useState([]);
 
   useEffect(() => {
     loadEvents();
@@ -71,18 +84,72 @@ const Calendar = () => {
     }
   };
 
+  // ✅ NEW: Show recurring series view
+  const handleViewSeriesClick = (event) => {
+    const originalEvent = event.isRecurringInstance 
+      ? originalEvents.find(e => e.id === event.originalId)
+      : event;
+    
+    setSeriesEvent(originalEvent);
+    setShowRecurringSeriesView(true);
+  };
+
   const handleEventClick = (event, e) => {
     e.stopPropagation();
     setSelectedEvent(event);
     setShowEventDetailsModal(true);
   };
 
-  const handleEventSaved = async () => {
-    console.log('Event saved, reloading...'); 
-    setShowEventModal(false);
-    setEditingEvent(null);
-    await loadEvents();
-    showToast('Changes saved successfully!', 'success');
+  // ✅ MODIFIED: Check for conflicts before saving
+  const handleEventSaved = async (eventData) => {
+    // Check for conflicts
+    const { hasConflict, conflicts: foundConflicts } = checkEventConflict(
+      eventData, 
+      editingEvent?.id
+    );
+
+    if (hasConflict) {
+      setPendingEvent(eventData);
+      setDetectedConflicts(foundConflicts);
+      setShowConflictWarning(true);
+      return; // Don't save yet, wait for user decision
+    }
+
+    // No conflicts, proceed with save
+    await saveEvent(eventData);
+  };
+
+  const saveEvent = async (eventData) => {
+    try {
+      if (editingEvent) {
+        await eventAPI.updateEvent(editingEvent.id, eventData);
+      } else {
+        await eventAPI.createEvent(eventData);
+      }
+      
+      setShowEventModal(false);
+      setEditingEvent(null);
+      await loadEvents();
+      showToast('Event saved successfully!', 'success');
+    } catch (error) {
+      console.error('Error saving event:', error);
+      showToast('Failed to save event', 'error');
+    }
+  };
+
+  // ✅ NEW: Handle conflict resolution
+  const handleProceedWithConflict = async () => {
+    setShowConflictWarning(false);
+    await saveEvent(pendingEvent);
+    setPendingEvent(null);
+    setDetectedConflicts([]);
+  };
+
+  const handleCancelWithConflict = () => {
+    setShowConflictWarning(false);
+    setPendingEvent(null);
+    setDetectedConflicts([]);
+    // Keep modal open so user can edit
   };
 
   const handleEditFromDetails = () => {
@@ -110,7 +177,6 @@ const Calendar = () => {
       return;
     }
     
-    console.log('Editing series:', eventToEdit);
     setEditingEvent(eventToEdit);
     setSelectedDate(null);
     setShowEventModal(true);
@@ -128,7 +194,6 @@ const Calendar = () => {
       
       if (!originalEvent) {
         showToast('Error: Could not find original event', 'error');
-        console.error('Original event not found for ID:', originalEventId);
         return;
       }
 
@@ -145,7 +210,6 @@ const Calendar = () => {
       });
 
       if (existingException) {
-        console.log('Editing existing exception:', existingException);
         setEditingEvent(existingException);
       } else {
         const exceptionEventData = {
@@ -165,7 +229,6 @@ const Calendar = () => {
           recurrenceCount: null,
         };
         
-        console.log('Creating new exception:', exceptionEventData);
         setEditingEvent(exceptionEventData);
       }
       
@@ -179,13 +242,10 @@ const Calendar = () => {
 
   const handleDeleteFromDetails = () => {
     setShowEventDetailsModal(false);
-    
-    // For canceled or non-canceled instances, just show simple delete dialog
     setEventToDelete(selectedEvent);
     setShowDeleteDialog(true);
   };
 
-  // ✅ NEW: Un-cancel handler
   const handleUncancelFromDetails = async () => {
     setShowEventDetailsModal(false);
     
@@ -213,7 +273,7 @@ const Calendar = () => {
     
     setEventToDelete(eventToDelete);
     setShowDeleteDialog(true);
-  }; 
+  };
 
   const handleCancelInstanceClick = async () => {
     setShowRecurringDeleteDialog(false);
@@ -243,9 +303,7 @@ const Calendar = () => {
     if (!eventToDelete) return;
 
     try {
-      // ✅ FIXED: Permanently delete canceled or regular recurring instances
       if (eventToDelete.isCanceled && eventToDelete.isRecurringInstance) {
-        // This is a canceled instance - permanently delete it
         const instanceDate = new Date(eventToDelete.startDateTime).toISOString();
         const originalId = eventToDelete.originalId;
         
@@ -253,13 +311,11 @@ const Calendar = () => {
         showToast('Canceled event permanently deleted', 'success');
         loadEvents();
       } else if (eventToDelete.isRecurringInstance && !eventToDelete.isCanceled) {
-        // Regular recurring instance (not canceled) - show recurring delete dialog instead
         setShowDeleteDialog(false);
         setSelectedRecurringEvent(eventToDelete);
         setShowRecurringDeleteDialog(true);
         return;
       } else {
-        // Non-recurring event or original recurring event - delete normally
         await eventAPI.deleteEvent(eventToDelete.id);
         showToast('Event deleted successfully', 'success');
         loadEvents();
@@ -270,24 +326,6 @@ const Calendar = () => {
     } finally {
       setEventToDelete(null);
     }
-  };
-
-  const handleEditEvent = (event, e) => {
-    e.stopPropagation();
-    
-    const eventToEdit = event.isRecurringInstance 
-      ? originalEvents.find(e => e.id === event.originalId)
-      : event;
-    
-    if (!eventToEdit) {
-      console.error('Could not find event to edit');
-      showToast('Error loading event for editing', 'error');
-      return;
-    }
-    
-    setEditingEvent(eventToEdit);
-    setSelectedDate(null);
-    setShowEventModal(true);
   };
 
   const getDaysInMonth = (date) => {
@@ -343,7 +381,6 @@ const Calendar = () => {
     return <LoadingSpinner message="Loading your calendar..." />;
   }
 
-  // ✅ UPDATED: Better delete message for canceled events
   const getDeleteMessage = () => {
     if (!eventToDelete) return '';
     
@@ -372,6 +409,25 @@ const Calendar = () => {
           <span>New Event</span>
         </button>
       </div>
+
+        {/* ✅ NEW: Conflict Alert Banner */}
+      {hasConflicts && (
+        <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
+          <div className="flex items-start space-x-3">
+            <AlertTriangle className="w-5 h-5 text-orange-600 mt-0.5" />
+            <div>
+              <h4 className="font-semibold text-orange-900 mb-1">
+                Scheduling Conflicts Detected
+              </h4>
+              <p className="text-sm text-orange-800">
+                You have {conflicts.length} overlapping event{conflicts.length !== 1 ? 's' : ''} in your calendar. 
+                Review your schedule to avoid double-booking.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
 
       {/* Search Bar */}
       <div className="bg-white rounded-lg shadow p-4">
@@ -663,7 +719,21 @@ const Calendar = () => {
         type="danger"
       />
 
-      {/* Event Modal */}
+       {/* Modals */}
+      <ConfirmDialog
+        isOpen={showDeleteDialog}
+        onClose={() => {
+          setShowDeleteDialog(false);
+          setEventToDelete(null);
+        }}
+        onConfirm={handleDeleteConfirm}
+        title={eventToDelete?.isCanceled ? "Remove Canceled Event" : "Delete Event"}
+        message={getDeleteMessage()}
+        confirmText={eventToDelete?.isCanceled ? "Remove" : "Delete"}
+        cancelText="Cancel"
+        type="danger"
+      />
+
       {showEventModal && (
         <EventModal
           onClose={() => {
@@ -678,7 +748,6 @@ const Calendar = () => {
         />
       )}
 
-      {/* Event Details Modal */}
       {showEventDetailsModal && selectedEvent && (
         <EventDetailsModal
           event={selectedEvent}
@@ -689,10 +758,14 @@ const Calendar = () => {
           onEdit={handleEditFromDetails}
           onDelete={handleDeleteFromDetails}
           onUncancel={selectedEvent.isCanceled ? handleUncancelFromDetails : null}
+          onViewSeries={
+            (selectedEvent.isRecurring || selectedEvent.isRecurringInstance) 
+              ? () => handleViewSeriesClick(selectedEvent) 
+              : null
+          }
         />
       )}
 
-      {/* Recurring Edit Dialog */}
       <RecurringEditDialog
         isOpen={showRecurringEditDialog}
         onClose={() => {
@@ -704,7 +777,6 @@ const Calendar = () => {
         eventTitle={selectedRecurringEvent?.title || ''}
       />
 
-      {/* Recurring Delete Dialog */}
       <RecurringDeleteDialog
         isOpen={showRecurringDeleteDialog}
         onClose={() => {
@@ -714,6 +786,29 @@ const Calendar = () => {
         onDeleteSeries={handleDeleteSeriesClick}
         onCancelInstance={handleCancelInstanceClick}
         eventTitle={selectedRecurringEvent?.title || ''}
+      />
+
+      {/* ✅ NEW: Recurring Series View Modal */}
+      {showRecurringSeriesView && seriesEvent && (
+        <RecurringSeriesView
+          event={seriesEvent}
+          onClose={() => {
+            setShowRecurringSeriesView(false);
+            setSeriesEvent(null);
+          }}
+          onEditInstance={handleEditInstanceClick}
+          onDeleteInstance={(instance) => handleDeleteClick(instance)}
+          onCancelInstance={handleCancelInstanceClick}
+        />
+      )}
+
+      {/* ✅ NEW: Conflict Warning Modal */}
+      <ConflictWarningModal
+        isOpen={showConflictWarning}
+        conflicts={detectedConflicts}
+        onClose={handleCancelWithConflict}
+        onProceed={handleProceedWithConflict}
+        onCancel={handleCancelWithConflict}
       />
     </div>
   );

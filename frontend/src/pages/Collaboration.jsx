@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { groupAPI } from '../services/api';
-import { Users, Plus, Edit, Trash2, FileText, BookOpen } from 'lucide-react';
+import { Users, Plus, Edit, Trash2, FileText, BookOpen, CheckSquare, Square } from 'lucide-react';
 import GroupModal from '../components/GroupModal';
 import ConfirmDialog from '../components/ConfirmDialog';
 import LoadingSpinner from '../components/LoadingSpinner';
@@ -19,29 +19,34 @@ const Collaboration = () => {
   const [groupToDelete, setGroupToDelete] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [filteredGroups, setFilteredGroups] = useState([]);
+  
+  // ✅ NEW: Bulk Actions State
+  const [selectedGroups, setSelectedGroups] = useState([]);
+  const [showBulkDeleteDialog, setShowBulkDeleteDialog] = useState(false);
 
   useEffect(() => {
     loadGroups();
   }, [user]);
 
   useEffect(() => {
-  if (searchQuery.trim()) {
-    const filtered = groups.filter(group =>
-      group.groupName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      group.subject.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (group.groupNumber && group.groupNumber.toLowerCase().includes(searchQuery.toLowerCase())) ||
-      group.taskDescription.toLowerCase().includes(searchQuery.toLowerCase())
-    );
-    setFilteredGroups(filtered);
-  } else {
-    setFilteredGroups(groups);
-  }
-}, [groups, searchQuery]);
+    if (searchQuery.trim()) {
+      const filtered = groups.filter(group =>
+        group.groupName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        group.subject.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (group.groupNumber && group.groupNumber.toLowerCase().includes(searchQuery.toLowerCase())) ||
+        group.taskDescription.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+      setFilteredGroups(filtered);
+    } else {
+      setFilteredGroups(groups);
+    }
+  }, [groups, searchQuery]);
 
   const loadGroups = useCallback(async() => {
     try {
       const response = await groupAPI.getGroups(user.id);
       setGroups(response.data);
+      setSelectedGroups([]); // Clear selections on reload
     } catch (error) {
       console.error('Error loading groups:', error);
       showToast('Failed to load groups', 'error');
@@ -49,6 +54,38 @@ const Collaboration = () => {
       setLoading(false);
     }
   }, [user.id, showToast]);
+
+  // ✅ NEW: Toggle individual group selection
+  const toggleGroupSelection = (groupId) => {
+    setSelectedGroups(prev => 
+      prev.includes(groupId) 
+        ? prev.filter(id => id !== groupId)
+        : [...prev, groupId]
+    );
+  };
+
+  // ✅ NEW: Select/Deselect all groups
+  const toggleSelectAll = () => {
+    if (selectedGroups.length === filteredGroups.length) {
+      setSelectedGroups([]);
+    } else {
+      setSelectedGroups(filteredGroups.map(g => g.id));
+    }
+  };
+
+  // ✅ NEW: Bulk delete
+  const handleBulkDelete = async () => {
+    try {
+      await Promise.all(selectedGroups.map(id => groupAPI.deleteGroup(id)));
+      showToast(`${selectedGroups.length} group(s) deleted successfully`, 'success');
+      setSelectedGroups([]);
+      setShowBulkDeleteDialog(false);
+      loadGroups();
+    } catch (error) {
+      console.error('Error deleting groups:', error);
+      showToast('Failed to delete some groups', 'error');
+    }
+  };
 
   const handleCreateGroup = () => {
     setSelectedGroup(null);
@@ -104,7 +141,7 @@ const Collaboration = () => {
       <div className="flex justify-between items-center">
         <div>
           <h2 className="text-2xl font-bold text-gray-800">Collaboration Groups</h2>
-            <p className="text-gray-600 mt-1">Manage your group projects and assignments</p>
+          <p className="text-gray-600 mt-1">Manage your group projects and assignments</p>
         </div>
         <button
           onClick={handleCreateGroup}
@@ -151,6 +188,36 @@ const Collaboration = () => {
         </div>
       </div>
 
+      {/* ✅ NEW: Bulk Actions Bar */}
+      {selectedGroups.length > 0 && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-4">
+              <span className="font-semibold text-blue-900">
+                {selectedGroups.length} group(s) selected
+              </span>
+              <button
+                onClick={() => setSelectedGroups([])}
+                className="text-sm text-blue-600 hover:text-blue-800"
+              >
+                Clear Selection
+              </button>
+            </div>
+            
+            <div className="flex items-center space-x-2">
+              {/* Bulk Delete */}
+              <button
+                onClick={() => setShowBulkDeleteDialog(true)}
+                className="flex items-center space-x-2 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition"
+              >
+                <Trash2 className="w-4 h-4" />
+                <span>Delete Selected</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Groups Grid */}
       {filteredGroups.length === 0 ? (
         <div className="bg-white rounded-lg shadow">
@@ -167,112 +234,152 @@ const Collaboration = () => {
           />
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredGroups.map(group => (
-            <div key={group.id} className="bg-white rounded-lg shadow hover:shadow-lg transition">
-              {/* Card Header */}
-              <div className="p-6 border-b border-gray-200">
-                <div className="flex items-start justify-between mb-3">
-                  <div className="flex items-center space-x-3">
-                    <div className="w-14 h-14 bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500 rounded-xl flex items-center justify-center text-white text-2xl font-bold shadow-lg">
-                      {group.groupName.charAt(0).toUpperCase()}
-                    </div>
-                    <div>
-                      {group.groupNumber && (
-                        <span className="text-xs text-gray-500 font-medium">
-                          {group.groupNumber}
-                        </span>
-                      )}
-                      <h3 className="font-semibold text-lg text-gray-800">
-                        {group.groupName}
-                      </h3>
-                    </div>
-                  </div>
-                  <div className="flex items-center space-x-1">
-                    <button
-                      onClick={() => handleEditGroup(group)}
-                      className="p-2 text-gray-500 hover:text-primary hover:bg-blue-50 rounded transition"
-                      title="Edit group"
-                    >
-                      <Edit className="w-4 h-4" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        console.log('Deleting group:', group.groupName);
-                        handleDeleteClick(group);
-                      }}
-                      className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded transition"
-                      title="Delete group"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
-                </div>
+        <>
+          {/* ✅ NEW: Select All Header */}
+          <div className="bg-white rounded-lg shadow p-4">
+            <button
+              onClick={toggleSelectAll}
+              className="flex items-center space-x-2 text-sm text-gray-700 hover:text-primary"
+            >
+              {selectedGroups.length === filteredGroups.length ? (
+                <CheckSquare className="w-5 h-5 text-primary" />
+              ) : (
+                <Square className="w-5 h-5" />
+              )}
+              <span className="font-medium">
+                {selectedGroups.length === filteredGroups.length 
+                  ? 'Deselect All' 
+                  : 'Select All'}
+              </span>
+            </button>
+          </div>
 
-                <div className="flex items-center space-x-2 text-sm text-gray-600">
-                  <BookOpen className="w-4 h-4" />
-                  <span className="font-medium">{group.subject}</span>
-                </div>
-              </div>
-
-              {/* Card Body */}
-              <div className="p-6">
-                <div className="mb-4">
-                  <div className="flex items-start space-x-2">
-                    <FileText className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
-                    <p className="text-sm text-gray-600 line-clamp-3">
-                      {group.taskDescription}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-between text-sm pt-4 border-t border-gray-200">
-                  <span className="text-gray-500 flex items-center">
-                    <Users className="w-4 h-4 mr-1" />
-                    {group.members.length} member{group.members.length !== 1 ? 's' : ''}
-                  </span>
-                  <span className="text-xs text-gray-400">
-                    {new Date(group.createdAt).toLocaleDateString('en-US', {
-                      month: 'short',
-                      day: 'numeric'
-                    })}
-                  </span>
-                </div>
-              </div>
-
-              {/* Card Footer - Members Preview */}
-              <div className="px-6 pb-6">
-                <div className="flex items-center space-x-2">
-                  <div className="flex -space-x-2">
-                    {group.members.slice(0, 4).map((member, idx) => (
-                      <div
-                        key={idx}
-                        className="w-8 h-8 bg-gradient-to-br from-indigo-400 to-cyan-400 rounded-full border-2 border-white flex items-center justify-center text-xs font-medium text-white shadow-md"
-                        title={member.name}
-                      >
-                        {member.name.charAt(0).toUpperCase()}
-                      </div>
-                    ))}
-                    {group.members.length > 4 && (
-                      <div className="w-8 h-8 bg-gray-200 rounded-full border-2 border-white flex items-center justify-center text-xs font-medium text-gray-600">
-                        +{group.members.length - 4}
-                      </div>
-                    )}
-                  </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filteredGroups.map(group => (
+              <div 
+                key={group.id} 
+                className={`bg-white rounded-lg shadow hover:shadow-lg transition ${
+                  selectedGroups.includes(group.id) ? 'ring-2 ring-primary' : ''
+                }`}
+              >
+                {/* ✅ NEW: Checkbox */}
+                <div className="p-4 border-b border-gray-200 bg-gray-50">
                   <button
-                    onClick={() => handleEditGroup(group)}
-                    className="text-xs text-primary hover:underline ml-2"
+                    onClick={() => toggleGroupSelection(group.id)}
+                    className="flex items-center space-x-2 text-sm"
                   >
-                    View all members
+                    {selectedGroups.includes(group.id) ? (
+                      <CheckSquare className="w-5 h-5 text-primary" />
+                    ) : (
+                      <Square className="w-5 h-5 text-gray-400 hover:text-primary" />
+                    )}
+                    <span className="text-gray-700">Select</span>
                   </button>
                 </div>
+
+                {/* Card Header */}
+                <div className="p-6 border-b border-gray-200">
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="flex items-center space-x-3">
+                      <div className="w-14 h-14 bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500 rounded-xl flex items-center justify-center text-white text-2xl font-bold shadow-lg">
+                        {group.groupName.charAt(0).toUpperCase()}
+                      </div>
+                      <div>
+                        {group.groupNumber && (
+                          <span className="text-xs text-gray-500 font-medium">
+                            {group.groupNumber}
+                          </span>
+                        )}
+                        <h3 className="font-semibold text-lg text-gray-800">
+                          {group.groupName}
+                        </h3>
+                      </div>
+                    </div>
+                    <div className="flex items-center space-x-1">
+                      <button
+                        onClick={() => handleEditGroup(group)}
+                        className="p-2 text-gray-500 hover:text-primary hover:bg-blue-50 rounded transition"
+                        title="Edit group"
+                      >
+                        <Edit className="w-4 h-4" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          handleDeleteClick(group);
+                        }}
+                        className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded transition"
+                        title="Delete group"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center space-x-2 text-sm text-gray-600">
+                    <BookOpen className="w-4 h-4" />
+                    <span className="font-medium">{group.subject}</span>
+                  </div>
+                </div>
+
+                {/* Card Body */}
+                <div className="p-6">
+                  <div className="mb-4">
+                    <div className="flex items-start space-x-2">
+                      <FileText className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
+                      <p className="text-sm text-gray-600 line-clamp-3">
+                        {group.taskDescription}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between text-sm pt-4 border-t border-gray-200">
+                    <span className="text-gray-500 flex items-center">
+                      <Users className="w-4 h-4 mr-1" />
+                      {group.members.length} member{group.members.length !== 1 ? 's' : ''}
+                    </span>
+                    <span className="text-xs text-gray-400">
+                      {new Date(group.createdAt).toLocaleDateString('en-US', {
+                        month: 'short',
+                        day: 'numeric'
+                      })}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Card Footer - Members Preview */}
+                <div className="px-6 pb-6">
+                  <div className="flex items-center space-x-2">
+                    <div className="flex -space-x-2">
+                      {group.members.slice(0, 4).map((member, idx) => (
+                        <div
+                          key={idx}
+                          className="w-8 h-8 bg-gradient-to-br from-indigo-400 to-cyan-400 rounded-full border-2 border-white flex items-center justify-center text-xs font-medium text-white shadow-md"
+                          title={member.name}
+                        >
+                          {member.name.charAt(0).toUpperCase()}
+                        </div>
+                      ))}
+                      {group.members.length > 4 && (
+                        <div className="w-8 h-8 bg-gray-200 rounded-full border-2 border-white flex items-center justify-center text-xs font-medium text-gray-600">
+                          +{group.members.length - 4}
+                        </div>
+                      )}
+                    </div>
+                    <button
+                      onClick={() => handleEditGroup(group)}
+                      className="text-xs text-primary hover:underline ml-2"
+                    >
+                      View all members
+                    </button>
+                  </div>
+                </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        </>
       )}
 
       {/* Info Box */}
@@ -299,20 +406,32 @@ const Collaboration = () => {
         />
       )}
 
-      {/* Delete Confirmation */}
-        <ConfirmDialog
-          isOpen={showDeleteConfirm}
-          onClose={() => {
-            setShowDeleteConfirm(false);
-            setGroupToDelete(null);
-          }}
-          onConfirm={handleDeleteConfirm}
-          title="Delete Group"
-          message={`Are you sure you want to delete "${groupToDelete?.groupName}"? This action cannot be undone.`}
-          confirmText="Delete"
-          cancelText="Cancel"
-          type="danger"
-        />
+      {/* Delete Single Group Dialog */}
+      <ConfirmDialog
+        isOpen={showDeleteConfirm}
+        onClose={() => {
+          setShowDeleteConfirm(false);
+          setGroupToDelete(null);
+        }}
+        onConfirm={handleDeleteConfirm}
+        title="Delete Group"
+        message={`Are you sure you want to delete "${groupToDelete?.groupName}"? This action cannot be undone.`}
+        confirmText="Delete"
+        cancelText="Cancel"
+        type="danger"
+      />
+
+      {/* ✅ NEW: Bulk Delete Dialog */}
+      <ConfirmDialog
+        isOpen={showBulkDeleteDialog}
+        onClose={() => setShowBulkDeleteDialog(false)}
+        onConfirm={handleBulkDelete}
+        title="Delete Multiple Groups"
+        message={`Are you sure you want to delete ${selectedGroups.length} group(s)? This action cannot be undone and will remove all group data.`}
+        confirmText="Delete All"
+        cancelText="Cancel"
+        type="danger"
+      />
     </div>
   );
 };
