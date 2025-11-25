@@ -162,7 +162,7 @@ const EventDetailsModal = ({ event, onClose, onEdit, onDelete }) => {
                 className="flex-1 flex items-center justify-center space-x-2 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition"
               >
                 <Trash2 className="w-4 h-4" />
-                <span>Delete Permanently</span>
+                <span>Remove from Calendar</span>
               </button>
             )}
           </div>

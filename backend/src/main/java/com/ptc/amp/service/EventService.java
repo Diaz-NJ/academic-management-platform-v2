@@ -104,17 +104,31 @@ public class EventService {
         return eventRepository.save(event);
     }
 
-    public boolean deleteEvent(Long id) {
-        if (eventRepository.existsById(id)) {
-            // ✅ NEW: Also delete all exception events
-            List<Event> exceptions = getExceptionsByParentId(id);
-            for (Event exception : exceptions) {
-                eventRepository.deleteById(exception.getId());
+            public boolean deleteEvent(Long id) {
+                if (eventRepository.existsById(id)) {
+                    Optional<Event> eventOpt = eventRepository.findById(id);
+                    if (eventOpt.isEmpty()) {
+                        return false;
+                    }
+                    
+                    Event event = eventOpt.get();
+                    
+                    // ✅ NEW: If it's a cancelled instance, just remove from parent's canceledDates
+                    if (event.getIsCanceled() != null && event.getIsCanceled()) {
+                        // This is a cancelled instance marker - we can safely delete it
+                        eventRepository.deleteById(id);
+                        return true;
+                    }
+                    
+                    // ✅ For regular events, also delete all exception events
+                    List<Event> exceptions = getExceptionsByParentId(id);
+                    for (Event exception : exceptions) {
+                        eventRepository.deleteById(exception.getId());
+                    }
+                    
+                    eventRepository.deleteById(id);
+                    return true;
+                }
+                return false;
             }
-            
-            eventRepository.deleteById(id);
-            return true;
-        }
-        return false;
-    }
 }

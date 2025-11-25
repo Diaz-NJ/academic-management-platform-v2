@@ -187,19 +187,26 @@ const handleEditInstanceClick = async () => {
   }
 };
 
-  const handleDeleteFromDetails = () => {
-    setShowEventDetailsModal(false);
-    
-    // If it's a recurring event, show options dialog
-    if (selectedEvent.isRecurring || selectedEvent.isRecurringInstance) {
-      setSelectedRecurringEvent(selectedEvent);
-      setShowRecurringDeleteDialog(true);
-    } else {
-      // Non-recurring, delete normally
-      setEventToDelete(selectedEvent);
-      setShowDeleteDialog(true);
-    }
-  };
+const handleDeleteFromDetails = () => {
+  setShowEventDetailsModal(false);
+  
+  // ✅ NEW: If it's cancelled, just delete it directly
+  if (selectedEvent.isCanceled) {
+    setEventToDelete(selectedEvent);
+    setShowDeleteDialog(true);
+    return;
+  }
+  
+  // If it's a recurring event, show options dialog
+  if (selectedEvent.isRecurring || selectedEvent.isRecurringInstance) {
+    setSelectedRecurringEvent(selectedEvent);
+    setShowRecurringDeleteDialog(true);
+  } else {
+    // Non-recurring, delete normally
+    setEventToDelete(selectedEvent);
+    setShowDeleteDialog(true);
+  }
+};
 
 const handleDeleteSeriesClick = () => {
   setShowRecurringDeleteDialog(false);
@@ -241,13 +248,27 @@ const handleDeleteSeriesClick = () => {
     if (!eventToDelete) return;
 
     try {
-      // ✅ Delete the original event if it's a recurring instance
-      const idToDelete = eventToDelete.isRecurringInstance 
-        ? eventToDelete.originalId 
-        : eventToDelete.id;
+      // ✅ NEW: If cancelled, delete by actual ID, not originalId
+      let idToDelete;
+      if (eventToDelete.isCanceled) {
+        // For cancelled events, delete the actual event record
+        idToDelete = eventToDelete.id;
+      } else if (eventToDelete.isRecurringInstance) {
+        // For regular recurring instances, delete the series
+        idToDelete = eventToDelete.originalId;
+      } else {
+        // For non-recurring events
+        idToDelete = eventToDelete.id;
+      }
       
       await eventAPI.deleteEvent(idToDelete);
-      showToast('Event deleted successfully', 'success');
+      
+      if (eventToDelete.isCanceled) {
+        showToast('Cancelled event removed successfully', 'success');
+      } else {
+        showToast('Event deleted successfully', 'success');
+      }
+      
       loadEvents();
     } catch (error) {
       console.error('Error deleting event:', error);
