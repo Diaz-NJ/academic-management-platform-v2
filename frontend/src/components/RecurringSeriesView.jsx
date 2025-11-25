@@ -27,6 +27,12 @@ const RecurringSeriesView = ({
       const endDate = new Date();
       endDate.setFullYear(endDate.getFullYear() + 1);
 
+        const parentInstance = {
+        ...event,
+        isRecurringInstance: false,
+        isCanceled: false
+        };
+
       const expanded = expandRecurringEvents([event], startDate, endDate);
       
       // Filter to only this event's instances and sort by date

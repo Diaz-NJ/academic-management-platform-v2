@@ -103,23 +103,16 @@ const Calendar = () => {
     };
 
   // ✅ MODIFIED: Check for conflicts before saving
-  const handleEventSaved = async (eventData) => {
-    // Check for conflicts
-    const { hasConflict, conflicts: foundConflicts } = checkEventConflict(
-      eventData, 
-      editingEvent?.id
-    );
-
-    if (hasConflict) {
-      setPendingEvent(eventData);
-      setDetectedConflicts(foundConflicts);
-      setShowConflictWarning(true);
-      return; // Don't save yet, wait for user decision
-    }
-
-    // No conflicts, proceed with save
-    await saveEvent(eventData);
-  };
+  const handleEventSaved = async () => {
+  try {
+    await loadEvents();
+    setShowEventModal(false);
+    setEditingEvent(null);
+    showToast('Event saved successfully!', 'success');
+  } catch (error) {
+    console.error('Error:', error);
+  }
+};
 
   const saveEvent = async (eventData) => {
     try {
@@ -425,8 +418,15 @@ const Calendar = () => {
 
   const handleEventClick = (event, e) => {
     if (e) e.stopPropagation();
-    setSelectedEvent(event);
-    setShowEventDetailsModal(true);
+    
+    // ✅ FIXED: For recurring events, show edit dialog
+    if (event.isRecurring || event.isRecurringInstance) {
+      setSelectedRecurringEvent(event);
+      setShowRecurringEditDialog(true);
+    } else {
+      setSelectedEvent(event);
+      setShowEventDetailsModal(true);
+    }
   };
 
   if (loading) {

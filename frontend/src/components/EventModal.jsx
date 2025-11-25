@@ -179,43 +179,6 @@ const EventModal = ({ onClose, onSave, userId, initialDate, event = null }) => {
             ? formData.recurrenceDaysOfWeek 
             : null,
       };
-
-      // ✅ FIXED: Handle exception events properly
-      if (event) {
-        // Check if this is an exception event
-        if (event.isException || event.parentEventId) {
-          // Include exception-specific fields
-          eventData.isException = true;
-          eventData.parentEventId = event.parentEventId;
-          eventData.exceptionDate = event.exceptionDate;
-          
-          // If the event has an ID, update it; otherwise create new
-          if (event.id) {
-            await eventAPI.updateEvent(event.id, eventData);
-            showToast('Event instance updated successfully!', 'success');
-          } else {
-            // First time saving this exception
-            await eventAPI.createEvent(eventData);
-            
-            // Mark the date as canceled in the parent event
-            const instanceDate = new Date(event.exceptionDate);
-            await eventAPI.cancelInstance(event.parentEventId, instanceDate.toISOString());
-            
-            showToast('Event instance created successfully!', 'success');
-          }
-        } else {
-          // Regular event update
-          await eventAPI.updateEvent(event.id, eventData);
-          showToast('Event updated successfully!', 'success');
-        }
-      } else {
-        // Creating new event
-        await eventAPI.createEvent(eventData);
-        showToast(
-          formData.isRecurring ? 'Recurring event created successfully!' : 'Event created successfully!', 
-          'success'
-        );
-      }
       
       onSave();
     } catch (error) {
