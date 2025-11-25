@@ -57,22 +57,17 @@ const EventModal = ({ onClose, onSave, userId, initialDate, event = null }) => {
     recurrenceInterval: 1,
     recurrenceEndDate: '',
     recurrenceDaysOfWeek: '',
-    // ✅ NEW: End options
-    recurrenceEndType: 'never', // 'never', 'date', 'count'
+    recurrenceEndType: 'never',
     recurrenceCount: 10,
   });
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    console.log('EventModal received event:', event); // ✅ Debug log
-    
     if (event) {
       const startDT = new Date(event.startDateTime);
       const endDT = new Date(event.endDateTime);
       
-      // ✅ UPDATED: Determine end type (handle exception events)
       let endType = 'never';
-      // Exception events should not show recurring options
       if (!event.isException && !event.parentEventId) {
         if (event.recurrenceCount) {
           endType = 'count';
@@ -89,7 +84,6 @@ const EventModal = ({ onClose, onSave, userId, initialDate, event = null }) => {
         endDateTime: formatDateTimeLocal(endDT),
         location: event.location || '',
         colorCode: event.colorCode || '#3788d8',
-        // ✅ FIXED: Exception events should not be recurring
         isRecurring: event.isException || event.parentEventId ? false : (event.isRecurring || false),
         recurrencePattern: event.recurrencePattern || 'WEEKLY',
         recurrenceInterval: event.recurrenceInterval || 1,
@@ -142,6 +136,7 @@ const EventModal = ({ onClose, onSave, userId, initialDate, event = null }) => {
     setFormData({ ...formData, recurrenceDaysOfWeek: days.join(',') });
   };
 
+  // ✅ FIXED: Properly handle save with API call
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -164,15 +159,14 @@ const EventModal = ({ onClose, onSave, userId, initialDate, event = null }) => {
         endDateTime: formatDateTimeForBackend(formData.endDateTime),
         isRecurring: Boolean(formData.isRecurring),
         recurrencePattern: formData.isRecurring ? formData.recurrencePattern : null,
-        recurrenceInterval: formData.isRecurring ? Number(formData.recurrenceInterval) : 1, // ✅ FIXED: Convert to number
-        // ✅ FIXED: Handle end type properly
+        recurrenceInterval: formData.isRecurring ? Number(formData.recurrenceInterval) : 1,
         recurrenceEndDate: 
           formData.isRecurring && formData.recurrenceEndType === 'date' && formData.recurrenceEndDate
             ? formData.recurrenceEndDate + 'T23:59:59' 
             : null,
         recurrenceCount:
           formData.isRecurring && formData.recurrenceEndType === 'count'
-            ? Number(formData.recurrenceCount)  // ✅ FIXED: Convert to number
+            ? Number(formData.recurrenceCount)
             : null,
         recurrenceDaysOfWeek: 
           formData.isRecurring && formData.recurrencePattern === 'WEEKLY' 
@@ -180,7 +174,19 @@ const EventModal = ({ onClose, onSave, userId, initialDate, event = null }) => {
             : null,
       };
       
+      // ✅ FIXED: Actually call the API
+      if (event) {
+        await eventAPI.updateEvent(event.id, eventData);
+        showToast('Event updated successfully!', 'success');
+      } else {
+        await eventAPI.createEvent(eventData);
+        showToast('Event created successfully!', 'success');
+      }
+      
+      // ✅ Call onSave to trigger parent refresh
       onSave();
+      onClose();
+      
     } catch (error) {
       console.error('Error saving event:', error);
       showToast(
@@ -403,7 +409,6 @@ const EventModal = ({ onClose, onSave, userId, initialDate, event = null }) => {
                   </div>
                 </div>
 
-                {/* Days of Week Selection (only for weekly) */}
                 {formData.recurrencePattern === 'WEEKLY' && (
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -432,13 +437,11 @@ const EventModal = ({ onClose, onSave, userId, initialDate, event = null }) => {
                   </div>
                 )}
 
-                {/* ✅ NEW: End Options Section */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Ends
                   </label>
                   
-                  {/* Radio buttons for end type */}
                   <div className="space-y-2 mb-3">
                     <label className="flex items-center space-x-2 cursor-pointer">
                       <input
@@ -477,7 +480,6 @@ const EventModal = ({ onClose, onSave, userId, initialDate, event = null }) => {
                     </label>
                   </div>
 
-                  {/* Date picker - shown when 'date' is selected */}
                   {formData.recurrenceEndType === 'date' && (
                     <input
                       type="date"
@@ -488,7 +490,6 @@ const EventModal = ({ onClose, onSave, userId, initialDate, event = null }) => {
                     />
                   )}
 
-                  {/* Count picker - shown when 'count' is selected */}
                   {formData.recurrenceEndType === 'count' && (
                     <div className="flex items-center space-x-2">
                       <input

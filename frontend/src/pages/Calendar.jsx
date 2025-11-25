@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { eventAPI } from '../services/api';
-import { Plus, ChevronLeft, ChevronRight, RefreshCw, AlertTriangle, List } from 'lucide-react';
+import { Plus, ChevronLeft, ChevronRight, RefreshCw, AlertTriangle } from 'lucide-react';
 import EventModal from '../components/EventModal';
 import ConfirmDialog from '../components/ConfirmDialog';
 import EventDetailsModal from '../components/EventDetailsModal';
@@ -13,44 +13,32 @@ import { expandRecurringEvents } from '../utils/recurringUtils';
 import RecurringEditDialog from '../components/RecurringEditDialog';
 import RecurringDeleteDialog from '../components/RecurringDeleteDialog';
 import RecurringSeriesView from '../components/RecurringSeriesView';
-import ConflictWarningModal from '../components/ConflictWarningModal';
-import useConflictDetection from '../hooks/useConflictDetection';
 
 const Calendar = () => {
   const { user } = useAuth();
   const { showToast } = useToast();
+  
+  // Event data
   const [events, setEvents] = useState([]);
   const [originalEvents, setOriginalEvents] = useState([]);
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [showEventModal, setShowEventModal] = useState(false);
-  const [selectedDate, setSelectedDate] = useState(null);
-  const [editingEvent, setEditingEvent] = useState(null);
-  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const [eventToDelete, setEventToDelete] = useState(null);
+  const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [filteredEvents, setFilteredEvents] = useState([]);
-  const [selectedEvent, setSelectedEvent] = useState(null);
-  const [showEventDetailsModal, setShowEventDetailsModal] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [showRecurringEditDialog, setShowRecurringEditDialog] = useState(false);
-  const [showRecurringDeleteDialog, setShowRecurringDeleteDialog] = useState(false);
-  const [selectedRecurringEvent, setSelectedRecurringEvent] = useState(null);
-  const [selectedEventForSeries, setSelectedEventForSeries] = useState(null);
-  
-  // ✅ NEW: Recurring Series View
-  const [showRecurringSeriesView, setShowRecurringSeriesView] = useState(false);
-  const [seriesEvent, setSeriesEvent] = useState(null);
-  
-  // ✅ NEW: Conflict Detection
-  const { conflicts, checkEventConflict, hasConflicts } = useConflictDetection(events);
-  const [showConflictWarning, setShowConflictWarning] = useState(false);
-  const [pendingEvent, setPendingEvent] = useState(null);
-  const [detectedConflicts, setDetectedConflicts] = useState([]);
 
+  // ✅ FIXED: Single modal state management
+  const [modalState, setModalState] = useState({
+    type: null, // 'create', 'edit', 'details', 'recurringEdit', 'recurringDelete', 'seriesView', 'delete'
+    data: null, // The event or data being operated on
+    extraData: null // Additional data (like initialDate for create)
+  });
+
+  // Load events
   useEffect(() => {
     loadEvents();
   }, [user, currentDate]);
 
+  // Filter events
   useEffect(() => {
     if (searchQuery.trim()) {
       const filtered = events.filter(event =>
@@ -65,7 +53,8 @@ const Calendar = () => {
     }
   }, [events, searchQuery]);
 
-  const loadEvents = async () => {
+  // ✅ FIXED: Proper load with useCallback
+  const loadEvents = useCallback(async () => {
     try {
       setLoading(true);
       const response = await eventAPI.getEvents(user.id);
@@ -80,265 +69,166 @@ const Calendar = () => {
       setOriginalEvents(originalEvents);
     } catch (error) {
       console.error('Error loading events:', error);
+      showToast('Failed to load events', 'error');
     } finally {
       setLoading(false);
     }
-  };
+  }, [user.id, currentDate, showToast]);
 
-    const handleViewSeriesClick = () => {
-      setShowEventDetailsModal(false);
-      
-      // Get the original event
-      const originalEvent = selectedEvent.isRecurringInstance 
-        ? originalEvents.find(e => e.id === selectedEvent.originalId)
-        : selectedEvent;
-      
-      if (!originalEvent) {
-        showToast('Error: Could not find original event', 'error');
-        return;
-      }
-      
-      setSelectedEventForSeries(originalEvent);
-      setShowRecurringSeriesView(true);
-    };
+  // ✅ FIXED: Close all modals
+  const closeModal = useCallback(() => {
+    setModalState({ type: null, data: null, extraData: null });
+  }, []);
 
-  // ✅ MODIFIED: Check for conflicts before saving
-  const handleEventSaved = async () => {
-  try {
+  // ✅ FIXED: Simplified event saved handler
+  const handleEventSaved = useCallback(async () => {
     await loadEvents();
-    setShowEventModal(false);
-    setEditingEvent(null);
-    showToast('Event saved successfully!', 'success');
-  } catch (error) {
-    console.error('Error:', error);
-  }
-};
+    closeModal();
+  }, [loadEvents, closeModal]);
 
-  const saveEvent = async (eventData) => {
-    try {
-      if (editingEvent) {
-        await eventAPI.updateEvent(editingEvent.id, eventData);
-      } else {
-        await eventAPI.createEvent(eventData);
-      }
-      
-      setShowEventModal(false);
-      setEditingEvent(null);
-      await loadEvents();
-      showToast('Event saved successfully!', 'success');
-    } catch (error) {
-      console.error('Error saving event:', error);
-      showToast('Failed to save event', 'error');
+  // Event click handler
+  const handleEventClick = (event, e) => {
+    if (e) e.stopPropagation();
+    
+    if (event.isRecurring || event.isRecurringInstance) {
+      setModalState({
+        type: 'recurringEdit',
+        data: event,
+        extraData: null
+      });
+    } else {
+      setModalState({
+        type: 'details',
+        data: event,
+        extraData: null
+      });
     }
   };
 
-  // ✅ NEW: Handle conflict resolution
-  const handleProceedWithConflict = async () => {
-    setShowConflictWarning(false);
-    await saveEvent(pendingEvent);
-    setPendingEvent(null);
-    setDetectedConflicts([]);
-  };
-
-  const handleCancelWithConflict = () => {
-    setShowConflictWarning(false);
-    setPendingEvent(null);
-    setDetectedConflicts([]);
-    // Keep modal open so user can edit
-  };
-
+  // Edit handlers
   const handleEditFromDetails = () => {
-    setShowEventDetailsModal(false);
+    const event = modalState.data;
     
-    if (selectedEvent.isRecurring || selectedEvent.isRecurringInstance) {
-      setSelectedRecurringEvent(selectedEvent);
-      setShowRecurringEditDialog(true);
+    if (event.isRecurring || event.isRecurringInstance) {
+      setModalState({
+        type: 'recurringEdit',
+        data: event,
+        extraData: null
+      });
     } else {
-      setEditingEvent(selectedEvent);
-      setSelectedDate(null);
-      setShowEventModal(true);
+      setModalState({
+        type: 'edit',
+        data: event,
+        extraData: null
+      });
     }
   };
 
   const handleEditSeriesClick = () => {
-    setShowRecurringEditDialog(false);
-    
-    const eventToEdit = selectedRecurringEvent.isRecurringInstance 
-      ? originalEvents.find(e => e.id === selectedRecurringEvent.originalId)
-      : selectedRecurringEvent;
+    const event = modalState.data;
+    const eventToEdit = event.isRecurringInstance 
+      ? originalEvents.find(e => e.id === event.originalId)
+      : event;
     
     if (!eventToEdit) {
       showToast('Error loading event for editing', 'error');
       return;
     }
     
-    setEditingEvent(eventToEdit);
-    setSelectedDate(null);
-    setShowEventModal(true);
+    setModalState({
+      type: 'edit',
+      data: eventToEdit,
+      extraData: null
+    });
   };
 
   const handleEditInstanceClick = async (instance) => {
-  try {
-    if (!instance) {
-      showToast('Error: Invalid event instance', 'error');
-      return;
-    }
-
-    const originalEventId = instance.originalId || instance.id;
-    const originalEvent = originalEvents.find(e => e.id === originalEventId);
-    
-    if (!originalEvent) {
-      showToast('Error: Could not find original event', 'error');
-      console.error('Original event not found for ID:', originalEventId);
-      console.log('Available events:', originalEvents);
-      return;
-    }
-
-    const instanceDate = new Date(instance.startDateTime);
-    const existingExceptions = await eventAPI.getExceptions(originalEvent.id);
-    
-    const existingException = existingExceptions.data?.find(exc => {
-      const excDate = new Date(exc.exceptionDate);
-      return (
-        excDate.getFullYear() === instanceDate.getFullYear() &&
-        excDate.getMonth() === instanceDate.getMonth() &&
-        excDate.getDate() === instanceDate.getDate()
-      );
-    });
-
-    if (existingException) {
-      console.log('Editing existing exception:', existingException);
-      setEditingEvent(existingException);
-    } else {
-      const exceptionEventData = {
-        ...originalEvent,
-        id: null,
-        isRecurring: false,
-        isException: true,
-        parentEventId: originalEvent.id,
-        exceptionDate: instanceDate.toISOString(),
-        startDateTime: instance.startDateTime,
-        endDateTime: instance.endDateTime,
-        recurrencePattern: null,
-        recurrenceInterval: null,
-        recurrenceEndDate: null,
-        recurrenceDaysOfWeek: null,
-        recurrenceEndType: 'never',
-        recurrenceCount: null,
-      };
-      
-      console.log('Creating new exception:', exceptionEventData);
-      setEditingEvent(exceptionEventData);
-    }
-    
-    setSelectedDate(null);
-    setShowEventModal(true);
-  } catch (error) {
-    console.error('Error setting up instance edit:', error);
-    showToast('Failed to prepare event for editing', 'error');
-  }
-};
-
-  const handleDeleteFromDetails = () => {
-    setShowEventDetailsModal(false);
-    setEventToDelete(selectedEvent);
-    setShowDeleteDialog(true);
-  };
-
-  const handleUncancelFromDetails = async () => {
-    setShowEventDetailsModal(false);
-    
     try {
-      const instanceDate = new Date(selectedEvent.startDateTime).toISOString();
-      const originalId = selectedEvent.isRecurringInstance 
-        ? selectedEvent.originalId 
-        : selectedEvent.id;
-      
-      await eventAPI.uncancelInstance(originalId, instanceDate);
-      showToast('Event restored successfully', 'success');
-      loadEvents();
-    } catch (error) {
-      console.error('Error un-canceling event:', error);
-      showToast('Failed to restore event', 'error');
-    }
-  };
-
-  const handleDeleteSeriesClick = () => {
-    setShowRecurringDeleteDialog(false);
-    
-    const eventToDelete = selectedRecurringEvent.isRecurringInstance 
-      ? originalEvents.find(e => e.id === selectedRecurringEvent.originalId) || selectedRecurringEvent
-      : selectedRecurringEvent;
-    
-    setEventToDelete(eventToDelete);
-    setShowDeleteDialog(true);
-  };
-
-  const handleCancelInstanceClick = async (instance) => {
-    try {
-      if (!instance || !instance.startDateTime) {
-        console.error('Invalid instance:', instance);
+      if (!instance) {
         showToast('Error: Invalid event instance', 'error');
         return;
       }
 
-      // Format date as ISO string (YYYY-MM-DDTHH:mm:ss)
-      const instanceDate = new Date(instance.startDateTime);
-      const dateStr = instanceDate.toISOString();
+      const originalEventId = instance.originalId || instance.id;
+      const originalEvent = originalEvents.find(e => e.id === originalEventId);
       
-      console.log('Canceling instance:', {
-        eventId: instance.originalId || instance.id,
-        date: dateStr
+      if (!originalEvent) {
+        showToast('Error: Could not find original event', 'error');
+        return;
+      }
+
+      const instanceDate = new Date(instance.startDateTime);
+      const existingExceptions = await eventAPI.getExceptions(originalEvent.id);
+      
+      const existingException = existingExceptions.data?.find(exc => {
+        const excDate = new Date(exc.exceptionDate);
+        return (
+          excDate.getFullYear() === instanceDate.getFullYear() &&
+          excDate.getMonth() === instanceDate.getMonth() &&
+          excDate.getDate() === instanceDate.getDate()
+        );
       });
 
-      const originalId = instance.originalId || instance.id;
-      await eventAPI.cancelInstance(originalId, dateStr);
-      
-      showToast('Event occurrence canceled', 'success');
-      loadEvents();
+      if (existingException) {
+        setModalState({
+          type: 'edit',
+          data: existingException,
+          extraData: null
+        });
+      } else {
+        const exceptionEventData = {
+          ...originalEvent,
+          id: null,
+          isRecurring: false,
+          isException: true,
+          parentEventId: originalEvent.id,
+          exceptionDate: instanceDate.toISOString(),
+          startDateTime: instance.startDateTime,
+          endDateTime: instance.endDateTime,
+          recurrencePattern: null,
+          recurrenceInterval: null,
+          recurrenceEndDate: null,
+          recurrenceDaysOfWeek: null,
+          recurrenceEndType: 'never',
+          recurrenceCount: null,
+        };
+        
+        setModalState({
+          type: 'edit',
+          data: exceptionEventData,
+          extraData: null
+        });
+      }
     } catch (error) {
-      console.error('Error canceling instance:', error);
-      console.error('Error response:', error.response?.data);
-      showToast('Failed to cancel event occurrence', 'error');
+      console.error('Error setting up instance edit:', error);
+      showToast('Failed to prepare event for editing', 'error');
     }
   };
 
-  const handleDeleteInstanceClick = async (instance) => {
-  try {
-    if (!instance || !instance.startDateTime) {
-      console.error('Invalid instance:', instance);
-      showToast('Error: Invalid event instance', 'error');
-      return;
-    }
-
-    const instanceDate = new Date(instance.startDateTime);
-    const dateStr = instanceDate.toISOString();
-    
-    console.log('Deleting instance:', {
-      eventId: instance.originalId || instance.id,
-      date: dateStr
+  // Delete handlers
+  const handleDeleteFromDetails = () => {
+    setModalState({
+      type: 'delete',
+      data: modalState.data,
+      extraData: null
     });
+  };
 
-    const originalId = instance.originalId || instance.id;
-    await eventAPI.deleteInstance(originalId, dateStr);
+  const handleDeleteSeriesClick = () => {
+    const event = modalState.data;
+    const eventToDelete = event.isRecurringInstance 
+      ? originalEvents.find(e => e.id === event.originalId) || event
+      : event;
     
-    showToast('Event occurrence deleted permanently', 'success');
-    loadEvents();
-  } catch (error) {
-    console.error('Error deleting instance:', error);
-    console.error('Error response:', error.response?.data);
-    showToast('Failed to delete event occurrence', 'error');
-  }
-};
-
-
-  const handleDeleteClick = (event, e) => {
-    if (e) e.stopPropagation();
-    setEventToDelete(event);
-    setShowDeleteDialog(true);
+    setModalState({
+      type: 'delete',
+      data: eventToDelete,
+      extraData: null
+    });
   };
 
   const handleDeleteConfirm = async () => {
+    const eventToDelete = modalState.data;
     if (!eventToDelete) return;
 
     try {
@@ -348,25 +238,107 @@ const Calendar = () => {
         
         await eventAPI.deleteInstance(originalId, instanceDate);
         showToast('Canceled event permanently deleted', 'success');
-        loadEvents();
       } else if (eventToDelete.isRecurringInstance && !eventToDelete.isCanceled) {
-        setShowDeleteDialog(false);
-        setSelectedRecurringEvent(eventToDelete);
-        setShowRecurringDeleteDialog(true);
+        // Should go to recurring delete dialog instead
+        setModalState({
+          type: 'recurringDelete',
+          data: eventToDelete,
+          extraData: null
+        });
         return;
       } else {
         await eventAPI.deleteEvent(eventToDelete.id);
         showToast('Event deleted successfully', 'success');
-        loadEvents();
       }
+      
+      await loadEvents();
+      closeModal();
     } catch (error) {
       console.error('Error deleting event:', error);
       showToast('Failed to delete event', 'error');
-    } finally {
-      setEventToDelete(null);
     }
   };
 
+  // Cancel/Uncancel handlers
+  const handleCancelInstanceClick = async (instance) => {
+    try {
+      if (!instance || !instance.startDateTime) {
+        showToast('Error: Invalid event instance', 'error');
+        return;
+      }
+
+      const instanceDate = new Date(instance.startDateTime);
+      const dateStr = instanceDate.toISOString();
+      
+      const originalId = instance.originalId || instance.id;
+      await eventAPI.cancelInstance(originalId, dateStr);
+      
+      showToast('Event occurrence canceled', 'success');
+      await loadEvents();
+      closeModal();
+    } catch (error) {
+      console.error('Error canceling instance:', error);
+      showToast('Failed to cancel event occurrence', 'error');
+    }
+  };
+
+  const handleUncancelFromDetails = async () => {
+    try {
+      const event = modalState.data;
+      const instanceDate = new Date(event.startDateTime).toISOString();
+      const originalId = event.isRecurringInstance ? event.originalId : event.id;
+      
+      await eventAPI.uncancelInstance(originalId, instanceDate);
+      showToast('Event restored successfully', 'success');
+      await loadEvents();
+      closeModal();
+    } catch (error) {
+      console.error('Error un-canceling event:', error);
+      showToast('Failed to restore event', 'error');
+    }
+  };
+
+  const handleDeleteInstanceClick = async (instance) => {
+    try {
+      if (!instance || !instance.startDateTime) {
+        showToast('Error: Invalid event instance', 'error');
+        return;
+      }
+
+      const instanceDate = new Date(instance.startDateTime);
+      const dateStr = instanceDate.toISOString();
+      
+      const originalId = instance.originalId || instance.id;
+      await eventAPI.deleteInstance(originalId, dateStr);
+      
+      showToast('Event occurrence deleted permanently', 'success');
+      await loadEvents();
+    } catch (error) {
+      console.error('Error deleting instance:', error);
+      showToast('Failed to delete event occurrence', 'error');
+    }
+  };
+
+  // View series
+  const handleViewSeriesClick = () => {
+    const event = modalState.data;
+    const originalEvent = event.isRecurringInstance 
+      ? originalEvents.find(e => e.id === event.originalId)
+      : event;
+    
+    if (!originalEvent) {
+      showToast('Error: Could not find original event', 'error');
+      return;
+    }
+    
+    setModalState({
+      type: 'seriesView',
+      data: originalEvent,
+      extraData: null
+    });
+  };
+
+  // Calendar navigation
   const getDaysInMonth = (date) => {
     const year = date.getFullYear();
     const month = date.getMonth();
@@ -400,9 +372,12 @@ const Calendar = () => {
   const handleDateClick = (day) => {
     const clickedDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), day);
     clickedDate.setHours(12, 0, 0, 0);
-    setSelectedDate(clickedDate);
-    setEditingEvent(null);
-    setShowEventModal(true);
+    
+    setModalState({
+      type: 'create',
+      data: null,
+      extraData: clickedDate
+    });
   };
 
   const { daysInMonth, startingDayOfWeek } = getDaysInMonth(currentDate);
@@ -416,24 +391,8 @@ const Calendar = () => {
     days.push(i);
   }
 
-  const handleEventClick = (event, e) => {
-    if (e) e.stopPropagation();
-    
-    // ✅ FIXED: For recurring events, show edit dialog
-    if (event.isRecurring || event.isRecurringInstance) {
-      setSelectedRecurringEvent(event);
-      setShowRecurringEditDialog(true);
-    } else {
-      setSelectedEvent(event);
-      setShowEventDetailsModal(true);
-    }
-  };
-
-  if (loading) {
-    return <LoadingSpinner message="Loading your calendar..." />;
-  }
-
   const getDeleteMessage = () => {
+    const eventToDelete = modalState.data;
     if (!eventToDelete) return '';
     
     if (eventToDelete.isCanceled) {
@@ -445,41 +404,26 @@ const Calendar = () => {
     }
   };
 
-  return (
+  if (loading) {
+    return <LoadingSpinner message="Loading your calendar..." />;
+  }
+
+   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold text-gray-800">Academic Calendar</h2>
         <button
-          onClick={() => {
-            setSelectedDate(new Date());
-            setEditingEvent(null);
-            setShowEventModal(true);
-          }}
+          onClick={() => setModalState({ 
+            type: 'create', 
+            data: null, 
+            extraData: new Date() 
+          })}
           className="flex items-center space-x-2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-blue-600 transition"
         >
           <Plus className="w-5 h-5" />
           <span>New Event</span>
         </button>
       </div>
-
-        {/* ✅ NEW: Conflict Alert Banner */}
-      {hasConflicts && (
-        <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
-          <div className="flex items-start space-x-3">
-            <AlertTriangle className="w-5 h-5 text-orange-600 mt-0.5" />
-            <div>
-              <h4 className="font-semibold text-orange-900 mb-1">
-                Scheduling Conflicts Detected
-              </h4>
-              <p className="text-sm text-orange-800">
-                You have {conflicts.length} overlapping event{conflicts.length !== 1 ? 's' : ''} in your calendar. 
-                Review your schedule to avoid double-booking.
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
-
 
       {/* Search Bar */}
       <div className="bg-white rounded-lg shadow p-4">
@@ -508,7 +452,6 @@ const Calendar = () => {
             <button
               onClick={() => setSearchQuery('')}
               className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
-              title="Clear search"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -523,7 +466,7 @@ const Calendar = () => {
         )}
       </div>
 
-      {/* Search Results Section */}
+      {/* Search Results */}
       {searchQuery && (
         <div className="bg-white rounded-lg shadow p-6">
           <h3 className="text-xl font-semibold mb-4">Search Results</h3>
@@ -537,10 +480,7 @@ const Calendar = () => {
                     className={`flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition cursor-pointer ${
                       event.isCanceled ? 'opacity-60' : ''
                     }`}
-                    onClick={() => {
-                      setSelectedEvent(event);
-                      setShowEventDetailsModal(true);
-                    }}
+                    onClick={() => setModalState({ type: 'details', data: event, extraData: null })}
                   >
                     <div className="flex items-center space-x-3 flex-1 min-w-0">
                       <div 
@@ -555,7 +495,7 @@ const Calendar = () => {
                             {event.title}
                           </h4>
                           {event.isRecurring && !event.isCanceled && (
-                            <RefreshCw className="w-4 h-4 text-blue-500 flex-shrink-0" title="Recurring event" />
+                            <RefreshCw className="w-4 h-4 text-blue-500 flex-shrink-0" />
                           )}
                           {event.isCanceled && (
                             <span className="px-2 py-1 bg-red-100 text-red-800 rounded-full text-xs font-medium">
@@ -595,7 +535,7 @@ const Calendar = () => {
         </div>
       )}
 
-      {/* Calendar Header & Grid */}
+      {/* Calendar */}
       <div className="bg-white rounded-lg shadow p-6">
         <div className="flex justify-between items-center mb-6">
           <button
@@ -613,7 +553,6 @@ const Calendar = () => {
           </button>
         </div>
 
-        {/* Calendar Grid */}
         <div className="grid grid-cols-7 gap-2">
           {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
             <div key={day} className="text-center font-semibold text-gray-700 py-2">
@@ -648,7 +587,7 @@ const Calendar = () => {
                       onClick={(e) => handleEventClick(event, e)}
                       className={`relative text-xs text-white rounded px-1 py-0.5 truncate cursor-pointer hover:opacity-80 transition ${
                         event.isCanceled ? 'opacity-50' : ''
-                      }`}           
+                      }`}
                       style={{ 
                         backgroundColor: event.colorCode || '#3788d8',
                         textDecoration: event.isCanceled ? 'line-through' : 'none'
@@ -659,9 +598,7 @@ const Calendar = () => {
                         {event.isRecurring && !event.isCanceled && (
                           <RefreshCw className="w-3 h-3 flex-shrink-0" />
                         )}
-                        {event.isCanceled && (
-                          <span className="text-xs">🚫</span>
-                        )}
+                        {event.isCanceled && <span>🚫</span>}
                         <span className="truncate">{event.title}</span>
                       </div>
                     </div>
@@ -697,10 +634,7 @@ const Calendar = () => {
                 <div 
                   key={event.id} 
                   className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition cursor-pointer"
-                  onClick={() => {
-                    setSelectedEvent(event);
-                    setShowEventDetailsModal(true);
-                  }}
+                  onClick={() => setModalState({ type: 'details', data: event, extraData: null })}
                 >
                   <div className="flex items-center space-x-3 flex-1 min-w-0">
                     <div 
@@ -711,7 +645,7 @@ const Calendar = () => {
                       <div className="flex items-center space-x-2">
                         <h4 className="font-medium text-gray-800 truncate">{event.title}</h4>
                         {event.isRecurring && (
-                          <RefreshCw className="w-4 h-4 text-blue-500 flex-shrink-0" title="Recurring event" />
+                          <RefreshCw className="w-4 h-4 text-blue-500 flex-shrink-0" />
                         )}
                       </div>
                       <p className="text-sm text-gray-600">
@@ -733,132 +667,82 @@ const Calendar = () => {
                   </div>
                 </div>
               ))}
-            {events.filter(e => {
-              const eventDate = new Date(e.startDateTime);
-              const now = new Date();
-              now.setHours(0, 0, 0, 0);
-              eventDate.setHours(0, 0, 0, 0);
-              return eventDate >= now;
-            }).length === 0 && (
-              <EmptyState
-                icon={CalendarIcon}
-                title="No Upcoming Events"
-                message="You don't have any upcoming events scheduled. Create one to get started!"
-                actionLabel="Create Event"
-                onAction={() => {
-                  setSelectedDate(new Date());
-                  setEditingEvent(null);
-                  setShowEventModal(true);
-                }}
-              />
-            )}
           </div>
         </div>
       )}
 
-      {/* Delete Confirmation Dialog */}
-      <ConfirmDialog
-        isOpen={showDeleteDialog}
-        onClose={() => {
-          setShowDeleteDialog(false);
-          setEventToDelete(null);
-        }}
-        onConfirm={handleDeleteConfirm}
-        title={eventToDelete?.isCanceled ? "Remove Canceled Event" : "Delete Event"}
-        message={getDeleteMessage()}
-        confirmText={eventToDelete?.isCanceled ? "Remove" : "Delete"}
-        cancelText="Cancel"
-        type="danger"
-      />
-
-       {/* Modals */}
-      <ConfirmDialog
-        isOpen={showDeleteDialog}
-        onClose={() => {
-          setShowDeleteDialog(false);
-          setEventToDelete(null);
-        }}
-        onConfirm={handleDeleteConfirm}
-        title={eventToDelete?.isCanceled ? "Remove Canceled Event" : "Delete Event"}
-        message={getDeleteMessage()}
-        confirmText={eventToDelete?.isCanceled ? "Remove" : "Delete"}
-        cancelText="Cancel"
-        type="danger"
-      />
-
-      {showEventModal && (
+      {/* ✅ FIXED: Single modal state management */}
+      
+      {/* Event Modal */}
+      {(modalState.type === 'create' || modalState.type === 'edit') && (
         <EventModal
-          onClose={() => {
-            setShowEventModal(false);
-            setSelectedDate(null);
-            setEditingEvent(null);
-          }}
+          onClose={closeModal}
           onSave={handleEventSaved}
           userId={user.id}
-          initialDate={selectedDate}
-          event={editingEvent}
+          initialDate={modalState.extraData}
+          event={modalState.data}
         />
       )}
 
-      {showEventDetailsModal && selectedEvent && (
+      {/* Event Details Modal */}
+      {modalState.type === 'details' && (
         <EventDetailsModal
-          event={selectedEvent}
-          onClose={() => {
-            setShowEventDetailsModal(false);
-            setSelectedEvent(null);
-          }}
+          event={modalState.data}
+          onClose={closeModal}
           onEdit={handleEditFromDetails}
           onDelete={handleDeleteFromDetails}
-          onUncancel={selectedEvent.isCanceled ? handleUncancelFromDetails : null}
-          onViewSeries={selectedEvent.isRecurring ? handleViewSeriesClick : null}  // ✅ ADD THIS
+          onUncancel={modalState.data?.isCanceled ? handleUncancelFromDetails : null}
+          onViewSeries={modalState.data?.isRecurring ? handleViewSeriesClick : null}
         />
       )}
 
-      <RecurringEditDialog
-        isOpen={showRecurringEditDialog}
-        onClose={() => {
-          setShowRecurringEditDialog(false);
-          setSelectedRecurringEvent(null);
-        }}
-        onEditSeries={handleEditSeriesClick}
-        onEditInstance={handleEditInstanceClick}
-        eventTitle={selectedRecurringEvent?.title || ''}
-      />
+      {/* Recurring Edit Dialog */}
+      {modalState.type === 'recurringEdit' && (
+        <RecurringEditDialog
+          isOpen={true}
+          onClose={closeModal}
+          onEditSeries={handleEditSeriesClick}
+          onEditInstance={() => handleEditInstanceClick(modalState.data)}
+          eventTitle={modalState.data?.title || ''}
+        />
+      )}
 
-      <RecurringDeleteDialog
-        isOpen={showRecurringDeleteDialog}
-        onClose={() => {
-          setShowRecurringDeleteDialog(false);
-          setSelectedRecurringEvent(null);
-        }}
-        onDeleteSeries={handleDeleteSeriesClick}
-        onCancelInstance={handleCancelInstanceClick}
-        eventTitle={selectedRecurringEvent?.title || ''}
-      />
+      {/* Recurring Delete Dialog */}
+      {modalState.type === 'recurringDelete' && (
+        <RecurringDeleteDialog
+          isOpen={true}
+          onClose={closeModal}
+          onDeleteSeries={handleDeleteSeriesClick}
+          onCancelInstance={() => handleCancelInstanceClick(modalState.data)}
+          eventTitle={modalState.data?.title || ''}
+        />
+      )}
 
-          {/* Recurring Series View Modal */}
-          {showRecurringSeriesView && selectedEventForSeries && (
-            <RecurringSeriesView
-              event={selectedEventForSeries}
-              onClose={() => {
-                setShowRecurringSeriesView(false);
-                setSelectedEventForSeries(null);
-              }}
-              onRefresh={loadEvents}
-              onEditInstance={handleEditInstanceClick}
-              onCancelInstance={handleCancelInstanceClick}
-              onDeleteInstance={handleDeleteInstanceClick}
-            />
-          )}
+      {/* Series View */}
+      {modalState.type === 'seriesView' && (
+        <RecurringSeriesView
+          event={modalState.data}
+          onClose={closeModal}
+          onRefresh={loadEvents}
+          onEditInstance={handleEditInstanceClick}
+          onCancelInstance={handleCancelInstanceClick}
+          onDeleteInstance={handleDeleteInstanceClick}
+        />
+      )}
 
-      {/* ✅ NEW: Conflict Warning Modal */}
-      <ConflictWarningModal
-        isOpen={showConflictWarning}
-        conflicts={detectedConflicts}
-        onClose={handleCancelWithConflict}
-        onProceed={handleProceedWithConflict}
-        onCancel={handleCancelWithConflict}
-      />
+      {/* Delete Confirm Dialog */}
+      {modalState.type === 'delete' && (
+        <ConfirmDialog
+          isOpen={true}
+          onClose={closeModal}
+          onConfirm={handleDeleteConfirm}
+          title={modalState.data?.isCanceled ? "Remove Canceled Event" : "Delete Event"}
+          message={getDeleteMessage()}
+          confirmText={modalState.data?.isCanceled ? "Remove" : "Delete"}
+          cancelText="Cancel"
+          type="danger"
+        />
+      )}
     </div>
   );
 };
