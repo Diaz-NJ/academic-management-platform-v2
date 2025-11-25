@@ -185,6 +185,29 @@ public class EventController {
         return ResponseEntity.ok(updated);
     }
 
+        @DeleteMapping("/{id}/cancel-instance")
+    public ResponseEntity<?> removeCanceledInstance(
+            @PathVariable Long id,
+            @RequestBody Map<String, String> data) {
+        String dateStr = data.get("date");
+        if (dateStr == null || dateStr.isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of(
+                "success", false,
+                "message", "Date is required"
+            ));
+        }
+        
+        try {
+            Event updated = eventService.removeCanceledInstance(id, dateStr);
+            return ResponseEntity.ok(updated);
+        } catch (Exception e) {
+            return ResponseEntity.status(404).body(Map.of(
+                "success", false,
+                "message", "Event not found"
+            ));
+        }
+    }
+
     @GetMapping("/{id}/exceptions")
     public ResponseEntity<List<Event>> getExceptions(@PathVariable Long id) {
         List<Event> exceptions = eventService.getExceptionsByParentId(id);

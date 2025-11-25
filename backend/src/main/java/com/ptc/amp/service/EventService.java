@@ -65,6 +65,33 @@ public class EventService {
         return eventRepository.save(event);
     }
 
+    // ✅ NEW: Remove a date from canceledDates list
+    public Event removeCanceledInstance(Long eventId, String dateStr) {
+        Optional<Event> eventOpt = eventRepository.findById(eventId);
+        if (eventOpt.isEmpty()) {
+            throw new RuntimeException("Event not found");
+        }
+
+        Event event = eventOpt.get();
+        
+        // Remove date from canceledDates list
+        String currentCanceled = event.getCanceledDates();
+        if (currentCanceled == null || currentCanceled.isEmpty()) {
+            return event; // Nothing to remove
+        }
+        
+        List<String> canceledList = new ArrayList<>(Arrays.asList(currentCanceled.split(",")));
+        canceledList.remove(dateStr);
+        
+        if (canceledList.isEmpty()) {
+            event.setCanceledDates(null);
+        } else {
+            event.setCanceledDates(String.join(",", canceledList));
+        }
+        
+        return eventRepository.save(event);
+    }
+
     public Event updateEvent(Event event) {
         Optional<Event> existingEventOpt = eventRepository.findById(event.getId());
         

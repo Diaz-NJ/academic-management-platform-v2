@@ -248,24 +248,19 @@ const handleDeleteSeriesClick = () => {
     if (!eventToDelete) return;
 
     try {
-      // ✅ NEW: If cancelled, delete by actual ID, not originalId
-      let idToDelete;
-      if (eventToDelete.isCanceled) {
-        // For cancelled events, delete the actual event record
-        idToDelete = eventToDelete.id;
+      // ✅ NEW: Handle cancelled recurring instances differently
+      if (eventToDelete.isCanceled && eventToDelete.isRecurringInstance) {
+        // This is a cancelled instance - remove from parent's canceledDates
+        const instanceDate = new Date(eventToDelete.startDateTime).toISOString();
+        await eventAPI.removeCanceledInstance(eventToDelete.originalId, instanceDate);
+        showToast('Cancelled event removed from calendar', 'success');
       } else if (eventToDelete.isRecurringInstance) {
-        // For regular recurring instances, delete the series
-        idToDelete = eventToDelete.originalId;
+        // Regular recurring instance - delete the whole series
+        await eventAPI.deleteEvent(eventToDelete.originalId);
+        showToast('Event series deleted successfully', 'success');
       } else {
-        // For non-recurring events
-        idToDelete = eventToDelete.id;
-      }
-      
-      await eventAPI.deleteEvent(idToDelete);
-      
-      if (eventToDelete.isCanceled) {
-        showToast('Cancelled event removed successfully', 'success');
-      } else {
+        // Non-recurring event - delete normally
+        await eventAPI.deleteEvent(eventToDelete.id);
         showToast('Event deleted successfully', 'success');
       }
       

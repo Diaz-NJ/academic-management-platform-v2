@@ -38,6 +38,7 @@ export const eventAPI = {
   updateEvent: (id, event) => api.put(`/events/${id}`, event),
   deleteEvent: (id) => api.delete(`/events/${id}`),
   cancelInstance: (id, date) => api.post(`/events/${id}/cancel-instance`, { date }),
+  removeCanceledInstance: (id, date) => api.delete(`/events/${id}/cancel-instance`, { data: { date } }),
   getExceptions: (parentId) => api.get(`/events/${parentId}/exceptions`),
 };
 
