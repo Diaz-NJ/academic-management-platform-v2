@@ -1,6 +1,9 @@
+// frontend/src/components/RecurringSeriesView.jsx - COMPLETE REPLACEMENT
+
 import React, { useState, useEffect } from 'react';
 import { X, Edit, Ban, Trash2, CheckSquare, Square, Calendar as CalendarIcon } from 'lucide-react';
 import { expandRecurringEvents, getRecurrenceDescription } from '../utils/recurringUtils';
+import ConfirmDialog from './ConfirmDialog'; // ✅ Import ConfirmDialog
 
 const RecurringSeriesView = ({ 
   event, 
@@ -13,6 +16,11 @@ const RecurringSeriesView = ({
   const [instances, setInstances] = useState([]);
   const [selectedInstances, setSelectedInstances] = useState([]);
   const [loading, setLoading] = useState(true);
+  
+  // ✅ NEW: State for delete confirmation
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [instanceToDelete, setInstanceToDelete] = useState(null);
+  const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
 
   useEffect(() => {
     if (event && event.isRecurring) {
@@ -26,12 +34,6 @@ const RecurringSeriesView = ({
       const startDate = new Date();
       const endDate = new Date();
       endDate.setFullYear(endDate.getFullYear() + 1);
-
-        const parentInstance = {
-        ...event,
-        isRecurringInstance: false,
-        isCanceled: false
-        };
 
       const expanded = expandRecurringEvents([event], startDate, endDate);
       
@@ -49,7 +51,7 @@ const RecurringSeriesView = ({
     }
   };
 
-  // ✅ FIX: Bulk cancel with proper error handling
+  // ✅ FIXED: Bulk cancel with proper error handling
   const handleBulkCancel = async () => {
     if (selectedInstances.length === 0) return;
 
@@ -71,14 +73,13 @@ const RecurringSeriesView = ({
     }
   };
 
-  // ✅ FIX: Bulk delete with proper error handling
-  const handleBulkDelete = async () => {
+  // ✅ FIXED: Bulk delete with custom dialog
+  const handleBulkDeleteClick = () => {
     if (selectedInstances.length === 0) return;
-    
-    if (!window.confirm(`Delete ${selectedInstances.length} instance(s) permanently?`)) {
-      return;
-    }
+    setShowBulkDeleteConfirm(true);
+  };
 
+  const handleBulkDeleteConfirm = async () => {
     try {
       for (const instanceId of selectedInstances) {
         const instance = instances.find(i => 
@@ -91,9 +92,29 @@ const RecurringSeriesView = ({
       }
       
       setSelectedInstances([]);
+      setShowBulkDeleteConfirm(false);
       onRefresh();
     } catch (error) {
       console.error('Error in bulk delete:', error);
+    }
+  };
+
+  // ✅ NEW: Single instance delete with custom dialog
+  const handleDeleteClick = (instance) => {
+    setInstanceToDelete(instance);
+    setShowDeleteConfirm(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!instanceToDelete) return;
+    
+    try {
+      await onDeleteInstance(instanceToDelete);
+      setShowDeleteConfirm(false);
+      setInstanceToDelete(null);
+      onRefresh();
+    } catch (error) {
+      console.error('Error deleting instance:', error);
     }
   };
 
@@ -142,174 +163,203 @@ const RecurringSeriesView = ({
   if (!event) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg w-full max-w-4xl max-h-[90vh] flex flex-col shadow-xl">
-        {/* Header */}
-        <div className="p-6 border-b border-gray-200 flex-shrink-0">
-          <div className="flex justify-between items-start">
-            <div>
-              <h2 className="text-2xl font-bold text-gray-800 mb-1">{event.title}</h2>
-              <p className="text-sm text-gray-600">{getRecurrenceDescription(event)}</p>
+    <>
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="bg-white rounded-lg w-full max-w-4xl max-h-[90vh] flex flex-col shadow-xl">
+          {/* Header */}
+          <div className="p-6 border-b border-gray-200 flex-shrink-0">
+            <div className="flex justify-between items-start">
+              <div>
+                <h2 className="text-2xl font-bold text-gray-800 mb-1">{event.title}</h2>
+                <p className="text-sm text-gray-600">{getRecurrenceDescription(event)}</p>
+              </div>
+              <button
+                onClick={onClose}
+                className="text-gray-400 hover:text-gray-600 transition"
+              >
+                <X className="w-6 h-6" />
+              </button>
             </div>
+          </div>
+
+          {/* Bulk Actions Bar */}
+          {selectedInstances.length > 0 && (
+            <div className="px-6 py-3 bg-blue-50 border-b border-blue-200 flex-shrink-0">
+              <div className="flex items-center justify-between">
+                <span className="font-medium text-blue-900">
+                  {selectedInstances.length} instance(s) selected
+                </span>
+                <div className="flex items-center space-x-2">
+                  <button
+                    onClick={handleBulkCancel}
+                    className="px-3 py-1.5 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition text-sm font-medium flex items-center space-x-1"
+                  >
+                    <Ban className="w-4 h-4" />
+                    <span>Cancel Selected</span>
+                  </button>
+                  <button
+                    onClick={handleBulkDeleteClick}
+                    className="px-3 py-1.5 bg-red-500 text-white rounded-lg hover:bg-red-600 transition text-sm font-medium flex items-center space-x-1"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    <span>Delete Selected</span>
+                  </button>
+                  <button
+                    onClick={() => setSelectedInstances([])}
+                    className="px-3 py-1.5 border border-gray-300 rounded-lg hover:bg-gray-50 transition text-sm font-medium"
+                  >
+                    Clear
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Instances List */}
+          <div className="flex-1 overflow-y-auto p-6">
+            {loading ? (
+              <div className="text-center py-8 text-gray-500">Loading instances...</div>
+            ) : instances.length === 0 ? (
+              <div className="text-center py-8">
+                <CalendarIcon className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+                <p className="text-gray-500">No instances found</p>
+              </div>
+            ) : (
+              <>
+                {/* Select All */}
+                <div className="mb-4 pb-3 border-b border-gray-200">
+                  <button
+                    onClick={toggleSelectAll}
+                    className="flex items-center space-x-2 text-sm font-medium text-gray-700 hover:text-primary transition"
+                  >
+                    {selectedInstances.length === instances.length ? (
+                      <CheckSquare className="w-5 h-5 text-primary" />
+                    ) : (
+                      <Square className="w-5 h-5" />
+                    )}
+                    <span>
+                      {selectedInstances.length === instances.length ? 'Deselect All' : 'Select All'}
+                      {' '}({instances.length} instances)
+                    </span>
+                  </button>
+                </div>
+
+                {/* Instance Items */}
+                <div className="space-y-2">
+                  {instances.map((instance) => {
+                    const instanceId = instance.id || `${instance.originalId}-${instance.startDateTime}`;
+                    const isSelected = selectedInstances.includes(instanceId);
+                    
+                    return (
+                      <div
+                        key={instanceId}
+                        className={`border rounded-lg p-4 transition ${
+                          isSelected ? 'border-primary bg-blue-50' : 'border-gray-200 hover:border-gray-300'
+                        } ${instance.isCanceled ? 'opacity-60' : ''}`}
+                      >
+                        <div className="flex items-start space-x-3">
+                          {/* Checkbox */}
+                          <button
+                            onClick={() => toggleInstanceSelection(instanceId)}
+                            className="mt-1 flex-shrink-0"
+                          >
+                            {isSelected ? (
+                              <CheckSquare className="w-5 h-5 text-primary" />
+                            ) : (
+                              <Square className="w-5 h-5 text-gray-400 hover:text-primary" />
+                            )}
+                          </button>
+
+                          {/* Instance Info */}
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center space-x-2 mb-1">
+                              <h4 className={`font-medium text-gray-800 ${instance.isCanceled ? 'line-through' : ''}`}>
+                                {formatDateTime(instance.startDateTime)}
+                              </h4>
+                              {getStatusBadge(instance)}
+                            </div>
+                            
+                            {instance.location && (
+                              <p className="text-sm text-gray-600">📍 {instance.location}</p>
+                            )}
+                          </div>
+
+                          {/* Action Buttons */}
+                          <div className="flex items-center space-x-1 flex-shrink-0">
+                            {!instance.isCanceled && (
+                              <>
+                                <button
+                                  onClick={() => onEditInstance(instance)}
+                                  className="p-2 text-blue-500 hover:bg-blue-50 rounded transition"
+                                  title="Edit this instance"
+                                >
+                                  <Edit className="w-4 h-4" />
+                                </button>
+                                <button
+                                  onClick={() => onCancelInstance(instance)}
+                                  className="p-2 text-orange-500 hover:bg-orange-50 rounded transition"
+                                  title="Cancel this instance"
+                                >
+                                  <Ban className="w-4 h-4" />
+                                </button>
+                              </>
+                            )}
+                            <button
+                              onClick={() => handleDeleteClick(instance)}
+                              className="p-2 text-red-500 hover:bg-red-50 rounded transition"
+                              title="Delete this instance permanently"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </>
+            )}
+          </div>
+
+          {/* Footer */}
+          <div className="p-6 border-t border-gray-200 bg-gray-50 flex-shrink-0">
             <button
               onClick={onClose}
-              className="text-gray-400 hover:text-gray-600 transition"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-100 transition font-medium"
             >
-              <X className="w-6 h-6" />
+              Close
             </button>
           </div>
         </div>
-
-        {/* Bulk Actions Bar */}
-        {selectedInstances.length > 0 && (
-          <div className="px-6 py-3 bg-blue-50 border-b border-blue-200 flex-shrink-0">
-            <div className="flex items-center justify-between">
-              <span className="font-medium text-blue-900">
-                {selectedInstances.length} instance(s) selected
-              </span>
-              <div className="flex items-center space-x-2">
-                <button
-                  onClick={handleBulkCancel}
-                  className="px-3 py-1.5 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition text-sm font-medium flex items-center space-x-1"
-                >
-                  <Ban className="w-4 h-4" />
-                  <span>Cancel Selected</span>
-                </button>
-                <button
-                  onClick={handleBulkDelete}
-                  className="px-3 py-1.5 bg-red-500 text-white rounded-lg hover:bg-red-600 transition text-sm font-medium flex items-center space-x-1"
-                >
-                  <Trash2 className="w-4 h-4" />
-                  <span>Delete Selected</span>
-                </button>
-                <button
-                  onClick={() => setSelectedInstances([])}
-                  className="px-3 py-1.5 border border-gray-300 rounded-lg hover:bg-gray-50 transition text-sm font-medium"
-                >
-                  Clear
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Instances List */}
-        <div className="flex-1 overflow-y-auto p-6">
-          {loading ? (
-            <div className="text-center py-8 text-gray-500">Loading instances...</div>
-          ) : instances.length === 0 ? (
-            <div className="text-center py-8">
-              <CalendarIcon className="w-12 h-12 mx-auto mb-3 text-gray-300" />
-              <p className="text-gray-500">No instances found</p>
-            </div>
-          ) : (
-            <>
-              {/* Select All */}
-              <div className="mb-4 pb-3 border-b border-gray-200">
-                <button
-                  onClick={toggleSelectAll}
-                  className="flex items-center space-x-2 text-sm font-medium text-gray-700 hover:text-primary transition"
-                >
-                  {selectedInstances.length === instances.length ? (
-                    <CheckSquare className="w-5 h-5 text-primary" />
-                  ) : (
-                    <Square className="w-5 h-5" />
-                  )}
-                  <span>
-                    {selectedInstances.length === instances.length ? 'Deselect All' : 'Select All'}
-                    {' '}({instances.length} instances)
-                  </span>
-                </button>
-              </div>
-
-              {/* Instance Items */}
-              <div className="space-y-2">
-                {instances.map((instance) => {
-                  const instanceId = instance.id || `${instance.originalId}-${instance.startDateTime}`;
-                  const isSelected = selectedInstances.includes(instanceId);
-                  
-                  return (
-                    <div
-                      key={instanceId}
-                      className={`border rounded-lg p-4 transition ${
-                        isSelected ? 'border-primary bg-blue-50' : 'border-gray-200 hover:border-gray-300'
-                      } ${instance.isCanceled ? 'opacity-60' : ''}`}
-                    >
-                      <div className="flex items-start space-x-3">
-                        {/* Checkbox */}
-                        <button
-                          onClick={() => toggleInstanceSelection(instanceId)}
-                          className="mt-1 flex-shrink-0"
-                        >
-                          {isSelected ? (
-                            <CheckSquare className="w-5 h-5 text-primary" />
-                          ) : (
-                            <Square className="w-5 h-5 text-gray-400 hover:text-primary" />
-                          )}
-                        </button>
-
-                        {/* Instance Info */}
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center space-x-2 mb-1">
-                            <h4 className={`font-medium text-gray-800 ${instance.isCanceled ? 'line-through' : ''}`}>
-                              {formatDateTime(instance.startDateTime)}
-                            </h4>
-                            {getStatusBadge(instance)}
-                          </div>
-                          
-                          {instance.location && (
-                            <p className="text-sm text-gray-600">📍 {instance.location}</p>
-                          )}
-                        </div>
-
-                        {/* Action Buttons */}
-                        <div className="flex items-center space-x-1 flex-shrink-0">
-                          {!instance.isCanceled && (
-                            <>
-                              <button
-                                onClick={() => onEditInstance(instance)}
-                                className="p-2 text-blue-500 hover:bg-blue-50 rounded transition"
-                                title="Edit this instance"
-                              >
-                                <Edit className="w-4 h-4" />
-                              </button>
-                              <button
-                                onClick={() => onCancelInstance(instance)}
-                                className="p-2 text-orange-500 hover:bg-orange-50 rounded transition"
-                                title="Cancel this instance"
-                              >
-                                <Ban className="w-4 h-4" />
-                              </button>
-                            </>
-                          )}
-                          <button
-                            onClick={() => onDeleteInstance(instance)}
-                            className="p-2 text-red-500 hover:bg-red-50 rounded transition"
-                            title="Delete this instance permanently"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </>
-          )}
-        </div>
-
-        {/* Footer */}
-        <div className="p-6 border-t border-gray-200 bg-gray-50 flex-shrink-0">
-          <button
-            onClick={onClose}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-100 transition font-medium"
-          >
-            Close
-          </button>
-        </div>
       </div>
-    </div>
+
+      {/* ✅ Single Instance Delete Dialog */}
+      <ConfirmDialog
+        isOpen={showDeleteConfirm}
+        onClose={() => {
+          setShowDeleteConfirm(false);
+          setInstanceToDelete(null);
+        }}
+        onConfirm={handleDeleteConfirm}
+        title="Delete Event Instance"
+        message={`Are you sure you want to permanently delete this instance of "${event.title}"? This action cannot be undone.`}
+        confirmText="Delete"
+        cancelText="Cancel"
+        type="danger"
+      />
+
+      {/* ✅ Bulk Delete Dialog */}
+      <ConfirmDialog
+        isOpen={showBulkDeleteConfirm}
+        onClose={() => setShowBulkDeleteConfirm(false)}
+        onConfirm={handleBulkDeleteConfirm}
+        title="Delete Multiple Instances"
+        message={`Are you sure you want to permanently delete ${selectedInstances.length} instance(s) of "${event.title}"? This action cannot be undone.`}
+        confirmText="Delete All"
+        cancelText="Cancel"
+        type="danger"
+      />
+    </>
   );
 };
 

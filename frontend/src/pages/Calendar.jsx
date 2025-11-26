@@ -87,257 +87,285 @@ const Calendar = () => {
     closeModal();
   }, [loadEvents, closeModal]);
 
-  // Event click handler
-  const handleEventClick = (event, e) => {
-    if (e) e.stopPropagation();
-    
-    if (event.isRecurring || event.isRecurringInstance) {
-      setModalState({
-        type: 'recurringEdit',
-        data: event,
-        extraData: null
-      });
-    } else {
-      setModalState({
-        type: 'details',
-        data: event,
-        extraData: null
-      });
-    }
-  };
+    const handleEventClick = (event, e) => {
+  if (e) e.stopPropagation();
+  
+  // Always show details modal first
+  setModalState({
+    type: 'details',
+    data: event,
+    extraData: null
+  });
+};
 
-  // Edit handlers
-  const handleEditFromDetails = () => {
-    const event = modalState.data;
-    
-    if (event.isRecurring || event.isRecurringInstance) {
-      setModalState({
-        type: 'recurringEdit',
-        data: event,
-        extraData: null
-      });
-    } else {
-      setModalState({
-        type: 'edit',
-        data: event,
-        extraData: null
-      });
-    }
-  };
-
-  const handleEditSeriesClick = () => {
-    const event = modalState.data;
-    const eventToEdit = event.isRecurringInstance 
-      ? originalEvents.find(e => e.id === event.originalId)
-      : event;
-    
-    if (!eventToEdit) {
-      showToast('Error loading event for editing', 'error');
-      return;
-    }
-    
+// ✅ FIXED: Edit from details - detect if recurring properly
+const handleEditFromDetails = () => {
+  const event = modalState.data;
+  
+  // Check if it's a recurring event or instance
+  if (event.isRecurring || event.isRecurringInstance) {
+    // Show recurring edit dialog
+    setModalState({
+      type: 'recurringEdit',
+      data: event,
+      extraData: null
+    });
+  } else {
+    // Direct edit for non-recurring events
     setModalState({
       type: 'edit',
-      data: eventToEdit,
+      data: event,
       extraData: null
     });
-  };
+  }
+};
 
-  const handleEditInstanceClick = async (instance) => {
-    try {
-      if (!instance) {
-        showToast('Error: Invalid event instance', 'error');
-        return;
-      }
+// ✅ FIXED: Edit series - find the original event properly
+const handleEditSeriesClick = () => {
+  const event = modalState.data;
+  
+  // Find the original event from originalEvents
+  const eventToEdit = event.isRecurringInstance 
+    ? originalEvents.find(e => e.id === event.originalId)
+    : event;
+  
+  if (!eventToEdit) {
+    showToast('Error: Could not find event for editing', 'error');
+    closeModal();
+    return;
+  }
+  
+  setModalState({
+    type: 'edit',
+    data: eventToEdit,
+    extraData: null
+  });
+};
 
-      const originalEventId = instance.originalId || instance.id;
-      const originalEvent = originalEvents.find(e => e.id === originalEventId);
-      
-      if (!originalEvent) {
-        showToast('Error: Could not find original event', 'error');
-        return;
-      }
-
-      const instanceDate = new Date(instance.startDateTime);
-      const existingExceptions = await eventAPI.getExceptions(originalEvent.id);
-      
-      const existingException = existingExceptions.data?.find(exc => {
-        const excDate = new Date(exc.exceptionDate);
-        return (
-          excDate.getFullYear() === instanceDate.getFullYear() &&
-          excDate.getMonth() === instanceDate.getMonth() &&
-          excDate.getDate() === instanceDate.getDate()
-        );
-      });
-
-      if (existingException) {
-        setModalState({
-          type: 'edit',
-          data: existingException,
-          extraData: null
-        });
-      } else {
-        const exceptionEventData = {
-          ...originalEvent,
-          id: null,
-          isRecurring: false,
-          isException: true,
-          parentEventId: originalEvent.id,
-          exceptionDate: instanceDate.toISOString(),
-          startDateTime: instance.startDateTime,
-          endDateTime: instance.endDateTime,
-          recurrencePattern: null,
-          recurrenceInterval: null,
-          recurrenceEndDate: null,
-          recurrenceDaysOfWeek: null,
-          recurrenceEndType: 'never',
-          recurrenceCount: null,
-        };
-        
-        setModalState({
-          type: 'edit',
-          data: exceptionEventData,
-          extraData: null
-        });
-      }
-    } catch (error) {
-      console.error('Error setting up instance edit:', error);
-      showToast('Failed to prepare event for editing', 'error');
+// ✅ FIXED: Edit instance - create exception properly
+const handleEditInstanceClick = async (instance) => {
+  try {
+    if (!instance) {
+      showToast('Error: Invalid event instance', 'error');
+      return;
     }
-  };
 
-  // Delete handlers
-  const handleDeleteFromDetails = () => {
-    setModalState({
-      type: 'delete',
-      data: modalState.data,
-      extraData: null
-    });
-  };
-
-  const handleDeleteSeriesClick = () => {
-    const event = modalState.data;
-    const eventToDelete = event.isRecurringInstance 
-      ? originalEvents.find(e => e.id === event.originalId) || event
-      : event;
-    
-    setModalState({
-      type: 'delete',
-      data: eventToDelete,
-      extraData: null
-    });
-  };
-
-  const handleDeleteConfirm = async () => {
-    const eventToDelete = modalState.data;
-    if (!eventToDelete) return;
-
-    try {
-      if (eventToDelete.isCanceled && eventToDelete.isRecurringInstance) {
-        const instanceDate = new Date(eventToDelete.startDateTime).toISOString();
-        const originalId = eventToDelete.originalId;
-        
-        await eventAPI.deleteInstance(originalId, instanceDate);
-        showToast('Canceled event permanently deleted', 'success');
-      } else if (eventToDelete.isRecurringInstance && !eventToDelete.isCanceled) {
-        // Should go to recurring delete dialog instead
-        setModalState({
-          type: 'recurringDelete',
-          data: eventToDelete,
-          extraData: null
-        });
-        return;
-      } else {
-        await eventAPI.deleteEvent(eventToDelete.id);
-        showToast('Event deleted successfully', 'success');
-      }
-      
-      await loadEvents();
-      closeModal();
-    } catch (error) {
-      console.error('Error deleting event:', error);
-      showToast('Failed to delete event', 'error');
-    }
-  };
-
-  // Cancel/Uncancel handlers
-  const handleCancelInstanceClick = async (instance) => {
-    try {
-      if (!instance || !instance.startDateTime) {
-        showToast('Error: Invalid event instance', 'error');
-        return;
-      }
-
-      const instanceDate = new Date(instance.startDateTime);
-      const dateStr = instanceDate.toISOString();
-      
-      const originalId = instance.originalId || instance.id;
-      await eventAPI.cancelInstance(originalId, dateStr);
-      
-      showToast('Event occurrence canceled', 'success');
-      await loadEvents();
-      closeModal();
-    } catch (error) {
-      console.error('Error canceling instance:', error);
-      showToast('Failed to cancel event occurrence', 'error');
-    }
-  };
-
-  const handleUncancelFromDetails = async () => {
-    try {
-      const event = modalState.data;
-      const instanceDate = new Date(event.startDateTime).toISOString();
-      const originalId = event.isRecurringInstance ? event.originalId : event.id;
-      
-      await eventAPI.uncancelInstance(originalId, instanceDate);
-      showToast('Event restored successfully', 'success');
-      await loadEvents();
-      closeModal();
-    } catch (error) {
-      console.error('Error un-canceling event:', error);
-      showToast('Failed to restore event', 'error');
-    }
-  };
-
-  const handleDeleteInstanceClick = async (instance) => {
-    try {
-      if (!instance || !instance.startDateTime) {
-        showToast('Error: Invalid event instance', 'error');
-        return;
-      }
-
-      const instanceDate = new Date(instance.startDateTime);
-      const dateStr = instanceDate.toISOString();
-      
-      const originalId = instance.originalId || instance.id;
-      await eventAPI.deleteInstance(originalId, dateStr);
-      
-      showToast('Event occurrence deleted permanently', 'success');
-      await loadEvents();
-    } catch (error) {
-      console.error('Error deleting instance:', error);
-      showToast('Failed to delete event occurrence', 'error');
-    }
-  };
-
-  // View series
-  const handleViewSeriesClick = () => {
-    const event = modalState.data;
-    const originalEvent = event.isRecurringInstance 
-      ? originalEvents.find(e => e.id === event.originalId)
-      : event;
+    // Get the original recurring event
+    const originalEventId = instance.originalId || instance.id;
+    const originalEvent = originalEvents.find(e => e.id === originalEventId);
     
     if (!originalEvent) {
       showToast('Error: Could not find original event', 'error');
       return;
     }
+
+    const instanceDate = new Date(instance.startDateTime);
     
+    // Check if an exception already exists for this date
+    const existingExceptions = await eventAPI.getExceptions(originalEvent.id);
+    
+    const existingException = existingExceptions.data?.find(exc => {
+      const excDate = new Date(exc.exceptionDate);
+      return (
+        excDate.getFullYear() === instanceDate.getFullYear() &&
+        excDate.getMonth() === instanceDate.getMonth() &&
+        excDate.getDate() === instanceDate.getDate()
+      );
+    });
+
+    if (existingException) {
+      // Edit existing exception
+      setModalState({
+        type: 'edit',
+        data: existingException,
+        extraData: null
+      });
+    } else {
+      // Create new exception data
+      const exceptionEventData = {
+        ...originalEvent,
+        id: null, // New exception
+        isRecurring: false,
+        isException: true,
+        parentEventId: originalEvent.id,
+        exceptionDate: instanceDate.toISOString(),
+        startDateTime: instance.startDateTime,
+        endDateTime: instance.endDateTime,
+        // Clear recurrence fields
+        recurrencePattern: null,
+        recurrenceInterval: null,
+        recurrenceEndDate: null,
+        recurrenceDaysOfWeek: null,
+        recurrenceEndType: 'never',
+        recurrenceCount: null,
+      };
+      
+      setModalState({
+        type: 'edit',
+        data: exceptionEventData,
+        extraData: null
+      });
+    }
+  } catch (error) {
+    console.error('Error setting up instance edit:', error);
+    showToast('Failed to prepare event for editing', 'error');
+  }
+};
+
+// ✅ FIXED: Delete from details - detect recurring properly
+const handleDeleteFromDetails = () => {
+  const event = modalState.data;
+  
+  // Check if it's a recurring event
+  if (event.isRecurring || (event.isRecurringInstance && !event.isCanceled)) {
+    // Show recurring delete dialog
     setModalState({
-      type: 'seriesView',
-      data: originalEvent,
+      type: 'recurringDelete',
+      data: event,
       extraData: null
     });
-  };
+  } else {
+    // Show regular delete confirm
+    setModalState({
+      type: 'delete',
+      data: event,
+      extraData: null
+    });
+  }
+};
+
+// ✅ FIXED: Delete series - find original event properly
+const handleDeleteSeriesClick = () => {
+  const event = modalState.data;
+  
+  // Find the original event
+  const eventToDelete = event.isRecurringInstance 
+    ? originalEvents.find(e => e.id === event.originalId) || event
+    : event;
+  
+  // Close recurring delete dialog and show confirm
+  setModalState({
+    type: 'delete',
+    data: eventToDelete,
+    extraData: null
+  });
+};
+
+// ✅ FIXED: Delete confirm with proper handling
+const handleDeleteConfirm = async () => {
+  const eventToDelete = modalState.data;
+  if (!eventToDelete) return;
+
+  try {
+    // ✅ FIXED: Handle canceled recurring instance deletion
+    if (eventToDelete.isCanceled && eventToDelete.isRecurringInstance) {
+      const instanceDate = new Date(eventToDelete.startDateTime);
+      const dateStr = instanceDate.toISOString().substring(0, 10); // Just date part
+      const originalId = eventToDelete.originalId;
+      
+      await eventAPI.deleteInstance(originalId, dateStr);
+      showToast('Canceled event permanently deleted', 'success');
+    } 
+    // Handle regular event deletion
+    else {
+      await eventAPI.deleteEvent(eventToDelete.id);
+      showToast('Event deleted successfully', 'success');
+    }
+    
+    await loadEvents();
+    closeModal();
+  } catch (error) {
+    console.error('Error deleting event:', error);
+    showToast('Failed to delete event', 'error');
+  }
+};
+
+// ✅ FIXED: Cancel instance with proper date handling
+const handleCancelInstanceClick = async (instance) => {
+  try {
+    if (!instance || !instance.startDateTime) {
+      showToast('Error: Invalid event instance', 'error');
+      return;
+    }
+
+    const instanceDate = new Date(instance.startDateTime);
+    const dateStr = instanceDate.toISOString();
+    
+    const originalId = instance.originalId || instance.id;
+    await eventAPI.cancelInstance(originalId, dateStr);
+    
+    showToast('Event occurrence canceled', 'success');
+    await loadEvents();
+    closeModal();
+  } catch (error) {
+    console.error('Error canceling instance:', error);
+    showToast('Failed to cancel event occurrence', 'error');
+  }
+};
+
+// ✅ FIXED: Un-cancel from details
+const handleUncancelFromDetails = async () => {
+  try {
+    const event = modalState.data;
+    const instanceDate = new Date(event.startDateTime);
+    const dateStr = instanceDate.toISOString().substring(0, 10); // Just the date part
+    
+    const originalId = event.isRecurringInstance ? event.originalId : event.id;
+    
+    await eventAPI.uncancelInstance(originalId, dateStr);
+    showToast('Event restored successfully', 'success');
+    await loadEvents();
+    closeModal();
+  } catch (error) {
+    console.error('Error un-canceling event:', error);
+    showToast('Failed to restore event', 'error');
+  }
+};
+
+// ✅ FIXED: Delete instance permanently
+const handleDeleteInstanceClick = async (instance) => {
+  try {
+    if (!instance || !instance.startDateTime) {
+      showToast('Error: Invalid event instance', 'error');
+      return;
+    }
+
+    const instanceDate = new Date(instance.startDateTime);
+    const dateStr = instanceDate.toISOString();
+    
+    const originalId = instance.originalId || instance.id;
+    await eventAPI.deleteInstance(originalId, dateStr);
+    
+    showToast('Event occurrence deleted permanently', 'success');
+    await loadEvents();
+    closeModal();
+  } catch (error) {
+    console.error('Error deleting instance:', error);
+    showToast('Failed to delete event occurrence', 'error');
+  }
+};
+
+// ✅ FIXED: View series - find original event
+const handleViewSeriesClick = () => {
+  const event = modalState.data;
+  
+  // Find the original recurring event
+  const originalEvent = event.isRecurringInstance 
+    ? originalEvents.find(e => e.id === event.originalId)
+    : event;
+  
+  if (!originalEvent) {
+    showToast('Error: Could not find original event', 'error');
+    closeModal();
+    return;
+  }
+  
+  setModalState({
+    type: 'seriesView',
+    data: originalEvent,
+    extraData: null
+  });
+};
 
   // Calendar navigation
   const getDaysInMonth = (date) => {

@@ -1,7 +1,7 @@
-// frontend/src/components/EventDetailsModal.jsx
+// frontend/src/components/EventDetailsModal.jsx - COMPLETE FIXED VERSION
 
 import React from 'react';
-import { X, Edit, Trash2, Clock, MapPin, Calendar, RefreshCw, RotateCcw, List } from 'lucide-react';
+import { X, Edit, Trash2, Clock, MapPin, Calendar, RefreshCw, RotateCcw } from 'lucide-react';
 import { getRecurrenceDescription } from '../utils/recurringUtils';
 
 const EventDetailsModal = ({ event, onClose, onEdit, onDelete, onUncancel, onViewSeries }) => {
@@ -32,6 +32,9 @@ const EventDetailsModal = ({ event, onClose, onEdit, onDelete, onUncancel, onVie
     });
   };
 
+  // ✅ FIXED: Check if this is a recurring event (either original or instance)
+  const isRecurringEvent = event.isRecurring || event.isRecurringInstance;
+
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-lg w-full max-w-md">
@@ -45,7 +48,8 @@ const EventDetailsModal = ({ event, onClose, onEdit, onDelete, onUncancel, onVie
                 }`}>
                   {event.title}
                 </h2>
-                {event.isRecurring && !event.isCanceled && (
+                {/* ✅ FIXED: Show recurring badge for both recurring and instances */}
+                {isRecurringEvent && !event.isCanceled && (
                   <div className="flex items-center space-x-1 px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium">
                     <RefreshCw className="w-3 h-3" />
                     <span>Recurring</span>
@@ -107,7 +111,8 @@ const EventDetailsModal = ({ event, onClose, onEdit, onDelete, onUncancel, onVie
               </div>
             </div>
 
-            {event.isRecurring && !event.isCanceled && (
+            {/* ✅ FIXED: Show recurrence info for both recurring and instances */}
+            {isRecurringEvent && !event.isCanceled && (
               <div>
                 <h3 className="text-sm font-semibold text-gray-700 mb-2">Recurrence</h3>
                 <div className="flex items-start space-x-2 text-gray-600">
@@ -135,8 +140,8 @@ const EventDetailsModal = ({ event, onClose, onEdit, onDelete, onUncancel, onVie
             )}
           </div>
 
-          {/* View Series Button for Recurring Events */}
-          {event.isRecurring && !event.isCanceled && onViewSeries && (
+          {/* ✅ FIXED: View Series Button - show for both recurring and instances */}
+          {isRecurringEvent && !event.isCanceled && onViewSeries && (
             <div className="mt-4">
               <button
                 onClick={onViewSeries}
@@ -152,8 +157,8 @@ const EventDetailsModal = ({ event, onClose, onEdit, onDelete, onUncancel, onVie
           <div className="flex flex-col space-y-2 mt-6 pt-6 border-t border-gray-200">
             {event.isCanceled ? (
               <>
-                {/* Un-cancel Button */}
-                {onUncancel && (
+                {/* Un-cancel Button - only for recurring instances */}
+                {onUncancel && event.isRecurringInstance && (
                   <button
                     onClick={onUncancel}
                     className="flex items-center justify-center space-x-2 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition"
@@ -162,7 +167,7 @@ const EventDetailsModal = ({ event, onClose, onEdit, onDelete, onUncancel, onVie
                     <span>Restore Event</span>
                   </button>
                 )}
-                {/* Delete Permanently Button */}
+                {/* Delete Permanently Button - always show for canceled events */}
                 <button
                   onClick={onDelete}
                   className="flex items-center justify-center space-x-2 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition"
@@ -179,7 +184,11 @@ const EventDetailsModal = ({ event, onClose, onEdit, onDelete, onUncancel, onVie
                   className="flex items-center justify-center space-x-2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-blue-600 transition"
                 >
                   <Edit className="w-4 h-4" />
-                  <span>{event.isRecurring ? 'Edit Series' : 'Edit Event'}</span>
+                  <span>
+                    {isRecurringEvent 
+                      ? (event.isRecurringInstance ? 'Edit Instance' : 'Edit Series') 
+                      : 'Edit Event'}
+                  </span>
                 </button>
                 {/* Delete Button */}
                 <button
@@ -187,7 +196,11 @@ const EventDetailsModal = ({ event, onClose, onEdit, onDelete, onUncancel, onVie
                   className="flex items-center justify-center space-x-2 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition"
                 >
                   <Trash2 className="w-4 h-4" />
-                  <span>{event.isRecurring ? 'Delete Series' : 'Delete'}</span>
+                  <span>
+                    {isRecurringEvent 
+                      ? (event.isRecurringInstance ? 'Delete Instance' : 'Delete Series') 
+                      : 'Delete'}
+                  </span>
                 </button>
               </>
             )}

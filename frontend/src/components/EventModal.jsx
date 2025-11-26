@@ -2,9 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { eventAPI } from '../services/api';
 import { useToast } from '../context/ToastContext';
 import { X, RefreshCw } from 'lucide-react';
+import ConflictWarningModal from './ConflictWarningModal';
 
 const EventModal = ({ onClose, onSave, userId, initialDate, event = null }) => {
   const { showToast } = useToast();
+  const [conflicts, setConflicts] = useState([]);
+  const [showConflictWarning, setShowConflictWarning] = useState(false);
+  const [pendingEventData, setPendingEventData] = useState(null);
   
   const formatDateTimeLocal = (dateInput) => {
     let d;
@@ -137,66 +141,158 @@ const EventModal = ({ onClose, onSave, userId, initialDate, event = null }) => {
   };
 
   // ✅ FIXED: Properly handle save with API call
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
+  const checkForConflicts = async (eventData) => {
+  try {
+    // Get all events for the user
+    const response = await eventAPI.getEvents(userId);
+    const allEvents = response.data;
+    
+    // Parse new event times
+    const newStart = new Date(eventData.startDateTime);
+    const newEnd = new Date(eventData.endDateTime);
+    
+    // Find conflicts
+    const foundConflicts = allEvents
+      .filter(existingEvent => {
+        // Skip if editing same event
+        if (event && existingEvent.id === event.id) return false;
+        
+        // Skip canceled events
+        if (existingEvent.isCanceled) return false;
+        
+        // Check for time overlap
+        const existStart = new Date(existingEvent.startDateTime);
+        const existEnd = new Date(existingEvent.endDateTime);
+        
+        // Events overlap if one starts before the other ends
+        return newStart < existEnd && existStart < newEnd;
+      })
+      .map(conflictEvent => {
+        // Calculate severity
+        const existStart = new Date(conflictEvent.startDateTime);
+        const existEnd = new Date(conflictEvent.endDateTime);
+        
+        const overlapStart = new Date(Math.max(newStart, existStart));
+        const overlapEnd = new Date(Math.min(newEnd, existEnd));
+        const overlapMinutes = (overlapEnd - overlapStart) / (1000 * 60);
+        
+        let severity = 'minor';
+        if (overlapMinutes >= 60) severity = 'severe';
+        else if (overlapMinutes >= 30) severity = 'moderate';
+        
+        return {
+          event: conflictEvent,
+          severity,
+          message: `Overlaps by ${Math.round(overlapMinutes)} minutes`
+        };
+      });
+    
+    return foundConflicts;
+  } catch (error) {
+    console.error('Error checking conflicts:', error);
+    return [];
+  }
+};
 
-    try {
-      const formatDateTimeForBackend = (datetimeLocal) => {
-        return datetimeLocal.includes(':00', datetimeLocal.length - 3) 
-          ? datetimeLocal 
-          : datetimeLocal + ':00';
-      };
-      
-      const eventData = {
-        title: formData.title,
-        description: formData.description,
-        eventType: formData.eventType,
-        location: formData.location,
-        colorCode: formData.colorCode,
-        userId: Number(userId),
-        startDateTime: formatDateTimeForBackend(formData.startDateTime),
-        endDateTime: formatDateTimeForBackend(formData.endDateTime),
-        isRecurring: Boolean(formData.isRecurring),
-        recurrencePattern: formData.isRecurring ? formData.recurrencePattern : null,
-        recurrenceInterval: formData.isRecurring ? Number(formData.recurrenceInterval) : 1,
-        recurrenceEndDate: 
-          formData.isRecurring && formData.recurrenceEndType === 'date' && formData.recurrenceEndDate
-            ? formData.recurrenceEndDate + 'T23:59:59' 
-            : null,
-        recurrenceCount:
-          formData.isRecurring && formData.recurrenceEndType === 'count'
-            ? Number(formData.recurrenceCount)
-            : null,
-        recurrenceDaysOfWeek: 
-          formData.isRecurring && formData.recurrencePattern === 'WEEKLY' 
-            ? formData.recurrenceDaysOfWeek 
-            : null,
-      };
-      
-      // ✅ FIXED: Actually call the API
-      if (event) {
-        await eventAPI.updateEvent(event.id, eventData);
-        showToast('Event updated successfully!', 'success');
-      } else {
-        await eventAPI.createEvent(eventData);
-        showToast('Event created successfully!', 'success');
-      }
-      
-      // ✅ Call onSave to trigger parent refresh
-      onSave();
-      onClose();
-      
-    } catch (error) {
-      console.error('Error saving event:', error);
-      showToast(
-        event ? 'Failed to update event. Please try again.' : 'Failed to create event. Please try again.',
-        'error'
-      );
-    } finally {
+// REPLACE the existing handleSubmit function with this version:
+const handleSubmit = async (e) => {
+  e.preventDefault();
+  setLoading(true);
+
+  try {
+    const formatDateTimeForBackend = (datetimeLocal) => {
+      return datetimeLocal.includes(':00', datetimeLocal.length - 3) 
+        ? datetimeLocal 
+        : datetimeLocal + ':00';
+    };
+    
+    const eventData = {
+      title: formData.title,
+      description: formData.description,
+      eventType: formData.eventType,
+      location: formData.location,
+      colorCode: formData.colorCode,
+      userId: Number(userId),
+      startDateTime: formatDateTimeForBackend(formData.startDateTime),
+      endDateTime: formatDateTimeForBackend(formData.endDateTime),
+      isRecurring: Boolean(formData.isRecurring),
+      recurrencePattern: formData.isRecurring ? formData.recurrencePattern : null,
+      recurrenceInterval: formData.isRecurring ? Number(formData.recurrenceInterval) : 1,
+      recurrenceEndDate: 
+        formData.isRecurring && formData.recurrenceEndType === 'date' && formData.recurrenceEndDate
+          ? formData.recurrenceEndDate + 'T23:59:59' 
+          : null,
+      recurrenceCount:
+        formData.isRecurring && formData.recurrenceEndType === 'count'
+          ? Number(formData.recurrenceCount)
+          : null,
+      recurrenceDaysOfWeek: 
+        formData.isRecurring && formData.recurrencePattern === 'WEEKLY' 
+          ? formData.recurrenceDaysOfWeek 
+          : null,
+    };
+    
+    // ✅ CHECK FOR CONFLICTS
+    const foundConflicts = await checkForConflicts(eventData);
+    
+    if (foundConflicts.length > 0 && !event) {
+      // Show conflict warning for new events
+      setConflicts(foundConflicts);
+      setPendingEventData(eventData);
+      setShowConflictWarning(true);
       setLoading(false);
+      return;
     }
-  };
+    
+    // No conflicts or editing existing event - proceed
+    await saveEvent(eventData);
+    
+  } catch (error) {
+    console.error('Error saving event:', error);
+    showToast(
+      event ? 'Failed to update event. Please try again.' : 'Failed to create event. Please try again.',
+      'error'
+    );
+    setLoading(false);
+  }
+};
+
+const saveEvent = async (eventData) => {
+  try {
+    if (event) {
+      await eventAPI.updateEvent(event.id, eventData);
+      showToast('Event updated successfully!', 'success');
+    } else {
+      await eventAPI.createEvent(eventData);
+      showToast('Event created successfully!', 'success');
+    }
+    
+    onSave();
+    onClose();
+  } catch (error) {
+    throw error;
+  } finally {
+    setLoading(false);
+  }
+};
+
+// Add these handler functions:
+const handleConflictProceed = async () => {
+  setShowConflictWarning(false);
+  try {
+    await saveEvent(pendingEventData);
+  } catch (error) {
+    console.error('Error saving event after conflict warning:', error);
+    showToast('Failed to create event. Please try again.', 'error');
+  }
+};
+
+const handleConflictCancel = () => {
+  setShowConflictWarning(false);
+  setConflicts([]);
+  setPendingEventData(null);
+  setLoading(false);
+};
 
   const eventTypeColors = {
     Class: '#3788d8',
@@ -527,6 +623,17 @@ const EventModal = ({ onClose, onSave, userId, initialDate, event = null }) => {
           </div>
         </form>
       </div>
+
+          {/* Conflict Warning Modal */}
+      {showConflictWarning && (
+        <ConflictWarningModal
+          isOpen={showConflictWarning}
+          onClose={handleConflictCancel}
+          onProceed={handleConflictProceed}
+          conflicts={conflicts}
+          newEvent={pendingEventData}
+        />
+      )}
     </div>
   );
 };

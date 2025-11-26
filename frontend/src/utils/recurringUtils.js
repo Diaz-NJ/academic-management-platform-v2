@@ -26,6 +26,11 @@ export const expandRecurringEvents = (events, viewStart, viewEnd) => {
     const eventStart = new Date(event.startDateTime);
     const eventEnd = new Date(event.endDateTime);
     
+    // ✅ FIXED: Extend viewEnd to handle month boundaries properly
+    // Add extra days to ensure we catch events that span into next month
+    const extendedViewEnd = new Date(viewEnd);
+    extendedViewEnd.setDate(extendedViewEnd.getDate() + 7); // Look ahead 1 week
+    
     // ✅ Handle multiple end conditions
     let recurrenceEnd;
     if (event.recurrenceCount) {
@@ -41,20 +46,19 @@ export const expandRecurringEvents = (events, viewStart, viewEnd) => {
       recurrenceEnd = new Date(event.recurrenceEndDate);
     } else {
       // Default 1 year ahead if no end specified
-      recurrenceEnd = new Date(viewEnd.getTime() + 365 * 24 * 60 * 60 * 1000);
+      recurrenceEnd = new Date(extendedViewEnd.getTime() + 365 * 24 * 60 * 60 * 1000);
     }
 
     // Calculate duration
     const duration = eventEnd - eventStart;
 
-    // ✅ Parse canceled dates
+    // ✅ Parse canceled and deleted dates
     const canceledDates = event.canceledDates 
-      ? event.canceledDates.split(',').map(d => d.trim()) 
+      ? event.canceledDates.split(',').map(d => d.trim().substring(0, 10)) 
       : [];
 
-    // ✅ NEW: Parse deleted dates
     const deletedDates = event.deletedDates 
-      ? event.deletedDates.split(',').map(d => d.trim()) 
+      ? event.deletedDates.split(',').map(d => d.trim().substring(0, 10)) 
       : [];
 
     // Determine which days to generate events for
@@ -62,17 +66,19 @@ export const expandRecurringEvents = (events, viewStart, viewEnd) => {
       ? event.recurrenceDaysOfWeek.split(',') 
       : [];
 
+    // ✅ FIXED: Start from the beginning, not from viewStart
     let currentDate = new Date(eventStart);
     let occurrenceCount = 0;
     const maxOccurrences = event.recurrenceCount || Infinity;
 
     // Generate instances based on pattern
     while (
-      currentDate <= viewEnd && 
+      currentDate <= extendedViewEnd && 
       currentDate <= recurrenceEnd && 
       occurrenceCount < maxOccurrences
     ) {
-      if (currentDate >= viewStart) {
+      // ✅ Only add to expanded events if within view range
+      if (currentDate >= viewStart && currentDate <= extendedViewEnd) {
         let shouldInclude = false;
 
         if (event.recurrencePattern === 'WEEKLY' && daysToGenerate.length > 0) {
@@ -87,24 +93,12 @@ export const expandRecurringEvents = (events, viewStart, viewEnd) => {
           const instanceStart = new Date(currentDate);
           const instanceEnd = new Date(currentDate.getTime() + duration);
           
-          // ✅ Check if this date is canceled
-          // Check if this date is canceled
-          const instanceDateStr = instanceStart.toISOString();
-          const isCanceled = canceledDates.some(cd => {
-            // ✅ Extract just date part for comparison
-            const canceledDatePart = cd.includes('T') ? cd.substring(0, 10) : cd;
-            const instanceDatePart = instanceDateStr.substring(0, 10);
-            return canceledDatePart === instanceDatePart;
-          });
+          // Check if this date is canceled or deleted
+          const instanceDateStr = instanceStart.toISOString().substring(0, 10);
+          const isCanceled = canceledDates.includes(instanceDateStr);
+          const isDeleted = deletedDates.includes(instanceDateStr);
 
-          // Check if this date is permanently deleted
-          const isDeleted = deletedDates.some(dd => {
-            const deletedDatePart = dd.includes('T') ? dd.substring(0, 10) : dd;
-            const instanceDatePart = instanceDateStr.substring(0, 10);
-            return deletedDatePart === instanceDatePart;
-          });
-
-          // ✅ UPDATED: Don't include deleted instances at all
+          // ✅ Don't include deleted instances at all
           if (!isDeleted) {
             expandedEvents.push({
               ...event,
@@ -118,6 +112,31 @@ export const expandRecurringEvents = (events, viewStart, viewEnd) => {
           }
           
           occurrenceCount++;
+          
+          // ✅ Stop if we've reached the count limit
+          if (event.recurrenceCount && occurrenceCount >= event.recurrenceCount) {
+            break;
+          }
+        }
+      } else {
+        // ✅ Still count occurrences even if outside view range
+        let shouldCount = false;
+        
+        if (event.recurrencePattern === 'WEEKLY' && daysToGenerate.length > 0) {
+          const dayNames = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
+          const currentDay = dayNames[currentDate.getDay()];
+          shouldCount = daysToGenerate.includes(currentDay);
+        } else {
+          shouldCount = true;
+        }
+        
+        if (shouldCount) {
+          occurrenceCount++;
+          
+          // ✅ Stop if we've reached the count limit
+          if (event.recurrenceCount && occurrenceCount >= event.recurrenceCount) {
+            break;
+          }
         }
       }
 
