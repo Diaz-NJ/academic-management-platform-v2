@@ -414,32 +414,43 @@ const Calendar = () => {
     return <LoadingSpinner message="Loading your calendar..." />;
   }
 
-   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold text-gray-800">Academic Calendar</h2>
-        <button
-          onClick={() => setModalState({ 
-            type: 'create', 
-            data: null, 
-            extraData: new Date() 
-          })}
-          className="flex items-center space-x-2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-blue-600 transition"
-        >
-          <Plus className="w-5 h-5" />
-          <span>New Event</span>
-        </button>
+  return (
+    <div className="section-spacing">
+      {/* ✨ Enhanced Page Header */}
+      <div className="mb-8">
+        <div className="flex justify-between items-start">
+          <div>
+            <h1 className="text-page-title mb-2">Academic Calendar</h1>
+            <p className="text-body text-gray-600">
+              View and manage your schedule and events
+            </p>
+          </div>
+          <button
+            onClick={() => setModalState({ 
+              type: 'create', 
+              data: null, 
+              extraData: new Date() 
+            })}
+            className="btn-hover flex items-center space-x-2 px-4 py-2 bg-primary text-white rounded-lg font-medium shadow-sm"
+          >
+            <Plus className="w-5 h-5" />
+            <span className="btn-text">New Event</span>
+          </button>
+        </div>
       </div>
 
-      {/* Search Bar */}
+      {/* ✨ Enhanced Search Bar */}
       <div className="bg-white rounded-lg shadow p-4">
+        <label className="text-label mb-2 block">
+          Search Events
+        </label>
         <div className="relative">
           <input
             type="text"
             placeholder="Search events by title, type, or location..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+            className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent text-body"
           />
           <svg
             className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400"
@@ -466,8 +477,8 @@ const Calendar = () => {
           )}
         </div>
         {searchQuery && (
-          <p className="text-sm text-gray-600 mt-2">
-            Found {filteredEvents.length} event{filteredEvents.length !== 1 ? 's' : ''} matching "{searchQuery}"
+          <p className="text-caption mt-2">
+            Found <span className="font-semibold">{filteredEvents.length}</span> event{filteredEvents.length !== 1 ? 's' : ''} matching "<span className="font-medium">{searchQuery}</span>"
           </p>
         )}
       </div>
@@ -552,145 +563,167 @@ const Calendar = () => {
         </div>
       )}
 
-      {/* Calendar */}
-      <div className="bg-white rounded-lg shadow p-6">
-        <div className="flex justify-between items-center mb-6">
-          <button
-            onClick={previousMonth}
-            className="p-2 hover:bg-gray-100 rounded-lg transition"
-          >
-            <ChevronLeft className="w-6 h-6" />
-          </button>
-          <h3 className="text-xl font-semibold">{monthName}</h3>
-          <button
-            onClick={nextMonth}
-            className="p-2 hover:bg-gray-100 rounded-lg transition"
-          >
-            <ChevronRight className="w-6 h-6" />
-          </button>
-        </div>
-
-        <div className="grid grid-cols-7 gap-2">
-          {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
-            <div key={day} className="text-center font-semibold text-gray-700 py-2">
-              {day}
-            </div>
-          ))}
-
-          {days.map((day, index) => {
-            if (day === null) {
-              return <div key={`empty-${index}`} className="aspect-square" />;
-            }
-
-            const date = new Date(currentDate.getFullYear(), currentDate.getMonth(), day);
-            const dayEvents = getEventsForDate(date);
-            const isToday = date.toDateString() === new Date().toDateString();
-
-            return (
-              <div
-                key={day}
-                onClick={() => handleDateClick(day)}
-                className={`aspect-square border rounded-lg p-2 cursor-pointer hover:bg-gray-50 transition ${
-                  isToday ? 'border-primary border-2 bg-blue-50' : 'border-gray-200'
-                }`}
-              >
-                <div className={`text-sm font-medium ${isToday ? 'text-primary' : 'text-gray-700'}`}>
-                  {day}
-                </div>
-                <div className="mt-1 space-y-1">
-                  {dayEvents.slice(0, 2).map(event => (
-                    <div
-                      key={event.id}
-                      onClick={(e) => handleEventClick(event, e)}
-                      className={`relative text-xs text-white rounded px-1 py-0.5 truncate cursor-pointer transition-all duration-200 hover:opacity-80 hover:scale-105 ${
-                        event.isCanceled ? 'opacity-50' : ''
-                      }`}
-                      style={{ 
-                        backgroundColor: getEventTypeColor(event.eventType),
-                        textDecoration: event.isCanceled ? 'line-through' : 'none'
-                      }}
-                      title={event.isCanceled ? `${event.title} (Canceled)` : event.title}
-                    >
-                      <div className="flex items-center space-x-1">
-                        {/* ✨ Add event type icon */}
-                        <span className="text-xs">
-                          {(EVENT_TYPE_CONFIG[event.eventType] || EVENT_TYPE_CONFIG.Other).icon}
-                        </span>
-                        {event.isRecurring && !event.isCanceled && (
-                          <RefreshCw className="w-3 h-3 flex-shrink-0" />
-                        )}
-                        {event.isCanceled && <span>🚫</span>}
-                        <span className="truncate">{event.title}</span>
-                      </div>
-                    </div>
-                  ))}
-                  {dayEvents.length > 2 && (
-                    <div className="text-xs text-gray-500">
-                      +{dayEvents.length - 2} more
-                    </div>
-                  )}
-                </div>
-              </div>
-            );
-          })}
-        </div>
+       {/* ✨ Enhanced Calendar Section */}
+    <div className="bg-white rounded-lg shadow p-6">
+      {/* Month navigation with better text */}
+      <div className="flex justify-between items-center mb-6">
+        <button
+          onClick={previousMonth}
+          className="p-2 hover:bg-gray-100 rounded-lg transition"
+          aria-label="Previous month"
+        >
+          <ChevronLeft className="w-6 h-6" />
+        </button>
+        <h2 className="text-section-title">
+          {monthName}
+        </h2>
+        <button
+          onClick={nextMonth}
+          className="p-2 hover:bg-gray-100 rounded-lg transition"
+          aria-label="Next month"
+        >
+          <ChevronRight className="w-6 h-6" />
+        </button>
       </div>
 
-      {/* Upcoming Events */}
-      {!searchQuery && (
-        <div className="bg-white rounded-lg shadow p-6">
-          <h3 className="text-xl font-semibold mb-4">Upcoming Events</h3>
-          <div className="space-y-3">
-            {events
-              .filter(e => {
-                const eventDate = new Date(e.startDateTime);
-                const now = new Date();
-                now.setHours(0, 0, 0, 0);
-                eventDate.setHours(0, 0, 0, 0);
-                return eventDate >= now && !e.isCanceled;
-              })
-              .sort((a, b) => new Date(a.startDateTime) - new Date(b.startDateTime))
-              .slice(0, 5)
-              .map(event => (
-                <div 
-                  key={event.id} 
-                  className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition cursor-pointer"
-                  onClick={() => setModalState({ type: 'details', data: event, extraData: null })}
-                >
-                  <div className="flex items-center space-x-3 flex-1 min-w-0">
-                    <div 
-                      className="w-3 h-3 rounded-full flex-shrink-0" 
-                      style={{ backgroundColor: event.colorCode || '#3788d8' }}
-                    />
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center space-x-2">
-                        <h4 className="font-medium text-gray-800 truncate">{event.title}</h4>
-                        {event.isRecurring && (
-                          <RefreshCw className="w-4 h-4 text-blue-500 flex-shrink-0" />
-                        )}
-                      </div>
-                      <p className="text-sm text-gray-600">
-                        {new Date(event.startDateTime).toLocaleString('en-US', {
-                          month: 'short',
-                          day: 'numeric',
-                          hour: 'numeric',
-                          minute: '2-digit',
-                        })}
-                        {event.location && ` • ${event.location}`}
-                      </p>
+      {/* Calendar grid - day names with better text */}
+      <div className="grid grid-cols-7 gap-2">
+        {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
+          <div 
+            key={day} 
+            className="text-center font-semibold text-gray-700 py-3 text-sm uppercase tracking-wider"
+          >
+            {day}
+          </div>
+        ))}
+
+        {/* Calendar days */}
+        {days.map((day, index) => {
+          if (day === null) {
+            return <div key={`empty-${index}`} className="aspect-square" />;
+          }
+
+          const date = new Date(currentDate.getFullYear(), currentDate.getMonth(), day);
+          const dayEvents = getEventsForDate(date);
+          const isToday = date.toDateString() === new Date().toDateString();
+
+          return (
+            <div
+              key={day}
+              onClick={() => handleDateClick(day)}
+              className={`aspect-square border rounded-lg p-2 cursor-pointer hover:bg-gray-50 transition ${
+                isToday ? 'border-primary border-2 bg-blue-50' : 'border-gray-200'
+              }`}
+            >
+              {/* ✨ Enhanced day number */}
+              <div className={`text-sm font-semibold mb-1 ${
+                isToday ? 'text-primary' : 'text-gray-700'
+              }`}>
+                {day}
+              </div>
+              
+              {/* Event indicators */}
+              <div className="space-y-1">
+                {dayEvents.slice(0, 2).map(event => (
+                  <div
+                    key={event.id}
+                    onClick={(e) => handleEventClick(event, e)}
+                    className={`relative text-xs text-white rounded px-1 py-0.5 truncate cursor-pointer transition-all duration-200 hover:opacity-80 hover:scale-105 font-medium ${
+                      event.isCanceled ? 'opacity-50' : ''
+                    }`}
+                    style={{ 
+                      backgroundColor: event.colorCode || '#3788d8',
+                      textDecoration: event.isCanceled ? 'line-through' : 'none'
+                    }}
+                    title={event.isCanceled ? `${event.title} (Canceled)` : event.title}
+                  >
+                    <div className="flex items-center space-x-1">
+                      {event.isRecurring && !event.isCanceled && (
+                        <RefreshCw className="w-3 h-3 flex-shrink-0" />
+                      )}
+                      {event.isCanceled && <span>🚫</span>}
+                      <span className="truncate">{event.title}</span>
                     </div>
-                    <span 
-                      className="px-2 py-1 text-xs rounded-full whitespace-nowrap text-white"
-                      style={{ backgroundColor: event.colorCode || '#3788d8' }}
-                    >
-                      {event.eventType}
+                  </div>
+                ))}
+                {dayEvents.length > 2 && (
+                  <div className="text-caption font-medium text-gray-600">
+                    +{dayEvents.length - 2} more
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+
+    {/* ✨ Enhanced Upcoming Events Section */}
+    {!searchQuery && (
+      <div className="bg-white rounded-lg shadow p-6">
+        <div className="mb-6">
+          <h2 className="text-section-title mb-1">Upcoming Events</h2>
+          <p className="text-body-sm text-gray-600">
+            Your next scheduled activities
+          </p>
+        </div>
+        
+        <div className="space-y-3">
+          {events
+            .filter(e => {
+              const eventDate = new Date(e.startDateTime);
+              const now = new Date();
+              now.setHours(0, 0, 0, 0);
+              eventDate.setHours(0, 0, 0, 0);
+              return eventDate >= now && !e.isCanceled;
+            })
+            .sort((a, b) => new Date(a.startDateTime) - new Date(b.startDateTime))
+            .slice(0, 5)
+            .map(event => (
+              <div 
+                key={event.id} 
+                className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition cursor-pointer border-l-4"
+                style={{ borderLeftColor: event.colorCode || '#3788d8' }}
+                onClick={() => setModalState({ type: 'details', data: event, extraData: null })}
+              >
+                <div className="flex items-center space-x-3 flex-1 min-w-0">
+                  <div 
+                    className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
+                    style={{ backgroundColor: event.colorCode || '#3788d8' }}
+                  >
+                    <span className="text-white text-lg">
+                      {(EVENT_TYPE_CONFIG[event.eventType] || EVENT_TYPE_CONFIG.Other).icon}
                     </span>
                   </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center space-x-2">
+                      <h3 className="text-subsection truncate">{event.title}</h3>
+                      {event.isRecurring && (
+                        <RefreshCw className="w-4 h-4 text-blue-500 flex-shrink-0" />
+                      )}
+                    </div>
+                    <p className="text-body-sm text-gray-600">
+                      {new Date(event.startDateTime).toLocaleString('en-US', {
+                        month: 'short',
+                        day: 'numeric',
+                        hour: 'numeric',
+                        minute: '2-digit',
+                      })}
+                      {event.location && ` • ${event.location}`}
+                    </p>
+                  </div>
+                  <span 
+                    className="px-3 py-1 text-xs rounded-full whitespace-nowrap text-white font-semibold"
+                    style={{ backgroundColor: event.colorCode || '#3788d8' }}
+                  >
+                    {event.eventType}
+                  </span>
                 </div>
-              ))}
-          </div>
+              </div>
+            ))}
         </div>
-      )}
+      </div>
+    )}
 
       {/* ✅ FIXED: Single modal state management */}
       

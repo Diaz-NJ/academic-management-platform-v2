@@ -296,96 +296,146 @@ const Dashboard = () => {
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {activeTab === 'dashboard' && (
-          <>
+      <>
+        {/* ✨ Enhanced Page Title */}
+        <div className="mb-8">
+          <h1 className="text-page-title mb-2">
+            Welcome back, {user.name.split(' ')[0]}! 👋
+          </h1>
+          <p className="text-body text-gray-600">
+            Here's what's happening with your academic progress today
+          </p>
+        </div>
 
-              {/* ✨ ENHANCED Stats Cards with Hover Effects */}
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-                <div className="card-hover bg-gradient-to-br from-blue-500 to-blue-600 text-white p-6 rounded-lg shadow-lg cursor-pointer">
-                  <h3 className="text-sm font-medium opacity-90">Pending Tasks</h3>
-                  <p className="text-3xl font-bold mt-2 animate-bounce-subtle">{stats.pending}</p>
-                  <div className="mt-3 opacity-75 text-xs">Tasks waiting to start</div>
-                </div>
-                
-                <div className="card-hover bg-gradient-to-br from-yellow-500 to-yellow-600 text-white p-6 rounded-lg shadow-lg cursor-pointer">
-                  <h3 className="text-sm font-medium opacity-90">In Progress</h3>
-                  <p className="text-3xl font-bold mt-2">{stats.inProgress}</p>
-                  <div className="mt-3 opacity-75 text-xs">Currently working on</div>
-                </div>
-                
-                <div className="card-hover bg-gradient-to-br from-green-500 to-green-600 text-white p-6 rounded-lg shadow-lg cursor-pointer">
-                  <h3 className="text-sm font-medium opacity-90">Completed</h3>
-                  <p className="text-3xl font-bold mt-2">{stats.completed}</p>
-                  <div className="mt-3 opacity-75 text-xs">Successfully finished</div>
-                </div>
-                
-                <div className="card-hover bg-gradient-to-br from-purple-500 to-purple-600 text-white p-6 rounded-lg shadow-lg cursor-pointer">
-                  <h3 className="text-sm font-medium opacity-90">Completion Rate</h3>
-                  <p className="text-3xl font-bold mt-2">{stats.completionRate}%</p>
-                  <div className="mt-3 opacity-75 text-xs">Overall progress</div>
-                </div>
-              </div>
+        {/* ✨ Enhanced Stats Cards with better typography */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+          <div className="card-hover bg-gradient-to-br from-blue-500 to-blue-600 text-white p-6 rounded-lg shadow-lg cursor-pointer">
+            <p className="text-sm font-medium opacity-90 uppercase tracking-wide mb-1">
+              Pending Tasks
+            </p>
+            <p className="text-stat animate-bounce-subtle">
+              {stats.pending}
+            </p>
+            <p className="text-xs opacity-75 mt-2 leading-relaxed">
+              Tasks waiting to start
+            </p>
+          </div>
+          
+          <div className="card-hover bg-gradient-to-br from-yellow-500 to-yellow-600 text-white p-6 rounded-lg shadow-lg cursor-pointer">
+            <p className="text-sm font-medium opacity-90 uppercase tracking-wide mb-1">
+              In Progress
+            </p>
+            <p className="text-stat">
+              {stats.inProgress}
+            </p>
+            <p className="text-xs opacity-75 mt-2 leading-relaxed">
+              Currently working on
+            </p>
+          </div>
+          
+          <div className="card-hover bg-gradient-to-br from-green-500 to-green-600 text-white p-6 rounded-lg shadow-lg cursor-pointer">
+            <p className="text-sm font-medium opacity-90 uppercase tracking-wide mb-1">
+              Completed
+            </p>
+            <p className="text-stat">
+              {stats.completed}
+            </p>
+            <p className="text-xs opacity-75 mt-2 leading-relaxed">
+              Successfully finished
+            </p>
+          </div>
+          
+          <div className="card-hover bg-gradient-to-br from-purple-500 to-purple-600 text-white p-6 rounded-lg shadow-lg cursor-pointer">
+            <p className="text-sm font-medium opacity-90 uppercase tracking-wide mb-1">
+              Completion Rate
+            </p>
+            <p className="text-stat">
+              {stats.completionRate}%
+            </p>
+            <p className="text-xs opacity-75 mt-2 leading-relaxed">
+              Overall progress
+            </p>
+          </div>
+        </div>
 
-              {/* ✨ ENHANCED Events Card */}
-              <div className="grid grid-cols-1 gap-6 mb-8">
-                <div className="card-hover bg-gradient-to-br from-indigo-500 to-indigo-600 text-white p-6 rounded-lg shadow-lg cursor-pointer">
-                  <h3 className="text-sm font-medium opacity-90">This Week's Events</h3>
-                  <p className="text-3xl font-bold mt-2">
-                    {events.filter(e => {
-                      const eventDate = new Date(e.startDateTime);
-                      const now = new Date();
-                      const startOfWeek = new Date(now);
-                      startOfWeek.setDate(now.getDate() - now.getDay());
-                      startOfWeek.setHours(0, 0, 0, 0);
-                      const endOfWeek = new Date(startOfWeek);
-                      endOfWeek.setDate(startOfWeek.getDate() + 6);
-                      endOfWeek.setHours(23, 59, 59, 999);
-                      return eventDate >= startOfWeek && eventDate <= endOfWeek;
-                    }).length} Events
-                  </p>
-                  <div className="mt-3 opacity-75 text-xs">Scheduled activities</div>
-                </div>
-              </div>
+        {/* ✨ Enhanced Events Card */}
+        <div className="grid grid-cols-1 gap-6 mb-8">
+          <div className="card-hover bg-gradient-to-br from-indigo-500 to-indigo-600 text-white p-6 rounded-lg shadow-lg cursor-pointer">
+            <p className="text-sm font-medium opacity-90 uppercase tracking-wide mb-1">
+              This Week's Events
+            </p>
+            <p className="text-stat">
+              {events.filter(e => {
+                const eventDate = new Date(e.startDateTime);
+                const now = new Date();
+                const startOfWeek = new Date(now);
+                startOfWeek.setDate(now.getDate() - now.getDay());
+                startOfWeek.setHours(0, 0, 0, 0);
+                const endOfWeek = new Date(startOfWeek);
+                endOfWeek.setDate(startOfWeek.getDate() + 6);
+                endOfWeek.setHours(23, 59, 59, 999);
+                return eventDate >= startOfWeek && eventDate <= endOfWeek;
+              }).length}
+            </p>
+            <p className="text-xs opacity-75 mt-2 leading-relaxed">
+              Scheduled activities
+            </p>
+          </div>
+        </div>
 
-               {/*Weekly Events*/} 
-            <div className="bg-white rounded-lg shadow p-6 mb-8">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-bold text-gray-800">This Week's Events</h2>
-                <button
-                  onClick={() => setActiveTab('calendar')}
-                  className="text-sm text-primary hover:underline flex items-center"
-                >
-                  View Calendar
-                  <CalendarIcon className="w-4 h-4 ml-1" />
-                </button>
-              </div>
-              
-              <WeeklyEvents events={events} />
+        {/* ✨ Enhanced Weekly Events Section */}
+        <div className="bg-white rounded-lg shadow p-6 mb-8">
+          <div className="flex justify-between items-center mb-6">
+            <div>
+              <h2 className="text-section-title mb-1">
+                This Week's Events
+              </h2>
+              <p className="text-body-sm text-gray-600">
+                Your upcoming schedule for the week
+              </p>
             </div>
+            <button
+              onClick={() => setActiveTab('calendar')}
+              className="text-sm font-medium text-primary hover:text-blue-600 transition flex items-center space-x-1"
+            >
+              <span>View Full Calendar</span>
+              <CalendarIcon className="w-4 h-4" />
+            </button>
+          </div>
+          
+          <WeeklyEvents events={events} />
+        </div>
 
-            {/* Task Board */}
-            <div className="bg-white rounded-lg shadow p-6">
-              <div className="flex justify-between items-center mb-6">
-                <h2 className="text-2xl font-bold text-gray-800">Task Board</h2>
-                {/* ✨ ENHANCED Buttons */}
-                  <button
-                    onClick={() => {
-                      setEditingTask(null);
-                      setShowTaskModal(true);
-                    }}
-                    className="btn-hover flex items-center space-x-2 px-4 py-2 bg-primary text-white rounded-lg font-medium"
-                  >
-                    <Plus className="w-5 h-5 interactive-scale" />
-                    <span>New Task</span>
-                  </button>
-              </div>
-               <TaskBoard 
-                  tasks={tasks} 
-                  onTasksChange={loadTasks}
-                />
-                
+        {/* ✨ Enhanced Task Board Section */}
+        <div className="bg-white rounded-lg shadow p-6">
+          <div className="flex justify-between items-center mb-6">
+            <div>
+              <h2 className="text-section-title mb-1">
+                Task Board
+              </h2>
+              <p className="text-body-sm text-gray-600">
+                Organize and track your assignments
+              </p>
             </div>
-          </>
-        )}
+            <button
+              onClick={() => {
+                setEditingTask(null);
+                setShowTaskModal(true);
+              }}
+              className="btn-hover flex items-center space-x-2 px-4 py-2 bg-primary text-white rounded-lg font-medium"
+            >
+              <Plus className="w-5 h-5 interactive-scale" />
+              <span className="btn-text">New Task</span>
+            </button>
+          </div>
+          
+          <TaskBoard 
+            tasks={tasks} 
+            onTasksChange={loadTasks}
+          />
+        </div>
+      </>
+    )}
 
         {activeTab === 'tasks' && <Tasks />}
         {activeTab === 'calendar' && <Calendar />}

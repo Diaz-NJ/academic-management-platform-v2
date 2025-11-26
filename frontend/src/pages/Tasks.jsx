@@ -184,108 +184,127 @@ const Tasks = () => {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold text-gray-800">All Tasks</h2>
+  <div className="section-spacing">
+    {/* ✨ Enhanced Page Header */}
+    <div className="mb-8">
+      <div className="flex justify-between items-start">
+        <div>
+          <h1 className="text-page-title mb-2">All Tasks</h1>
+          <p className="text-body text-gray-600">
+            Manage and organize all your academic tasks
+          </p>
+        </div>
         <button
           onClick={() => setShowTaskModal(true)}
-          className="flex items-center space-x-2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-blue-600 transition"
+          className="btn-hover flex items-center space-x-2 px-4 py-2 bg-primary text-white rounded-lg font-medium shadow-sm"
         >
           <Plus className="w-5 h-5" />
-          <span>New Task</span>
+          <span className="btn-text">New Task</span>
         </button>
       </div>
+    </div>
 
-      {/* Search Bar */}
-      <div className="bg-white rounded-lg shadow p-4">
-        <div className="relative">
-          <input
-            type="text"
-            placeholder="Search tasks by title or subject..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+    {/* Search Bar - with better labels */}
+    <div className="bg-white rounded-lg shadow p-4">
+      <label className="text-label mb-2 block">
+        Search Tasks
+      </label>
+      <div className="relative">
+        <input
+          type="text"
+          placeholder="Search by title, subject, or description..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent text-body"
+        />
+        <svg
+          className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
           />
-          <svg
-            className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
+        </svg>
+        {searchQuery && (
+          <button
+            onClick={() => setSearchQuery('')}
+            className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
           >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-            />
-          </svg>
-          {searchQuery && (
-            <button
-              onClick={() => setSearchQuery('')}
-              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-          )}
-        </div>
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        )}
       </div>
+      {searchQuery && (
+        <p className="text-caption mt-2">
+          Found <span className="font-semibold">{filteredTasks.length}</span> task{filteredTasks.length !== 1 ? 's' : ''} matching "<span className="font-medium">{searchQuery}</span>"
+        </p>
+      )}
+    </div>
 
-      {/* Filters */}
-      <div className="bg-white rounded-lg shadow p-4">
-        <div className="flex items-center space-x-4 flex-wrap gap-2">
-          <Filter className="w-5 h-5 text-gray-500" />
+    {/* ✨ Enhanced Filters Section */}
+    <div className="bg-white rounded-lg shadow p-4">
+      <label className="text-label mb-3 block flex items-center space-x-2">
+        <Filter className="w-4 h-4 text-gray-500" />
+        <span>Filter Tasks</span>
+      </label>
+      <div className="flex items-center space-x-4 flex-wrap gap-2">
+        <select
+          value={filterStatus}
+          onChange={(e) => setFilterStatus(e.target.value)}
+          className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary text-body-sm font-medium"
+        >
+          <option value="all">All Status</option>
+          <option value="Pending">⏳ Pending</option>
+          <option value="In Progress">🚀 In Progress</option>
+          <option value="Completed">✅ Completed</option>
+        </select>
+
+        <select
+          value={filterPriority}
+          onChange={(e) => setFilterPriority(e.target.value)}
+          className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary text-body-sm font-medium"
+        >
+          <option value="all">All Priorities</option>
+          <option value="Low">📋 Low</option>
+          <option value="Medium">📌 Medium</option>
+          <option value="High">⚠️ High</option>
+          <option value="Urgent">🔥 Urgent</option>
+        </select>
+
+        {uniqueSubjects.length > 0 && (
           <select
-            value={filterStatus}
-            onChange={(e) => setFilterStatus(e.target.value)}
-            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary"
+            value={filterSubject}
+            onChange={(e) => setFilterSubject(e.target.value)}
+            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary text-body-sm font-medium"
           >
-            <option value="all">All Status</option>
-            <option value="Pending">Pending</option>
-            <option value="In Progress">In Progress</option>
-            <option value="Completed">Completed</option>
+            <option value="all">All Subjects</option>
+            {uniqueSubjects.map(subject => (
+              <option key={subject} value={subject}>📚 {subject}</option>
+            ))}
           </select>
+        )}
 
-          <select
-            value={filterPriority}
-            onChange={(e) => setFilterPriority(e.target.value)}
-            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary"
+        {(filterStatus !== 'all' || filterPriority !== 'all' || filterSubject !== 'all') && (
+          <button
+            onClick={() => {
+              setFilterStatus('all');
+              setFilterPriority('all');
+              setFilterSubject('all');
+            }}
+            className="text-caption font-medium text-primary hover:text-blue-700 transition underline"
           >
-            <option value="all">All Priorities</option>
-            <option value="Low">Low</option>
-            <option value="Medium">Medium</option>
-            <option value="High">High</option>
-            <option value="Urgent">Urgent</option>
-          </select>
-
-          {uniqueSubjects.length > 0 && (
-            <select
-              value={filterSubject}
-              onChange={(e) => setFilterSubject(e.target.value)}
-              className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary"
-            >
-              <option value="all">All Subjects</option>
-              {uniqueSubjects.map(subject => (
-                <option key={subject} value={subject}>{subject}</option>
-              ))}
-            </select>
-          )}
-
-          {(filterStatus !== 'all' || filterPriority !== 'all' || filterSubject !== 'all') && (
-            <button
-              onClick={() => {
-                setFilterStatus('all');
-                setFilterPriority('all');
-                setFilterSubject('all');
-              }}
-              className="text-sm text-gray-600 hover:text-primary"
-            >
-              Clear Filters
-            </button>
-          )}
-        </div>
+            Clear All Filters
+          </button>
+        )}
       </div>
+    </div>
 
       {/* ✅ NEW: Bulk Actions Bar */}
       {selectedTasks.length > 0 && (
@@ -334,23 +353,24 @@ const Tasks = () => {
         </div>
       )}
 
-      {/* Task List */}
-      <div className="bg-white rounded-lg shadow">
-        <div className="divide-y divide-gray-200">
-          {filteredTasks.length === 0 ? (
-            <EmptyState
-              icon={CheckSquare}
-              title={searchQuery ? "No Tasks Found" : "No Tasks Yet"}
-              message={
-                searchQuery 
-                  ? `No tasks match "${searchQuery}". Try a different search term or clear filters.`
-                  : "Create your first task to get started!"
-              }
-              actionLabel={searchQuery ? undefined : "Create Your First Task"}
-              onAction={searchQuery ? undefined : () => setShowTaskModal(true)}
-            />
-          ) : (
-            <>
+      {/* Task List with enhanced typography */}
+          <div className="bg-white rounded-lg shadow">
+            <div className="divide-y divide-gray-200">
+              {filteredTasks.length === 0 ? (
+                <EmptyState
+                  icon={CheckSquare}
+                  title={searchQuery ? "No Tasks Found" : "No Tasks Yet"}
+                  message={
+                    searchQuery 
+                      ? `No tasks match "${searchQuery}". Try a different search term or clear filters.`
+                      : "Create your first task to get started!"
+                  }
+                  actionLabel={searchQuery ? undefined : "Create Your First Task"}
+                  onAction={searchQuery ? undefined : () => setShowTaskModal(true)}
+                />
+              ) : (
+                <>
+
               {/* ✅ NEW: Select All Header */}
               {filteredTasks.length > 0 && (
                 <div className="p-4 bg-gray-50 border-b border-gray-200">
@@ -372,63 +392,65 @@ const Tasks = () => {
                 </div>
               )}
 
-              {/* Task Items */}
-              {filteredTasks.map(task => {
-                const priorityConfig = PRIORITY_CONFIG[task.priority] || PRIORITY_CONFIG.Medium;
-                const statusConfig = STATUS_CONFIG[task.status] || STATUS_CONFIG.Pending;
-                
-                return (
-                  <div key={task.id} className="p-6 hover:bg-gray-50 transition">
-                    <div className="flex items-start space-x-4">
-                      {/* Checkbox for selection */}
-                      <button
-                        onClick={() => toggleTaskSelection(task.id)}
-                        className="mt-1 flex-shrink-0"
-                      >
-                        {selectedTasks.includes(task.id) ? (
-                          <CheckSquare className="w-6 h-6 text-primary" />
-                        ) : (
-                          <Square className="w-6 h-6 text-gray-400 hover:text-primary" />
-                        )}
-                      </button>
+               {/* Task items with better text hierarchy */}
+            {filteredTasks.map(task => {
+              const priorityConfig = PRIORITY_CONFIG[task.priority] || PRIORITY_CONFIG.Medium;
+              const statusConfig = STATUS_CONFIG[task.status] || STATUS_CONFIG.Pending;
+              
+              return (
+                <div key={task.id} className="p-6 hover:bg-gray-50 transition">
+                  <div className="flex items-start space-x-4">
+                    <button
+                      onClick={() => toggleTaskSelection(task.id)}
+                      className="mt-1 flex-shrink-0"
+                    >
+                      {selectedTasks.includes(task.id) ? (
+                        <CheckSquare className="w-6 h-6 text-primary" />
+                      ) : (
+                        <Square className="w-6 h-6 text-gray-400 hover:text-primary" />
+                      )}
+                    </button>
 
-                      {/* Task Content */}
-                      <div className="flex-1">
-                        <div className="flex items-center space-x-3 mb-2 flex-wrap gap-2">
-                          <h3 className="text-lg font-semibold text-gray-800">
-                            {task.title}
-                          </h3>
-                          
-                          {/* ✨ Enhanced Priority Badge */}
-                          <span className={`inline-flex items-center space-x-1 px-3 py-1 rounded-full font-medium border transition-all duration-200 hover:scale-105 ${priorityConfig.bgColor} ${priorityConfig.textColor} ${priorityConfig.borderColor}`}>
-                            <span className="text-sm">{priorityConfig.icon}</span>
-                            <span className="text-xs">{task.priority}</span>
-                          </span>
-                          
-                          {/* ✨ Enhanced Status Badge */}
-                          <span className={`inline-flex items-center space-x-1 px-3 py-1 rounded-full font-medium border transition-all duration-200 hover:scale-105 ${statusConfig.bgColor} ${statusConfig.textColor} ${statusConfig.borderColor}`}>
-                            <span className="text-sm">{statusConfig.icon}</span>
-                            <span className="text-xs">{task.status}</span>
-                          </span>
-                        </div>
-
-                        {task.description && (
-                          <p className="text-gray-600 mb-3">{task.description}</p>
-                        )}
-
-                        <div className="flex items-center space-x-4 text-sm text-gray-500">
-                          {task.subject && (
-                            <span className="flex items-center space-x-1 bg-gray-100 px-2 py-1 rounded">
-                              <span>📚</span>
-                              <span>{task.subject}</span>
-                            </span>
-                          )}
-                          <span className="flex items-center space-x-1">
-                            <span>📅</span>
-                            <span>{formatRelativeDate(task.dueDate)}</span>
-                          </span>
-                        </div>
+                    <div className="flex-1">
+                      {/* ✨ Enhanced task title */}
+                      <h3 className="text-card-title mb-2">
+                        {task.title}
+                      </h3>
+                      
+                      {/* Badges */}
+                      <div className="flex items-center space-x-2 mb-3 flex-wrap gap-2">
+                        <span className={`inline-flex items-center space-x-1 px-3 py-1 rounded-full font-medium border transition-all duration-200 hover:scale-105 ${priorityConfig.bgColor} ${priorityConfig.textColor} ${priorityConfig.borderColor}`}>
+                          <span className="text-sm">{priorityConfig.icon}</span>
+                          <span className="text-xs font-semibold">{task.priority}</span>
+                        </span>
+                        
+                        <span className={`inline-flex items-center space-x-1 px-3 py-1 rounded-full font-medium border transition-all duration-200 hover:scale-105 ${statusConfig.bgColor} ${statusConfig.textColor} ${statusConfig.borderColor}`}>
+                          <span className="text-sm">{statusConfig.icon}</span>
+                          <span className="text-xs font-semibold">{task.status}</span>
+                        </span>
                       </div>
+
+                      {/* ✨ Enhanced description */}
+                      {task.description && (
+                        <p className="text-body mb-3 line-clamp-2">
+                          {task.description}
+                        </p>
+                      )}
+
+                      {/* ✨ Enhanced metadata */}
+                      <div className="flex items-center space-x-4 text-body-sm text-gray-600">
+                        {task.subject && (
+                          <span className="flex items-center space-x-1 bg-gray-100 px-3 py-1 rounded-lg">
+                            <span>📚</span>
+                            <span className="font-medium">{task.subject}</span>
+                          </span>
+                        )}
+                        <span className="flex items-center space-x-1">
+                          <span>📅</span>
+                          <span>{formatRelativeDate(task.dueDate)}</span>
+                        </span>
+                      </div>
+                    </div>
 
                       {/* Action Buttons */}
                       <div className="flex items-center space-x-2 ml-4">
