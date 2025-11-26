@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { taskAPI } from '../services/api';
-import { TrendingUp, CheckCircle, Clock, AlertCircle } from 'lucide-react';
+import { TrendingUp, CheckCircle, Clock, AlertCircle, Target, Calendar, Zap } from 'lucide-react';
 import LoadingSpinner from '../components/LoadingSpinner';
 
 const Analytics = () => {
@@ -14,19 +14,19 @@ const Analytics = () => {
     loadTasks();
   }, [user]);
 
-const loadTasks = async () => {
-  try {
-    setLoading(true);
-    const response = await taskAPI.getTasks(user.id);
-    const taskData = response.data;
-    setTasks(taskData);
-    calculateStats(taskData);
-  } catch (error) {
-    console.error('Error loading tasks:', error);
-  } finally {
-    setLoading(false);
-  }
-};
+  const loadTasks = async () => {
+    try {
+      setLoading(true);
+      const response = await taskAPI.getTasks(user.id);
+      const taskData = response.data;
+      setTasks(taskData);
+      calculateStats(taskData);
+    } catch (error) {
+      console.error('Error loading tasks:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const calculateStats = (taskData) => {
     const total = taskData.length;
@@ -37,6 +37,18 @@ const loadTasks = async () => {
     const overdue = taskData.filter(t => 
       new Date(t.dueDate) < new Date() && t.status !== 'Completed'
     ).length;
+
+    const thisWeek = taskData.filter(t => {
+      const taskDate = new Date(t.dueDate);
+      const now = new Date();
+      const startOfWeek = new Date(now);
+      startOfWeek.setDate(now.getDate() - now.getDay());
+      startOfWeek.setHours(0, 0, 0, 0);
+      const endOfWeek = new Date(startOfWeek);
+      endOfWeek.setDate(startOfWeek.getDate() + 6);
+      endOfWeek.setHours(23, 59, 59, 999);
+      return taskDate >= startOfWeek && taskDate <= endOfWeek;
+    }).length;
 
     const subjectBreakdown = taskData.reduce((acc, task) => {
       if (task.subject) {
@@ -56,6 +68,7 @@ const loadTasks = async () => {
       pending,
       inProgress,
       overdue,
+      thisWeek,
       completionRate: total > 0 ? Math.round((completed / total) * 100) : 0,
       subjectBreakdown,
       priorityBreakdown
@@ -63,20 +76,27 @@ const loadTasks = async () => {
   };
 
   if (loading) {
-  return <LoadingSpinner message="Analyzing your progress..." />;
-}
+    return <LoadingSpinner message="Analyzing your progress..." />;
+  }
 
   return (
-    <div className="space-y-6">
-      <h2 className="text-2xl font-bold text-gray-800">Progress & Analytics</h2>
+    <div className="section-spacing">
+      {/* Enhanced Page Header */}
+      <div className="mb-8">
+        <h1 className="text-page-title mb-2">Progress & Analytics</h1>
+        <p className="text-body text-gray-600">
+          Track your academic performance and task completion
+        </p>
+      </div>
 
-      {/* Overview Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <div className="bg-white rounded-lg shadow p-6">
+      {/* Overview Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div className="card-hover bg-white rounded-lg shadow p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600 mb-1">Total Tasks</p>
-              <p className="text-3xl font-bold text-gray-800">{stats.total || 0}</p>
+              <p className="text-label text-gray-600 mb-1">Total Tasks</p>
+              <p className="text-stat text-gray-800">{stats.total || 0}</p>
+              <p className="text-caption text-gray-500 mt-1">All time</p>
             </div>
             <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
               <TrendingUp className="w-6 h-6 text-blue-600" />
@@ -84,11 +104,12 @@ const loadTasks = async () => {
           </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow p-6">
+        <div className="card-hover bg-white rounded-lg shadow p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600 mb-1">Completed</p>
-              <p className="text-3xl font-bold text-green-600">{stats.completed || 0}</p>
+              <p className="text-label text-gray-600 mb-1">Completed</p>
+              <p className="text-stat text-green-600">{stats.completed || 0}</p>
+              <p className="text-caption text-gray-500 mt-1">Finished</p>
             </div>
             <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
               <CheckCircle className="w-6 h-6 text-green-600" />
@@ -96,23 +117,25 @@ const loadTasks = async () => {
           </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow p-6">
+        <div className="card-hover bg-white rounded-lg shadow p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600 mb-1">In Progress</p>
-              <p className="text-3xl font-bold text-yellow-600">{stats.inProgress || 0}</p>
+              <p className="text-label text-gray-600 mb-1">This Week</p>
+              <p className="text-stat text-blue-600">{stats.thisWeek || 0}</p>
+              <p className="text-caption text-gray-500 mt-1">Due soon</p>
             </div>
-            <div className="w-12 h-12 bg-yellow-100 rounded-full flex items-center justify-center">
-              <Clock className="w-6 h-6 text-yellow-600" />
+            <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
+              <Calendar className="w-6 h-6 text-blue-600" />
             </div>
           </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow p-6">
+        <div className="card-hover bg-white rounded-lg shadow p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600 mb-1">Overdue</p>
-              <p className="text-3xl font-bold text-red-600">{stats.overdue || 0}</p>
+              <p className="text-label text-gray-600 mb-1">Overdue</p>
+              <p className="text-stat text-red-600">{stats.overdue || 0}</p>
+              <p className="text-caption text-gray-500 mt-1">Need attention</p>
             </div>
             <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
               <AlertCircle className="w-6 h-6 text-red-600" />
@@ -121,64 +144,338 @@ const loadTasks = async () => {
         </div>
       </div>
 
-      {/* Completion Rate */}
-      <div className="bg-white rounded-lg shadow p-6">
-        <h3 className="text-lg font-semibold mb-4">Completion Rate</h3>
-        <div className="flex items-center space-x-4">
-          <div className="flex-1">
-            <div className="w-full bg-gray-200 rounded-full h-4">
-              <div
-                className="bg-green-500 h-4 rounded-full transition-all"
-                style={{ width: `${stats.completionRate || 0}%` }}
-              />
-            </div>
+      {/* Main Charts Section */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+        {/* 📊 Pie Chart - Task Status Distribution */}
+        <div className="lg:col-span-1 bg-white rounded-lg shadow p-6">
+          <div className="mb-6">
+            <h2 className="text-section-title mb-1">Task Status</h2>
+            <p className="text-body-sm text-gray-600">Distribution overview</p>
           </div>
-          <span className="text-2xl font-bold text-gray-800">
-            {stats.completionRate || 0}%
-          </span>
+          
+          <PieChart 
+            data={[
+              { label: 'Pending', value: stats.pending || 0, color: '#64748b' },
+              { label: 'In Progress', value: stats.inProgress || 0, color: '#3b82f6' },
+              { label: 'Completed', value: stats.completed || 0, color: '#10b981' }
+            ]}
+          />
+        </div>
+
+        {/* ⭕ Progress Ring - Completion Rate */}
+        <div className="lg:col-span-1 bg-white rounded-lg shadow p-6">
+          <div className="mb-6">
+            <h2 className="text-section-title mb-1">Completion Rate</h2>
+            <p className="text-body-sm text-gray-600">Overall progress</p>
+          </div>
+          
+          <ProgressRing percentage={stats.completionRate || 0} />
+        </div>
+
+        {/* 📈 Mini Stats */}
+        <div className="lg:col-span-1 space-y-4">
+          <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg shadow p-6 text-white">
+            <div className="flex items-center justify-between mb-2">
+              <Target className="w-8 h-8" />
+              <span className="text-3xl font-bold">{stats.inProgress || 0}</span>
+            </div>
+            <p className="text-sm opacity-90">Active Tasks</p>
+            <p className="text-xs opacity-75 mt-1">Currently in progress</p>
+          </div>
+
+          <div className="bg-gradient-to-br from-amber-500 to-amber-600 rounded-lg shadow p-6 text-white">
+            <div className="flex items-center justify-between mb-2">
+              <Zap className="w-8 h-8" />
+              <span className="text-3xl font-bold">{stats.pending || 0}</span>
+            </div>
+            <p className="text-sm opacity-90">Pending Tasks</p>
+            <p className="text-xs opacity-75 mt-1">Ready to start</p>
+          </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Subject Breakdown */}
-        <div className="bg-white rounded-lg shadow p-6">
-          <h3 className="text-lg font-semibold mb-4">Tasks by Subject</h3>
-          <div className="space-y-3">
-            {Object.entries(stats.subjectBreakdown || {}).map(([subject, count]) => (
-              <div key={subject} className="flex items-center justify-between">
-                <span className="text-gray-700">{subject}</span>
-                <span className="font-semibold text-gray-900">{count}</span>
-              </div>
-            ))}
-            {Object.keys(stats.subjectBreakdown || {}).length === 0 && (
-              <p className="text-gray-500 text-center py-4">No subject data available</p>
-            )}
-          </div>
+      {/* 📊 Bar Chart - Tasks by Subject */}
+      <div className="bg-white rounded-lg shadow p-6 mb-8">
+        <div className="mb-6">
+          <h2 className="text-section-title mb-1">Tasks by Subject</h2>
+          <p className="text-body-sm text-gray-600">Workload distribution across subjects</p>
         </div>
+        
+        <BarChart data={stats.subjectBreakdown || {}} />
+      </div>
 
-        {/* Priority Breakdown */}
+      {/* Breakdown Tables */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Tasks by Priority */}
         <div className="bg-white rounded-lg shadow p-6">
-          <h3 className="text-lg font-semibold mb-4">Tasks by Priority</h3>
+          <div className="mb-6">
+            <h2 className="text-section-title mb-1">Tasks by Priority</h2>
+            <p className="text-body-sm text-gray-600">Priority distribution</p>
+          </div>
           <div className="space-y-3">
             {Object.entries(stats.priorityBreakdown || {}).map(([priority, count]) => {
-              const colors = {
-                Low: 'bg-blue-100 text-blue-800',
-                Medium: 'bg-yellow-100 text-yellow-800',
-                High: 'bg-orange-100 text-orange-800',
-                Urgent: 'bg-red-100 text-red-800'
+              const configs = {
+                Low: { bg: 'bg-blue-100', text: 'text-blue-800', border: 'border-blue-300', icon: '📋' },
+                Medium: { bg: 'bg-yellow-100', text: 'text-yellow-800', border: 'border-yellow-300', icon: '📌' },
+                High: { bg: 'bg-orange-100', text: 'text-orange-800', border: 'border-orange-300', icon: '⚠️' },
+                Urgent: { bg: 'bg-red-100', text: 'text-red-800', border: 'border-red-300', icon: '🔥' }
               };
+              const config = configs[priority] || configs.Medium;
+              
               return (
-                <div key={priority} className="flex items-center justify-between">
-                  <span className={`px-3 py-1 rounded-full text-sm ${colors[priority]}`}>
-                    {priority}
+                <div key={priority} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition">
+                  <span className={`inline-flex items-center space-x-2 px-3 py-1 rounded-full text-body-sm font-medium border ${config.bg} ${config.text} ${config.border}`}>
+                    <span>{config.icon}</span>
+                    <span>{priority}</span>
                   </span>
-                  <span className="font-semibold text-gray-900">{count}</span>
+                  <span className="text-body-sm font-semibold text-gray-900 bg-white px-3 py-1 rounded-full border border-gray-200">
+                    {count}
+                  </span>
                 </div>
               );
             })}
           </div>
         </div>
+
+        {/* Summary Insights */}
+        <div className="bg-white rounded-lg shadow p-6">
+          <div className="mb-6">
+            <h2 className="text-section-title mb-1">Quick Insights</h2>
+            <p className="text-body-sm text-gray-600">Performance summary</p>
+          </div>
+          <div className="space-y-4">
+            <div className="p-4 bg-green-50 rounded-lg border-l-4 border-green-500">
+              <p className="text-body-sm font-semibold text-green-800 mb-1">
+                ✅ {stats.completed || 0} tasks completed
+              </p>
+              <p className="text-caption text-green-600">
+                Keep up the great work!
+              </p>
+            </div>
+            
+            {stats.overdue > 0 && (
+              <div className="p-4 bg-red-50 rounded-lg border-l-4 border-red-500">
+                <p className="text-body-sm font-semibold text-red-800 mb-1">
+                  ⚠️ {stats.overdue} overdue tasks
+                </p>
+                <p className="text-caption text-red-600">
+                  Review and update these tasks
+                </p>
+              </div>
+            )}
+            
+            {stats.thisWeek > 0 && (
+              <div className="p-4 bg-blue-50 rounded-lg border-l-4 border-blue-500">
+                <p className="text-body-sm font-semibold text-blue-800 mb-1">
+                  📅 {stats.thisWeek} tasks due this week
+                </p>
+                <p className="text-caption text-blue-600">
+                  Stay on track with your schedule
+                </p>
+              </div>
+            )}
+
+            {stats.completionRate >= 70 && (
+              <div className="p-4 bg-purple-50 rounded-lg border-l-4 border-purple-500">
+                <p className="text-body-sm font-semibold text-purple-800 mb-1">
+                  🎉 {stats.completionRate}% completion rate
+                </p>
+                <p className="text-caption text-purple-600">
+                  Excellent progress!
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
+    </div>
+  );
+};
+
+// 🥧 Pie Chart Component
+const PieChart = ({ data }) => {
+  const total = data.reduce((sum, item) => sum + item.value, 0);
+  
+  if (total === 0) {
+    return (
+      <div className="flex items-center justify-center h-64 text-gray-400">
+        <p className="text-body-sm">No data to display</p>
+      </div>
+    );
+  }
+
+  let currentAngle = 0;
+
+  return (
+    <div className="flex flex-col items-center">
+      <svg viewBox="0 0 200 200" className="w-64 h-64">
+        {data.map((item, index) => {
+          const percentage = (item.value / total) * 100;
+          const angle = (percentage / 100) * 360;
+          const startAngle = currentAngle;
+          const endAngle = currentAngle + angle;
+          currentAngle = endAngle;
+
+          const startRad = (startAngle - 90) * (Math.PI / 180);
+          const endRad = (endAngle - 90) * (Math.PI / 180);
+
+          const x1 = 100 + 80 * Math.cos(startRad);
+          const y1 = 100 + 80 * Math.sin(startRad);
+          const x2 = 100 + 80 * Math.cos(endRad);
+          const y2 = 100 + 80 * Math.sin(endRad);
+
+          const largeArc = angle > 180 ? 1 : 0;
+
+          const pathData = [
+            `M 100 100`,
+            `L ${x1} ${y1}`,
+            `A 80 80 0 ${largeArc} 1 ${x2} ${y2}`,
+            `Z`
+          ].join(' ');
+
+          return (
+            <g key={index}>
+              <path
+                d={pathData}
+                fill={item.color}
+                className="transition-all duration-300 hover:opacity-80"
+              />
+            </g>
+          );
+        })}
+        
+        {/* Center circle for donut effect */}
+        <circle cx="100" cy="100" r="50" fill="white" />
+        <text x="100" y="100" textAnchor="middle" dy=".3em" className="text-2xl font-bold fill-gray-800">
+          {total}
+        </text>
+        <text x="100" y="120" textAnchor="middle" className="text-xs fill-gray-500">
+          Total
+        </text>
+      </svg>
+
+      {/* Legend */}
+      <div className="mt-4 space-y-2 w-full">
+        {data.map((item, index) => (
+          <div key={index} className="flex items-center justify-between">
+            <div className="flex items-center space-x-2">
+              <div className="w-4 h-4 rounded" style={{ backgroundColor: item.color }} />
+              <span className="text-body-sm text-gray-700">{item.label}</span>
+            </div>
+            <span className="text-body-sm font-semibold text-gray-900">
+              {item.value} ({((item.value / total) * 100).toFixed(0)}%)
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+// ⭕ Progress Ring Component
+const ProgressRing = ({ percentage }) => {
+  const radius = 70;
+  const circumference = 2 * Math.PI * radius;
+  const offset = circumference - (percentage / 100) * circumference;
+
+  return (
+    <div className="flex flex-col items-center justify-center">
+      <div className="relative w-64 h-64">
+        <svg className="transform -rotate-90 w-full h-full">
+          {/* Background circle */}
+          <circle
+            cx="128"
+            cy="128"
+            r={radius}
+            stroke="#e5e7eb"
+            strokeWidth="16"
+            fill="none"
+          />
+          {/* Progress circle */}
+          <circle
+            cx="128"
+            cy="128"
+            r={radius}
+            stroke="#10b981"
+            strokeWidth="16"
+            fill="none"
+            strokeDasharray={circumference}
+            strokeDashoffset={offset}
+            strokeLinecap="round"
+            className="transition-all duration-1000 ease-out"
+          />
+        </svg>
+        
+        {/* Center text */}
+        <div className="absolute inset-0 flex flex-col items-center justify-center">
+          <span className="text-5xl font-bold text-gray-800">{percentage}%</span>
+          <span className="text-body-sm text-gray-600 mt-1">Complete</span>
+        </div>
+      </div>
+      
+      {/* Status message */}
+      <div className="mt-6 text-center">
+        {percentage >= 80 && (
+          <p className="text-body font-medium text-green-600">Excellent progress! 🎉</p>
+        )}
+        {percentage >= 50 && percentage < 80 && (
+          <p className="text-body font-medium text-blue-600">Good progress! Keep going 💪</p>
+        )}
+        {percentage < 50 && percentage > 0 && (
+          <p className="text-body font-medium text-amber-600">Getting started! 🚀</p>
+        )}
+        {percentage === 0 && (
+          <p className="text-body font-medium text-gray-600">Create tasks to track progress</p>
+        )}
+      </div>
+    </div>
+  );
+};
+
+// 📊 Bar Chart Component
+const BarChart = ({ data }) => {
+  const entries = Object.entries(data);
+  
+  if (entries.length === 0) {
+    return (
+      <div className="flex items-center justify-center h-64 text-gray-400">
+        <p className="text-body-sm">No subject data available</p>
+      </div>
+    );
+  }
+
+  const maxValue = Math.max(...entries.map(([_, value]) => value));
+  const colors = ['#3b82f6', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981', '#ef4444'];
+
+  return (
+    <div className="space-y-4">
+      {entries.map(([subject, count], index) => {
+        const percentage = (count / maxValue) * 100;
+        const color = colors[index % colors.length];
+        
+        return (
+          <div key={subject}>
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-body-sm font-medium text-gray-700">{subject}</span>
+              <span className="text-body-sm font-semibold text-gray-900">{count}</span>
+            </div>
+            <div className="w-full bg-gray-200 rounded-full h-8 overflow-hidden">
+              <div
+                className="h-8 rounded-full transition-all duration-1000 ease-out flex items-center px-3"
+                style={{ 
+                  width: `${percentage}%`,
+                  backgroundColor: color,
+                  minWidth: count > 0 ? '40px' : '0'
+                }}
+              >
+                <span className="text-xs font-semibold text-white">
+                  {count > 0 && `${count} tasks`}
+                </span>
+              </div>
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 };

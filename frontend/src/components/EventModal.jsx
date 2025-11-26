@@ -257,24 +257,33 @@ const handleSubmit = async (e) => {
   }
 };
 
-const saveEvent = async (eventData) => {
-  try {
-    if (event) {
-      await eventAPI.updateEvent(event.id, eventData);
-      showToast('Event updated successfully!', 'success');
-    } else {
-      await eventAPI.createEvent(eventData);
-      showToast('Event created successfully!', 'success');
+  const saveEvent = async (eventData) => {
+    try {
+      if (event) {
+        // ✅ FIXED: Check if this is an exception being created for the first time
+        if (event.isException && !event.id) {
+          // This is a NEW exception (editing an instance for the first time)
+          await eventAPI.createEvent(eventData);
+          showToast('Event instance updated successfully!', 'success');
+        } else {
+          // This is an existing event or exception
+          await eventAPI.updateEvent(event.id, eventData);
+          showToast('Event updated successfully!', 'success');
+        }
+      } else {
+        // Creating a brand new event
+        await eventAPI.createEvent(eventData);
+        showToast('Event created successfully!', 'success');
+      }
+      
+      onSave();
+      onClose();
+    } catch (error) {
+      throw error;
+    } finally {
+      setLoading(false);
     }
-    
-    onSave();
-    onClose();
-  } catch (error) {
-    throw error;
-  } finally {
-    setLoading(false);
-  }
-};
+  };
 
 // Add these handler functions:
 const handleConflictProceed = async () => {

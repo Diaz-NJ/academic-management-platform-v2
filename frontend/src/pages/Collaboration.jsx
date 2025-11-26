@@ -137,30 +137,38 @@ const Collaboration = () => {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h2 className="text-2xl font-bold text-gray-800">Collaboration Groups</h2>
-          <p className="text-gray-600 mt-1">Manage your group projects and assignments</p>
+    <div className="section-spacing">
+      {/* ✨ Enhanced Page Header */}
+      <div className="mb-8">
+        <div className="flex justify-between items-start">
+          <div>
+            <h1 className="text-page-title mb-2">Collaboration Groups</h1>
+            <p className="text-body text-gray-600">
+              Manage your group projects and assignments
+            </p>
+          </div>
+          <button
+            onClick={handleCreateGroup}
+            className="btn-hover flex items-center space-x-2 px-4 py-2 bg-primary text-white rounded-lg font-medium shadow-sm"
+          >
+            <Plus className="w-5 h-5" />
+            <span className="btn-text">Create Group</span>
+          </button>
         </div>
-        <button
-          onClick={handleCreateGroup}
-          className="flex items-center space-x-2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-blue-600 transition"
-        >
-          <Plus className="w-5 h-5" />
-          <span>Create Group</span>
-        </button>
       </div>
 
-      {/* Search Bar */}
+      {/* ✨ Enhanced Search Bar */}
       <div className="bg-white rounded-lg shadow p-4">
+        <label className="text-label mb-2 block">
+          Search Groups
+        </label>
         <div className="relative">
           <input
             type="text"
             placeholder="Search groups by name, subject, or description..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+            className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent text-body"
           />
           <svg
             className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400"
@@ -254,14 +262,13 @@ const Collaboration = () => {
             </button>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredGroups.map(group => (
-              <div 
-                key={group.id} 
-                className={`bg-white rounded-lg shadow hover:shadow-lg transition ${
-                  selectedGroups.includes(group.id) ? 'ring-2 ring-primary' : ''
-                }`}
-              >
+              {/* ✨ Enhanced Group Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {filteredGroups.map(group => (
+                <div 
+                  key={group.id} 
+                  className="card-hover bg-white rounded-lg shadow"
+                >
                 {/* ✅ NEW: Checkbox */}
                 <div className="p-4 border-b border-gray-200 bg-gray-50">
                   <button
@@ -286,11 +293,11 @@ const Collaboration = () => {
                       </div>
                       <div>
                         {group.groupNumber && (
-                          <span className="text-xs text-gray-500 font-medium">
+                          <span className="text-caption text-gray-500 font-medium">
                             {group.groupNumber}
                           </span>
                         )}
-                        <h3 className="font-semibold text-lg text-gray-800">
+                        <h3 className="text-card-title">
                           {group.groupName}
                         </h3>
                       </div>
@@ -325,34 +332,34 @@ const Collaboration = () => {
                 </div>
 
                 {/* Card Body */}
-                <div className="p-6">
-                  <div className="mb-4">
-                    <div className="flex items-start space-x-2">
-                      <FileText className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
-                      <p className="text-sm text-gray-600 line-clamp-3">
-                        {group.taskDescription}
-                      </p>
+                  <div className="p-6">
+                    <div className="mb-4">
+                      <div className="flex items-start space-x-2">
+                        <FileText className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
+                        <p className="text-body-sm text-gray-600 line-clamp-3">
+                          {group.taskDescription}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between pt-4 border-t border-gray-200">
+                      <span className="text-body-sm text-gray-600 flex items-center">
+                        <Users className="w-4 h-4 mr-1" />
+                        <span className="font-medium">{group.members.length}</span> member{group.members.length !== 1 ? 's' : ''}
+                      </span>
+                      <span className="text-caption text-gray-400">
+                        {new Date(group.createdAt).toLocaleDateString('en-US', {
+                          month: 'short',
+                          day: 'numeric'
+                        })}
+                      </span>
                     </div>
                   </div>
 
-                  <div className="flex items-center justify-between text-sm pt-4 border-t border-gray-200">
-                    <span className="text-gray-500 flex items-center">
-                      <Users className="w-4 h-4 mr-1" />
-                      {group.members.length} member{group.members.length !== 1 ? 's' : ''}
-                    </span>
-                    <span className="text-xs text-gray-400">
-                      {new Date(group.createdAt).toLocaleDateString('en-US', {
-                        month: 'short',
-                        day: 'numeric'
-                      })}
-                    </span>
-                  </div>
-                </div>
-
                 {/* Card Footer - Members Preview */}
                 <div className="px-6 pb-6">
+                  <p className="text-label mb-2">Members</p>
                   <div className="flex items-center space-x-2">
-                    <div className="flex -space-x-2">
                       {group.members.slice(0, 4).map((member, idx) => (
                         <div
                           key={idx}
@@ -376,7 +383,6 @@ const Collaboration = () => {
                     </button>
                   </div>
                 </div>
-              </div>
             ))}
           </div>
         </>
