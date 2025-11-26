@@ -13,6 +13,7 @@ import { expandRecurringEvents } from '../utils/recurringUtils';
 import RecurringEditDialog from '../components/RecurringEditDialog';
 import RecurringDeleteDialog from '../components/RecurringDeleteDialog';
 import RecurringSeriesView from '../components/RecurringSeriesView';
+import { EVENT_TYPE_CONFIG } from '../utils/colorUtils';
 
 const Calendar = () => {
   const { user } = useAuth();
@@ -391,6 +392,11 @@ const Calendar = () => {
     days.push(i);
   }
 
+  const getEventTypeColor = (type) => {
+    const config = EVENT_TYPE_CONFIG[type] || EVENT_TYPE_CONFIG.Other;
+    return config.color;
+  };
+
   const getDeleteMessage = () => {
     const eventToDelete = modalState.data;
     if (!eventToDelete) return '';
@@ -474,54 +480,65 @@ const Calendar = () => {
             {filteredEvents.length > 0 ? (
               filteredEvents
                 .sort((a, b) => new Date(a.startDateTime) - new Date(b.startDateTime))
-                .map(event => (
-                  <div 
-                    key={event.id} 
-                    className={`flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition cursor-pointer ${
-                      event.isCanceled ? 'opacity-60' : ''
-                    }`}
-                    onClick={() => setModalState({ type: 'details', data: event, extraData: null })}
-                  >
-                    <div className="flex items-center space-x-3 flex-1 min-w-0">
-                      <div 
-                        className="w-3 h-3 rounded-full flex-shrink-0" 
-                        style={{ backgroundColor: event.colorCode || '#3788d8' }}
-                      />
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center space-x-2">
-                          <h4 className={`font-medium text-gray-800 truncate ${
-                            event.isCanceled ? 'line-through' : ''
-                          }`}>
-                            {event.title}
-                          </h4>
-                          {event.isRecurring && !event.isCanceled && (
-                            <RefreshCw className="w-4 h-4 text-blue-500 flex-shrink-0" />
-                          )}
-                          {event.isCanceled && (
-                            <span className="px-2 py-1 bg-red-100 text-red-800 rounded-full text-xs font-medium">
-                              Canceled
-                            </span>
-                          )}
+                .map(event => {
+                  const eventConfig = EVENT_TYPE_CONFIG[event.eventType] || EVENT_TYPE_CONFIG.Other;
+                  
+                  return (
+                    <div 
+                      key={event.id} 
+                      className={`flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition cursor-pointer border-l-4 ${
+                        event.isCanceled ? 'opacity-60' : ''
+                      }`}
+                      style={{ borderLeftColor: eventConfig.color }}
+                      onClick={() => setModalState({ type: 'details', data: event, extraData: null })}
+                    >
+                      <div className="flex items-center space-x-3 flex-1 min-w-0">
+                        {/* ✨ Event type icon */}
+                        <div 
+                          className="w-8 h-8 rounded-full flex items-center justify-center text-white font-medium shadow-sm"
+                          style={{ backgroundColor: eventConfig.color }}
+                        >
+                          <span className="text-lg">{eventConfig.icon}</span>
                         </div>
-                        <p className="text-sm text-gray-600">
-                          {new Date(event.startDateTime).toLocaleString('en-US', {
-                            month: 'short',
-                            day: 'numeric',
-                            hour: 'numeric',
-                            minute: '2-digit',
-                          })}
-                          {event.location && ` • ${event.location}`}
-                        </p>
+                        
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center space-x-2">
+                            <h4 className={`font-medium text-gray-800 truncate ${
+                              event.isCanceled ? 'line-through' : ''
+                            }`}>
+                              {event.title}
+                            </h4>
+                            {event.isRecurring && !event.isCanceled && (
+                              <RefreshCw className="w-4 h-4 text-blue-500 flex-shrink-0" />
+                            )}
+                            {event.isCanceled && (
+                              <span className="px-2 py-1 bg-red-100 text-red-800 rounded-full text-xs font-medium">
+                                Canceled
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-sm text-gray-600">
+                            {new Date(event.startDateTime).toLocaleString('en-US', {
+                              month: 'short',
+                              day: 'numeric',
+                              hour: 'numeric',
+                              minute: '2-digit',
+                            })}
+                            {event.location && ` • ${event.location}`}
+                          </p>
+                        </div>
+                        
+                        {/* ✨ Enhanced event type badge */}
+                        <span 
+                          className="px-3 py-1 text-xs rounded-full whitespace-nowrap text-white font-medium shadow-sm"
+                          style={{ backgroundColor: eventConfig.color }}
+                        >
+                          {eventConfig.icon} {event.eventType}
+                        </span>
                       </div>
-                      <span 
-                        className="px-2 py-1 text-xs rounded-full whitespace-nowrap text-white"
-                        style={{ backgroundColor: event.colorCode || '#3788d8' }}
-                      >
-                        {event.eventType}
-                      </span>
                     </div>
-                  </div>
-                ))
+                  );
+                })
             ) : (
               <EmptyState
                 icon={CalendarIcon}
@@ -585,16 +602,20 @@ const Calendar = () => {
                     <div
                       key={event.id}
                       onClick={(e) => handleEventClick(event, e)}
-                      className={`relative text-xs text-white rounded px-1 py-0.5 truncate cursor-pointer hover:opacity-80 transition ${
+                      className={`relative text-xs text-white rounded px-1 py-0.5 truncate cursor-pointer transition-all duration-200 hover:opacity-80 hover:scale-105 ${
                         event.isCanceled ? 'opacity-50' : ''
                       }`}
                       style={{ 
-                        backgroundColor: event.colorCode || '#3788d8',
+                        backgroundColor: getEventTypeColor(event.eventType),
                         textDecoration: event.isCanceled ? 'line-through' : 'none'
                       }}
                       title={event.isCanceled ? `${event.title} (Canceled)` : event.title}
                     >
                       <div className="flex items-center space-x-1">
+                        {/* ✨ Add event type icon */}
+                        <span className="text-xs">
+                          {(EVENT_TYPE_CONFIG[event.eventType] || EVENT_TYPE_CONFIG.Other).icon}
+                        </span>
                         {event.isRecurring && !event.isCanceled && (
                           <RefreshCw className="w-3 h-3 flex-shrink-0" />
                         )}

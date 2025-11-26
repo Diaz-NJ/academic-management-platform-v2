@@ -9,6 +9,7 @@ import ConfirmDialog from '../components/ConfirmDialog';
 import LoadingSpinner from '../components/LoadingSpinner';
 import EmptyState from '../components/EmptyState';
 import { formatRelativeDate } from '../utils/dateUtils';
+import { PRIORITY_CONFIG, STATUS_CONFIG } from '../utils/colorUtils';
 
 const Tasks = () => {
   const { user } = useAuth();
@@ -372,90 +373,105 @@ const Tasks = () => {
               )}
 
               {/* Task Items */}
-              {filteredTasks.map(task => (
-                <div key={task.id} className="p-6 hover:bg-gray-50 transition">
-                  <div className="flex items-start space-x-4">
-                    {/* ✅ NEW: Checkbox for selection */}
-                    <button
-                      onClick={() => toggleTaskSelection(task.id)}
-                      className="mt-1 flex-shrink-0"
-                    >
-                      {selectedTasks.includes(task.id) ? (
-                        <CheckSquare className="w-6 h-6 text-primary" />
-                      ) : (
-                        <Square className="w-6 h-6 text-gray-400 hover:text-primary" />
-                      )}
-                    </button>
-
-                    {/* Task Content */}
-                    <div className="flex-1">
-                      <div className="flex items-center space-x-3 mb-2">
-                        <h3 className="text-lg font-semibold text-gray-800">
-                          {task.title}
-                        </h3>
-                        <span className={`px-2 py-1 text-xs rounded-full ${getPriorityColor(task.priority)}`}>
-                          {task.priority}
-                        </span>
-                        <span className={`px-2 py-1 text-xs rounded-full ${getStatusColor(task.status)}`}>
-                          {task.status}
-                        </span>
-                      </div>
-
-                      {task.description && (
-                        <p className="text-gray-600 mb-3">{task.description}</p>
-                      )}
-
-                      <div className="flex items-center space-x-4 text-sm text-gray-500">
-                        {task.subject && (
-                          <span className="flex items-center">
-                            📚 {task.subject}
-                          </span>
+              {filteredTasks.map(task => {
+                const priorityConfig = PRIORITY_CONFIG[task.priority] || PRIORITY_CONFIG.Medium;
+                const statusConfig = STATUS_CONFIG[task.status] || STATUS_CONFIG.Pending;
+                
+                return (
+                  <div key={task.id} className="p-6 hover:bg-gray-50 transition">
+                    <div className="flex items-start space-x-4">
+                      {/* Checkbox for selection */}
+                      <button
+                        onClick={() => toggleTaskSelection(task.id)}
+                        className="mt-1 flex-shrink-0"
+                      >
+                        {selectedTasks.includes(task.id) ? (
+                          <CheckSquare className="w-6 h-6 text-primary" />
+                        ) : (
+                          <Square className="w-6 h-6 text-gray-400 hover:text-primary" />
                         )}
-                        <span className="flex items-center">
-                          📅 {formatRelativeDate(task.dueDate)}
-                        </span>
-                      </div>
-                    </div>
+                      </button>
 
-                    {/* Action Buttons */}
-                    <div className="flex items-center space-x-2 ml-4">
-                      {task.status !== 'Completed' && (
+                      {/* Task Content */}
+                      <div className="flex-1">
+                        <div className="flex items-center space-x-3 mb-2 flex-wrap gap-2">
+                          <h3 className="text-lg font-semibold text-gray-800">
+                            {task.title}
+                          </h3>
+                          
+                          {/* ✨ Enhanced Priority Badge */}
+                          <span className={`inline-flex items-center space-x-1 px-3 py-1 rounded-full font-medium border transition-all duration-200 hover:scale-105 ${priorityConfig.bgColor} ${priorityConfig.textColor} ${priorityConfig.borderColor}`}>
+                            <span className="text-sm">{priorityConfig.icon}</span>
+                            <span className="text-xs">{task.priority}</span>
+                          </span>
+                          
+                          {/* ✨ Enhanced Status Badge */}
+                          <span className={`inline-flex items-center space-x-1 px-3 py-1 rounded-full font-medium border transition-all duration-200 hover:scale-105 ${statusConfig.bgColor} ${statusConfig.textColor} ${statusConfig.borderColor}`}>
+                            <span className="text-sm">{statusConfig.icon}</span>
+                            <span className="text-xs">{task.status}</span>
+                          </span>
+                        </div>
+
+                        {task.description && (
+                          <p className="text-gray-600 mb-3">{task.description}</p>
+                        )}
+
+                        <div className="flex items-center space-x-4 text-sm text-gray-500">
+                          {task.subject && (
+                            <span className="flex items-center space-x-1 bg-gray-100 px-2 py-1 rounded">
+                              <span>📚</span>
+                              <span>{task.subject}</span>
+                            </span>
+                          )}
+                          <span className="flex items-center space-x-1">
+                            <span>📅</span>
+                            <span>{formatRelativeDate(task.dueDate)}</span>
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Action Buttons */}
+                      <div className="flex items-center space-x-2 ml-4">
+                        {task.status !== 'Completed' && (
+                          <button
+                            onClick={() => handleStatusChange(task.id, 'Completed')}
+                            className="px-3 py-1.5 bg-emerald-100 text-emerald-700 rounded-lg border border-emerald-300 hover:bg-emerald-200 text-sm transition font-medium inline-flex items-center space-x-1"
+                          >
+                            <span>✅</span>
+                            <span>Complete</span>
+                          </button>
+                        )}
+                        {task.status === 'Pending' && (
+                          <button
+                            onClick={() => handleStatusChange(task.id, 'In Progress')}
+                            className="px-3 py-1.5 bg-blue-100 text-blue-700 rounded-lg border border-blue-300 hover:bg-blue-200 text-sm transition font-medium inline-flex items-center space-x-1"
+                          >
+                            <span>🚀</span>
+                            <span>Start</span>
+                          </button>
+                        )}
                         <button
-                          onClick={() => handleStatusChange(task.id, 'Completed')}
-                          className="px-3 py-1 bg-green-100 text-green-700 rounded hover:bg-green-200 text-sm transition"
+                          onClick={() => {
+                            setEditingTask(task);
+                            setShowTaskModal(true);
+                          }}
+                          className="p-2 text-primary hover:bg-blue-50 rounded transition"
+                          title="Edit task"
                         >
-                          Mark Complete
+                          <Edit className="w-4 h-4" />
                         </button>
-                      )}
-                      {task.status === 'Pending' && (
                         <button
-                          onClick={() => handleStatusChange(task.id, 'In Progress')}
-                          className="px-3 py-1 bg-yellow-100 text-yellow-700 rounded hover:bg-yellow-200 text-sm transition"
+                          onClick={() => handleDeleteClick(task)}
+                          className="p-2 text-red-500 hover:bg-red-50 rounded transition"
+                          title="Delete task"
                         >
-                          Start
+                          <Trash2 className="w-4 h-4" />
                         </button>
-                      )}
-                      <button
-                        onClick={() => {
-                          setEditingTask(task);
-                          setShowTaskModal(true);
-                        }}
-                        className="p-2 text-primary hover:bg-blue-50 rounded transition"
-                        title="Edit task"
-                      >
-                        <Edit className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => handleDeleteClick(task)}
-                        className="p-2 text-red-500 hover:bg-red-50 rounded transition"
-                        title="Delete task"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </>
           )}
         </div>
