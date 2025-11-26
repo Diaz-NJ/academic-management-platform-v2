@@ -1,3 +1,5 @@
+// frontend/src/context/ToastContext.jsx - REPLACE ENTIRE FILE
+
 import React, { createContext, useContext, useState } from 'react';
 import Toast from '../components/Toast';
 
@@ -11,9 +13,12 @@ export const useToast = () => {
 
 export const ToastProvider = ({ children }) => {
   const [toasts, setToasts] = useState([]);
+  const [idCounter, setIdCounter] = useState(0);
 
   const showToast = (message, type = 'success', duration = 3000) => {
-    const id = Date.now();
+    // ✅ FIX: Use counter + timestamp to ensure uniqueness
+    const id = `${Date.now()}-${idCounter}`;
+    setIdCounter(prev => prev + 1);
     setToasts(prev => [...prev, { id, message, type, duration }]);
   };
 

@@ -140,16 +140,28 @@ const EventModal = ({ onClose, onSave, userId, initialDate, event = null }) => {
     setFormData({ ...formData, recurrenceDaysOfWeek: days.join(',') });
   };
 
-  // ✅ FIXED: Properly handle save with API call
-  const checkForConflicts = async (eventData) => {
+const checkForConflicts = async (eventData) => {
   try {
     // Get all events for the user
     const response = await eventAPI.getEvents(userId);
     const allEvents = response.data;
     
+    // ✅ DEBUG: Log what we're checking
+    console.log('=== CONFLICT CHECK DEBUG ===');
+    console.log('Checking event data:', {
+      title: eventData.title,
+      startDateTime: eventData.startDateTime,
+      endDateTime: eventData.endDateTime
+    });
+    
     // Parse new event times
     const newStart = new Date(eventData.startDateTime);
     const newEnd = new Date(eventData.endDateTime);
+    
+    console.log('Parsed dates:', {
+      newStart: newStart.toISOString(),
+      newEnd: newEnd.toISOString()
+    });
     
     // Find conflicts
     const foundConflicts = allEvents
@@ -164,8 +176,17 @@ const EventModal = ({ onClose, onSave, userId, initialDate, event = null }) => {
         const existStart = new Date(existingEvent.startDateTime);
         const existEnd = new Date(existingEvent.endDateTime);
         
-        // Events overlap if one starts before the other ends
-        return newStart < existEnd && existStart < newEnd;
+        const overlaps = newStart < existEnd && existStart < newEnd;
+        
+        if (overlaps) {
+          console.log('Found overlap with:', {
+            title: existingEvent.title,
+            existStart: existStart.toISOString(),
+            existEnd: existEnd.toISOString()
+          });
+        }
+        
+        return overlaps;
       })
       .map(conflictEvent => {
         // Calculate severity
@@ -187,10 +208,56 @@ const EventModal = ({ onClose, onSave, userId, initialDate, event = null }) => {
         };
       });
     
+    console.log('Total conflicts found:', foundConflicts.length);
     return foundConflicts;
   } catch (error) {
     console.error('Error checking conflicts:', error);
     return [];
+  }
+};
+
+const saveEvent = async (eventData) => {
+  try {
+    if (event) {
+      // Check if this is a NEW exception (first time editing an instance)
+      if (event.isException && !event.id) {
+        console.log('Creating new exception');
+        
+        // ✅ Create the exception first
+        await eventAPI.createEvent(eventData);
+        console.log('Exception created');
+        
+        // ✅ THEN delete the original instance from parent
+        if (event._instanceDateToDelete && event._parentEventId) {
+          console.log('Deleting original instance:', event._instanceDateToDelete);
+          try {
+            await eventAPI.deleteInstance(event._parentEventId, event._instanceDateToDelete);
+            console.log('Original instance deleted successfully');
+          } catch (deleteError) {
+            console.error('Error deleting original instance:', deleteError);
+            // Don't fail the whole operation if this fails
+          }
+        }
+        
+        showToast('Event instance updated successfully!', 'success');
+      } else {
+        console.log('Updating existing event');
+        await eventAPI.updateEvent(event.id, eventData);
+        showToast('Event updated successfully!', 'success');
+      }
+    } else {
+      console.log('Creating new event');
+      await eventAPI.createEvent(eventData);
+      showToast('Event created successfully!', 'success');
+    }
+    
+    onSave();
+    onClose();
+  } catch (error) {
+    console.error('Save error:', error);
+    throw error;
+  } finally {
+    setLoading(false);
   }
 };
 
@@ -257,33 +324,6 @@ const handleSubmit = async (e) => {
   }
 };
 
-  const saveEvent = async (eventData) => {
-    try {
-      if (event) {
-        // ✅ FIXED: Check if this is an exception being created for the first time
-        if (event.isException && !event.id) {
-          // This is a NEW exception (editing an instance for the first time)
-          await eventAPI.createEvent(eventData);
-          showToast('Event instance updated successfully!', 'success');
-        } else {
-          // This is an existing event or exception
-          await eventAPI.updateEvent(event.id, eventData);
-          showToast('Event updated successfully!', 'success');
-        }
-      } else {
-        // Creating a brand new event
-        await eventAPI.createEvent(eventData);
-        showToast('Event created successfully!', 'success');
-      }
-      
-      onSave();
-      onClose();
-    } catch (error) {
-      throw error;
-    } finally {
-      setLoading(false);
-    }
-  };
 
 // Add these handler functions:
 const handleConflictProceed = async () => {

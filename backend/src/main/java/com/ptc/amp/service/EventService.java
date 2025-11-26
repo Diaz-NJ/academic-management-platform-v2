@@ -32,6 +32,9 @@ public class EventService {
     }
 
     public List<Event> getEventsByUserId(Long userId) {
+        // ✅ Clean up orphans before returning events
+        cleanupOrphanedExceptions(userId);
+        
         return eventRepository.findByUserIdOrderByStartDateTimeAsc(userId);
     }
 
@@ -174,19 +177,39 @@ public class EventService {
             
             Event event = eventOpt.get();
             
-            if (event.getIsCanceled() != null && event.getIsCanceled()) {
-                eventRepository.deleteById(id);
-                return true;
-            }
-            
+            // ✅ FIX: Delete all exceptions first (including canceled ones)
             List<Event> exceptions = getExceptionsByParentId(id);
             for (Event exception : exceptions) {
                 eventRepository.deleteById(exception.getId());
             }
             
+            // Then delete the parent event
             eventRepository.deleteById(id);
             return true;
         }
         return false;
+    }
+
+        public void cleanupOrphanedExceptions(Long userId) {
+        // Get all events for the user
+        List<Event> allEvents = eventRepository.findByUserIdOrderByStartDateTimeAsc(userId);
+        
+        // Find exceptions whose parent no longer exists
+        List<Event> orphanedExceptions = allEvents.stream()
+            .filter(event -> event.getIsException() != null && event.getIsException())
+            .filter(event -> {
+                Long parentId = event.getParentEventId();
+                if (parentId == null) return false;
+                // Check if parent still exists
+                return !eventRepository.existsById(parentId);
+            })
+            .collect(java.util.stream.Collectors.toList());
+        
+        // Delete orphaned exceptions
+        for (Event orphan : orphanedExceptions) {
+            eventRepository.deleteById(orphan.getId());
+        }
+        
+        System.out.println("Cleaned up " + orphanedExceptions.size() + " orphaned exceptions");
     }
 }

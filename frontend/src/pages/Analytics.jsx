@@ -174,7 +174,7 @@ const Analytics = () => {
 
         {/* 📈 Mini Stats */}
         <div className="lg:col-span-1 space-y-4">
-          <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg shadow p-6 text-white">
+          <div className="card-hover bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg shadow p-6 text-white cursor-pointer">
             <div className="flex items-center justify-between mb-2">
               <Target className="w-8 h-8" />
               <span className="text-3xl font-bold">{stats.inProgress || 0}</span>
@@ -183,7 +183,7 @@ const Analytics = () => {
             <p className="text-xs opacity-75 mt-1">Currently in progress</p>
           </div>
 
-          <div className="bg-gradient-to-br from-amber-500 to-amber-600 rounded-lg shadow p-6 text-white">
+          <div className="card-hover bg-gradient-to-br from-amber-500 to-amber-600 rounded-lg shadow p-6 text-white cursor-pointer">
             <div className="flex items-center justify-between mb-2">
               <Zap className="w-8 h-8" />
               <span className="text-3xl font-bold">{stats.pending || 0}</span>

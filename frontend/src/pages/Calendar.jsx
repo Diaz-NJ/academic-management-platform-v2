@@ -37,7 +37,29 @@ const Calendar = () => {
   // Load events
   useEffect(() => {
     loadEvents();
-  }, [user, currentDate]);
+   // ✅ DEBUG: Check what's being generated
+  if (originalEvents.length > 0) {
+    console.log('=== RECURRING EVENT DEBUG ===');
+    originalEvents.forEach(event => {
+      if (event.isRecurring) {
+        console.log('Event:', event.title);
+        console.log('Pattern:', event.recurrencePattern);
+        console.log('Count Setting:', event.recurrenceCount);
+        console.log('Days:', event.recurrenceDaysOfWeek);
+        
+        // Test expansion
+        const startOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+        const endOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
+        const expanded = expandRecurringEvents([event], startOfMonth, endOfMonth);
+        
+        console.log('Expanded instances:', expanded.length);
+        expanded.forEach((inst, idx) => {
+          console.log(`  ${idx + 1}. ${new Date(inst.startDateTime).toLocaleDateString()}`);
+        });
+      }
+    });
+  }
+}, [user, currentDate]);
 
   // Filter events
   useEffect(() => {
@@ -55,26 +77,53 @@ const Calendar = () => {
   }, [events, searchQuery]);
 
   // ✅ FIXED: Proper load with useCallback
-  const loadEvents = useCallback(async () => {
-    try {
-      setLoading(true);
-      const response = await eventAPI.getEvents(user.id);
+ const loadEvents = useCallback(async () => {
+  try {
+    setLoading(true);
+    const response = await eventAPI.getEvents(user.id);
+    
+    const originalEvents = response.data;
+    
+    // ✅ FILTER OUT ORPHANED EXCEPTIONS
+    // Remove exceptions whose parent no longer exists
+    const parentIds = new Set(
+      originalEvents
+        .filter(e => e.isRecurring)
+        .map(e => e.id)
+    );
+    
+    const filteredEvents = originalEvents.filter(event => {
+      // Keep non-exception events
+      if (!event.isException) return true;
       
-      const originalEvents = response.data;
+      // Keep exceptions whose parent exists
+      if (event.parentEventId && parentIds.has(event.parentEventId)) {
+        return true;
+      }
       
-      const startOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
-      const endOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
-      const expanded = expandRecurringEvents(originalEvents, startOfMonth, endOfMonth);
-      
-      setEvents(expanded);
-      setOriginalEvents(originalEvents);
-    } catch (error) {
-      console.error('Error loading events:', error);
-      showToast('Failed to load events', 'error');
-    } finally {
-      setLoading(false);
-    }
-  }, [user.id, currentDate, showToast]);
+      // Filter out orphaned exceptions
+      console.log('Filtering out orphaned exception:', event.title, event.id);
+      return false;
+    });
+    
+    console.log('Original events:', originalEvents.length);
+    console.log('After filtering orphans:', filteredEvents.length);
+    console.log('Orphans removed:', originalEvents.length - filteredEvents.length);
+    
+    // Expand recurring events
+    const startOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+    const endOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
+    const expanded = expandRecurringEvents(filteredEvents, startOfMonth, endOfMonth);
+    
+    setEvents(expanded);
+    setOriginalEvents(filteredEvents);
+  } catch (error) {
+    console.error('Error loading events:', error);
+    showToast('Failed to load events', 'error');
+  } finally {
+    setLoading(false);
+  }
+}, [user.id, currentDate, showToast]);
 
   // ✅ FIXED: Close all modals
   const closeModal = useCallback(() => {
@@ -102,16 +151,22 @@ const Calendar = () => {
 const handleEditFromDetails = () => {
   const event = modalState.data;
   
+  console.log('handleEditFromDetails called with:', {
+    title: event.title,
+    isRecurring: event.isRecurring,
+    isRecurringInstance: event.isRecurringInstance
+  });
+  
   // Check if it's a recurring event or instance
   if (event.isRecurring || event.isRecurringInstance) {
-    // Show recurring edit dialog
+    console.log('Opening recurring edit dialog');
     setModalState({
       type: 'recurringEdit',
       data: event,
       extraData: null
     });
   } else {
-    // Direct edit for non-recurring events
+    console.log('Opening regular edit');
     setModalState({
       type: 'edit',
       data: event,
@@ -145,6 +200,9 @@ const handleEditSeriesClick = () => {
 // ✅ FIXED: Edit instance - create exception properly
 const handleEditInstanceClick = async (instance) => {
   try {
+    console.log('=== Edit Instance Clicked ===');
+    console.log('Instance:', instance);
+    
     if (!instance) {
       showToast('Error: Invalid event instance', 'error');
       return;
@@ -175,6 +233,7 @@ const handleEditInstanceClick = async (instance) => {
 
     if (existingException) {
       // Edit existing exception
+      console.log('Editing existing exception');
       setModalState({
         type: 'edit',
         data: existingException,
@@ -182,15 +241,19 @@ const handleEditInstanceClick = async (instance) => {
       });
     } else {
       // Create new exception data
+      console.log('Creating new exception for instance');
       const exceptionEventData = {
         ...originalEvent,
-        id: null, // New exception
+        id: null, // New event
         isRecurring: false,
         isException: true,
         parentEventId: originalEvent.id,
         exceptionDate: instanceDate.toISOString(),
         startDateTime: instance.startDateTime,
         endDateTime: instance.endDateTime,
+        // ✅ IMPORTANT: Store the date to delete AFTER save
+        _instanceDateToDelete: instanceDate.toISOString().substring(0, 10),
+        _parentEventId: originalEvent.id,
         // Clear recurrence fields
         recurrencePattern: null,
         recurrenceInterval: null,
@@ -212,12 +275,22 @@ const handleEditInstanceClick = async (instance) => {
   }
 };
 
-// ✅ FIXED: Delete from details - detect recurring properly
+// ✅ FIXED: Delete from details - handle canceled instances properly
 const handleDeleteFromDetails = () => {
   const event = modalState.data;
   
-  // Check if it's a recurring event
-  if (event.isRecurring || (event.isRecurringInstance && !event.isCanceled)) {
+  // ✅ If it's canceled, always go to regular delete (not recurring dialog)
+  if (event.isCanceled) {
+    setModalState({
+      type: 'delete',
+      data: event,
+      extraData: null
+    });
+    return;
+  }
+  
+  // Check if it's a recurring event that's NOT canceled
+  if (event.isRecurring || event.isRecurringInstance) {
     // Show recurring delete dialog
     setModalState({
       type: 'recurringDelete',
@@ -261,9 +334,11 @@ const handleDeleteConfirm = async () => {
     if (eventToDelete.isCanceled && eventToDelete.isRecurringInstance) {
       const instanceDate = new Date(eventToDelete.startDateTime);
       const dateStr = instanceDate.toISOString().substring(0, 10); // Just date part
+       console.log('Deleting instance date:', dateStr);
       const originalId = eventToDelete.originalId;
       
       await eventAPI.deleteInstance(originalId, dateStr);
+       console.log('Delete successful');
       showToast('Canceled event permanently deleted', 'success');
     } 
     // Handle regular event deletion
@@ -784,7 +859,10 @@ const handleViewSeriesClick = () => {
           isOpen={true}
           onClose={closeModal}
           onEditSeries={handleEditSeriesClick}
-          onEditInstance={() => handleEditInstanceClick(modalState.data)}
+          onEditInstance={() => {
+            console.log('Calendar: onEditInstance callback triggered');
+            handleEditInstanceClick(modalState.data);
+          }}
           eventTitle={modalState.data?.title || ''}
         />
       )}
