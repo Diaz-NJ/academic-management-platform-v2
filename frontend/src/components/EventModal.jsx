@@ -146,7 +146,6 @@ const checkForConflicts = async (eventData) => {
     const response = await eventAPI.getEvents(userId);
     const allEvents = response.data;
     
-    // ✅ DEBUG: Log what we're checking
     console.log('=== CONFLICT CHECK DEBUG ===');
     console.log('Checking event data:', {
       title: eventData.title,
@@ -158,19 +157,34 @@ const checkForConflicts = async (eventData) => {
     const newStart = new Date(eventData.startDateTime);
     const newEnd = new Date(eventData.endDateTime);
     
-    console.log('Parsed dates:', {
-      newStart: newStart.toISOString(),
-      newEnd: newEnd.toISOString()
-    });
-    
     // Find conflicts
     const foundConflicts = allEvents
       .filter(existingEvent => {
         // Skip if editing same event
         if (event && existingEvent.id === event.id) return false;
         
-        // Skip canceled events
+        // ✅ Skip canceled events
         if (existingEvent.isCanceled) return false;
+        
+        // ✅ NEW: Skip if this specific date is in deletedDates
+        if (existingEvent.deletedDates) {
+          const deletedList = existingEvent.deletedDates.split(',');
+          const newEventDate = newStart.toISOString().substring(0, 10);
+          if (deletedList.includes(newEventDate)) {
+            console.log('Skipping - date in deletedDates:', newEventDate);
+            return false;
+          }
+        }
+        
+        // ✅ NEW: Skip if this specific date is in canceledDates
+        if (existingEvent.canceledDates) {
+          const canceledList = existingEvent.canceledDates.split(',');
+          const newEventDate = newStart.toISOString().substring(0, 10);
+          if (canceledList.includes(newEventDate)) {
+            console.log('Skipping - date in canceledDates:', newEventDate);
+            return false;
+          }
+        }
         
         // Check for time overlap
         const existStart = new Date(existingEvent.startDateTime);

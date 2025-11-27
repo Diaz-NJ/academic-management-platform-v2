@@ -32,11 +32,9 @@ public class EventService {
     }
 
     public List<Event> getEventsByUserId(Long userId) {
-        // ✅ Clean up orphans before returning events
-        cleanupOrphanedExceptions(userId);
-        
-        return eventRepository.findByUserIdOrderByStartDateTimeAsc(userId);
-    }
+    // ✅ Use the new method that filters out deleted events
+    return eventRepository.findActiveEventsByUserId(userId);
+}
 
     public List<Event> getExceptionsByParentId(Long parentId) {
         return eventRepository.findByParentEventId(parentId);
