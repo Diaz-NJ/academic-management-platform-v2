@@ -10,8 +10,10 @@ import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
 import java.util.Optional;
+import java.util.stream.Collectors;
 import java.util.List;
 import java.util.Map;
+import java.util.*;
 
 @RestController
 @RequestMapping("/api/events")
@@ -208,41 +210,37 @@ public class EventController {
         }
     }
 
-    @DeleteMapping("/cleanup/{userId}")
+    @DeleteMapping("/cleanup-orphans/{userId}")
 public ResponseEntity<?> cleanupOrphanedEvents(@PathVariable Long userId) {
     try {
         // Get all events for the user
         List<Event> allEvents = eventService.getEventsByUserId(userId);
         
-        // Log what we found
-        System.out.println("Total events for user " + userId + ": " + allEvents.size());
+        // Create a set of all valid event IDs
+        Set<Long> validEventIds = allEvents.stream()
+            .map(Event::getId)
+            .collect(Collectors.toSet());
         
-        // Find events with IDs 37 and 34 (the orphaned ones)
-        List<Long> idsToDelete = Arrays.asList(37L, 34L);
-        int deletedCount = 0;
+        // Find orphaned events (events with parentEventId that doesn't exist)
+        List<Event> orphanedEvents = allEvents.stream()
+            .filter(event -> event.getParentEventId() != null)
+            .filter(event -> !validEventIds.contains(event.getParentEventId()))
+            .collect(Collectors.toList());
         
-        for (Long id : idsToDelete) {
-            Optional<Event> eventOpt = eventService.getEventById(id);
-            if (eventOpt.isPresent()) {
-                Event event = eventOpt.get();
-                System.out.println("Deleting event: " + event.getTitle() + " (ID: " + id + ")");
-                eventService.deleteEvent(id);
-                deletedCount++;
-            } else {
-                System.out.println("Event ID " + id + " not found");
-            }
+        // Delete orphaned events
+        for (Event orphan : orphanedEvents) {
+            eventService.deleteEvent(orphan.getId());
         }
         
-        System.out.println("Deleted " + deletedCount + " orphaned events");
-        
         return ResponseEntity.ok(Map.of(
-            "success", true, 
+            "success", true,
             "message", "Cleanup completed",
-            "deleted", deletedCount
+            "deleted", orphanedEvents.size(),
+            "deletedEvents", orphanedEvents.stream()
+                .map(e -> Map.of("id", e.getId(), "title", e.getTitle()))
+                .collect(Collectors.toList())
         ));
     } catch (Exception e) {
-        System.err.println("Error during cleanup: " + e.getMessage());
-        e.printStackTrace();
         return ResponseEntity.status(500).body(Map.of(
             "success", false,
             "message", "Cleanup failed: " + e.getMessage()

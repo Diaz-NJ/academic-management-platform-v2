@@ -18,7 +18,7 @@ import Calendar from './Calendar';
 import Settings from './Settings';
 import WeeklyEvents from '../components/WeeklyEvents';
 import LoadingSpinner from '../components/LoadingSpinner';
-import axios from 'axios';
+import { expandRecurringEvents } from '../utils/recurringUtils';
 
 const Dashboard = () => {
   const { user, logout } = useAuth();
@@ -31,20 +31,6 @@ const Dashboard = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-
-  useEffect(() => {
-    loadTasks();
-    loadEvents();
-  }, [user]);
-
-  useEffect(() => {
-  if (activeTab === 'dashboard') {
-    console.log('Dashboard tab active - refreshing data');
-    loadTasks();
-    loadEvents();
-  }
-}, [activeTab]);
-
   const loadTasks = async () => {
     try {
       const response = await taskAPI.getTasks(user.id);
@@ -56,81 +42,92 @@ const Dashboard = () => {
     }
   };
 
-const loadEvents = async () => {
-  try {
-    const response = await eventAPI.getEvents(user.id);
-    const allEvents = response.data;
-    
-    console.log('=== DASHBOARD ORPHAN DETECTION ===');
-    console.log('Total events:', allEvents.length);
-    
-    // ✅ LOG EACH EVENT TO SEE WHAT WE'RE DEALING WITH
-    allEvents.forEach((event, index) => {
-      console.log(`Event ${index + 1}:`, {
-        id: event.id,
-        title: event.title,
-        isRecurring: event.isRecurring,
-        isException: event.isException,
-        isCanceled: event.isCanceled,
-        isRecurringInstance: event.isRecurringInstance,
-        parentEventId: event.parentEventId,
-        originalId: event.originalId,
-        startDateTime: event.startDateTime
-      });
-    });
-    
-    // Create a Set of ALL event IDs
-    const allEventIds = new Set(allEvents.map(e => e.id));
-    
-    // Filter out events that reference a non-existent parent
-    const filteredEvents = allEvents.filter(event => {
-      // Check if this event has a parentEventId
-      if (event.parentEventId) {
-        const parentExists = allEventIds.has(event.parentEventId);
-        
-        if (!parentExists) {
-          console.log('❌ DASHBOARD ORPHAN:', {
-            eventId: event.id,
-            title: event.title,
-            parentEventId: event.parentEventId
-          });
-          return false;
-        }
-      }
+  const loadEvents = async () => {
+    try {
+      const response = await eventAPI.getEvents(user.id);
+      const allEvents = response.data;
       
-      return true;
-    });
-    
-    console.log('Dashboard after filtering:', filteredEvents.length);
-    console.log('Dashboard orphans removed:', allEvents.length - filteredEvents.length);
-    
-    setEvents(filteredEvents);
-  } catch (error) {
-    console.error('Error loading events:', error);
-  }
-};
+      console.log('=== DASHBOARD ORPHAN DETECTION ===');
+      console.log('Total events from API:', allEvents.length);
+      
+      // ✅ LOG EACH EVENT
+      allEvents.forEach((event, index) => {
+        console.log(`Dashboard Event ${index + 1}:`, {
+          id: event.id,
+          title: event.title,
+          isRecurring: event.isRecurring,
+          isException: event.isException,
+          isCanceled: event.isCanceled,
+          parentEventId: event.parentEventId,
+          startDateTime: event.startDateTime
+        });
+      });
+      
+      // Create a Set of ALL event IDs
+      const allEventIds = new Set(allEvents.map(e => e.id));
+      console.log('All valid event IDs:', Array.from(allEventIds));
+      
+      // Filter out events that reference a non-existent parent
+      const filteredEvents = allEvents.filter(event => {
+        // Check if this event has a parentEventId
+        if (event.parentEventId) {
+          const parentExists = allEventIds.has(event.parentEventId);
+          
+          if (!parentExists) {
+            console.log('❌ DASHBOARD ORPHAN:', {
+              eventId: event.id,
+              title: event.title,
+              parentEventId: event.parentEventId
+            });
+            return false; // Filter it out
+          }
+        }
+        
+        return true; // Keep events without parentEventId or with valid parent
+      });
+      
+      console.log('Dashboard after filtering:', filteredEvents.length);
+      console.log('Dashboard orphans removed:', allEvents.length - filteredEvents.length);
+      
+      // ✅ Expand recurring events for the current week
+      const now = new Date();
+      const startOfWeek = new Date(now);
+      startOfWeek.setDate(now.getDate() - now.getDay());
+      startOfWeek.setHours(0, 0, 0, 0);
+      
+      const endOfWeek = new Date(startOfWeek);
+      endOfWeek.setDate(startOfWeek.getDate() + 6);
+      endOfWeek.setHours(23, 59, 59, 999);
+      
+      const expandedEvents = expandRecurringEvents(filteredEvents, startOfWeek, endOfWeek);
+      console.log('Expanded events for this week:', expandedEvents.length);
+      
+      // ✅ Filter out canceled events from display
+      const visibleEvents = expandedEvents.filter(e => !e.isCanceled);
+      console.log('Visible events (non-canceled):', visibleEvents.length);
+      
+      setEvents(visibleEvents);
+    } catch (error) {
+      console.error('Error loading events:', error);
+    }
+  };
 
-const handleCleanupOrphans = async () => {
-  if (!window.confirm('This will delete events with IDs 37 and 34. Continue?')) {
-    return;
-  }
-  
-  try {
-    const response = await axios.delete(
-      `${process.env.REACT_APP_API_URL || 'http://localhost:8080/api'}/events/cleanup/${user.id}`
-    );
-    
-    console.log('Cleanup response:', response.data);
-    alert('Cleanup successful! Deleted ' + response.data.deleted + ' events');
-    
-    // Reload events
-    loadEvents();
+  useEffect(() => {
     loadTasks();
-  } catch (error) {
-    console.error('Cleanup error:', error);
-    alert('Cleanup failed: ' + error.message);
-  }
-};
+    loadEvents();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]);
+
+  useEffect(() => {
+    if (activeTab === 'dashboard') {
+      console.log('Dashboard tab active - refreshing data');
+      loadTasks();
+      loadEvents();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab]);
+
+
 
   const handleLogout = async () => {
     await logout();
@@ -149,17 +146,17 @@ const handleCleanupOrphans = async () => {
 
   const stats = getStats();
 
-    if (loading) {
-      return (
-        <div className="min-h-screen flex items-center justify-center">
-          <LoadingSpinner message="Loading your dashboard..." />
-        </div>
-      );
-    }
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <LoadingSpinner message="Loading your dashboard..." />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
-       {/* Navigation Bar - ENLARGED */}
+      {/* Navigation Bar - ENLARGED */}
       <nav className="bg-white shadow-md border-b-2 border-gray-100">
         <div className="max-w-[95%] mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-20 md:h-24">
@@ -447,7 +444,7 @@ const handleCleanupOrphans = async () => {
                       This Week's Events
                     </h2>
                     <p className="text-sm text-gray-600">
-                      Your upcoming schedule
+                      Your upcoming schedule ({events.length} events)
                     </p>
                   </div>
                   <button
