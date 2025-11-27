@@ -100,4 +100,41 @@ public class AuthController {
         boolean success = (boolean) result.get("success");
         return success ? ResponseEntity.ok(result) : ResponseEntity.badRequest().body(result);
     }
+
+    @DeleteMapping("/users/{id}")
+public ResponseEntity<?> deleteUser(
+        @PathVariable Long id, 
+        @RequestHeader("Session-Id") String sessionId,
+        @RequestBody Map<String, String> requestData) {
+    
+    // Verify session
+    Optional<Long> sessionUserIdOpt = authService.validateSession(sessionId);
+    if (sessionUserIdOpt.isEmpty() || !sessionUserIdOpt.get().equals(id)) {
+        return ResponseEntity.status(403).body(Map.of(
+            "success", false, 
+            "message", "Unauthorized"
+        ));
+    }
+    
+    // ✅ SECURITY: Require password confirmation
+    String password = requestData.get("password");
+    if (password == null || password.isEmpty()) {
+        return ResponseEntity.badRequest().body(Map.of(
+            "success", false,
+            "message", "Password is required to delete your account"
+        ));
+    }
+    
+    // Verify password before deletion
+    Map<String, Object> result = authService.deleteUserWithPasswordConfirmation(id, password);
+    boolean success = (boolean) result.get("success");
+    
+    if (success) {
+        // Log out the user
+        authService.logout(sessionId);
+        return ResponseEntity.ok(result);
+    } else {
+        return ResponseEntity.status(401).body(result);
+    }
+}
 }

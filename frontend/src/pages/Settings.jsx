@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
-import { User, Mail, IdCard, BookOpen, Save, Lock } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { User, Mail, IdCard, BookOpen, Save, Lock, Trash2, AlertTriangle } from 'lucide-react';
 import axios from 'axios';
 
 const Settings = () => {
   const { user, logout } = useAuth();
   const { showToast } = useToast();
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     firstName: '',
@@ -15,29 +17,33 @@ const Settings = () => {
     studentId: '',
     section: ''
   });
-    const [passwordData, setPasswordData] = useState({
+  const [passwordData, setPasswordData] = useState({
     currentPassword: '',
     newPassword: '',
     confirmPassword: ''
   });
   const [passwordLoading, setPasswordLoading] = useState(false);
 
-useEffect(() => {
-  if (user) {
-    // Better name splitting: everything before last space = firstName
-    const nameParts = user.name.trim().split(' ');
-    const lastName = nameParts.length > 1 ? nameParts[nameParts.length - 1] : '';
-    const firstName = nameParts.slice(0, -1).join(' ') || nameParts[0] || '';
-    
-    setFormData({
-      firstName: lastName ? firstName : nameParts[0] || '',
-      lastName: lastName,
-      email: user.email || '',
-      studentId: user.studentId || '',
-      section: user.section || ''
-    });
-  }
-}, [user]);
+  // ✅ NEW: Delete Account State
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [deletePassword, setDeletePassword] = useState('');
+  const [deleteLoading, setDeleteLoading] = useState(false);
+
+  useEffect(() => {
+    if (user) {
+      const nameParts = user.name.trim().split(' ');
+      const lastName = nameParts.length > 1 ? nameParts[nameParts.length - 1] : '';
+      const firstName = nameParts.slice(0, -1).join(' ') || nameParts[0] || '';
+      
+      setFormData({
+        firstName: lastName ? firstName : nameParts[0] || '',
+        lastName: lastName,
+        email: user.email || '',
+        studentId: user.studentId || '',
+        section: user.section || ''
+      });
+    }
+  }, [user]);
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -61,7 +67,6 @@ useEffect(() => {
       );
 
       if (response.data.success) {
-        // Update local storage with new user data
         const updatedUser = {
           ...user,
           name: `${formData.firstName} ${formData.lastName}`,
@@ -73,7 +78,6 @@ useEffect(() => {
         
         showToast('Profile updated successfully!', 'success');
         
-        // Reload page to reflect changes
         setTimeout(() => {
           window.location.reload();
         }, 1000);
@@ -91,49 +95,97 @@ useEffect(() => {
     e.preventDefault();
     
     if (passwordData.newPassword !== passwordData.confirmPassword) {
-        showToast('New passwords do not match', 'error');
-        return;
+      showToast('New passwords do not match', 'error');
+      return;
     }
     
     if (passwordData.newPassword.length < 6) {
-        showToast('New password must be at least 6 characters', 'error');
-        return;
+      showToast('New password must be at least 6 characters', 'error');
+      return;
     }
     
     setPasswordLoading(true);
 
     try {
-        const sessionId = localStorage.getItem('sessionId');
-        const response = await axios.put(
+      const sessionId = localStorage.getItem('sessionId');
+      const response = await axios.put(
         `http://localhost:8080/api/auth/users/${user.id}/password`,
         {
-            currentPassword: passwordData.currentPassword,
-            newPassword: passwordData.newPassword
+          currentPassword: passwordData.currentPassword,
+          newPassword: passwordData.newPassword
         },
         {
-            headers: {
+          headers: {
             'Session-Id': sessionId,
             'Content-Type': 'application/json'
-            }
+          }
         }
-        );
+      );
 
-        if (response.data.success) {
+      if (response.data.success) {
         showToast('Password changed successfully!', 'success');
         setPasswordData({
-            currentPassword: '',
-            newPassword: '',
-            confirmPassword: ''
+          currentPassword: '',
+          newPassword: '',
+          confirmPassword: ''
         });
-        }
+      }
     } catch (error) {
-        console.error('Error changing password:', error);
-        const errorMessage = error.response?.data?.message || 'Failed to change password';
-        showToast(errorMessage, 'error');
+      console.error('Error changing password:', error);
+      const errorMessage = error.response?.data?.message || 'Failed to change password';
+      showToast(errorMessage, 'error');
     } finally {
-        setPasswordLoading(false);
+      setPasswordLoading(false);
     }
-    };
+  };
+
+  // ✅ NEW: Handle Account Deletion
+  const handleDeleteAccount = async (e) => {
+    e.preventDefault();
+    
+    if (!deletePassword) {
+      showToast('Please enter your password', 'error');
+      return;
+    }
+
+    setDeleteLoading(true);
+
+    try {
+      const sessionId = localStorage.getItem('sessionId');
+      const response = await axios.delete(
+        `http://localhost:8080/api/auth/users/${user.id}`,
+        {
+          headers: {
+            'Session-Id': sessionId,
+            'Content-Type': 'application/json'
+          },
+          data: {
+            password: deletePassword
+          }
+        }
+      );
+
+      if (response.data.success) {
+        showToast('Account deleted successfully', 'success');
+        
+        // Clear all local storage
+        localStorage.clear();
+        
+        // Redirect to login after short delay
+        setTimeout(() => {
+          logout();
+          navigate('/login');
+        }, 1500);
+      }
+    } catch (error) {
+      console.error('Error deleting account:', error);
+      const errorMessage = error.response?.data?.message || 'Failed to delete account';
+      showToast(errorMessage, 'error');
+      setDeletePassword('');
+    } finally {
+      setDeleteLoading(false);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -141,6 +193,7 @@ useEffect(() => {
         <h2 className="text-2xl font-bold text-gray-800">Account Settings</h2>
       </div>
 
+      {/* Profile Information Section */}
       <div className="bg-white rounded-lg shadow p-6 max-w-2xl">
         <div className="flex items-center space-x-4 mb-6 pb-6 border-b">
           <div className="w-16 h-16 bg-gradient-to-br from-primary to-blue-600 rounded-full flex items-center justify-center text-white text-2xl font-bold">
@@ -154,7 +207,6 @@ useEffect(() => {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* First Name */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 <User className="w-4 h-4 inline mr-1" />
@@ -170,7 +222,6 @@ useEffect(() => {
               />
             </div>
 
-            {/* Last Name */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 <User className="w-4 h-4 inline mr-1" />
@@ -187,7 +238,6 @@ useEffect(() => {
             </div>
           </div>
 
-          {/* Email */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               <Mail className="w-4 h-4 inline mr-1" />
@@ -203,7 +253,6 @@ useEffect(() => {
             />
           </div>
 
-          {/* Student ID */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               <IdCard className="w-4 h-4 inline mr-1" />
@@ -219,7 +268,6 @@ useEffect(() => {
             />
           </div>
 
-          {/* Section */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               <BookOpen className="w-4 h-4 inline mr-1" />
@@ -236,7 +284,6 @@ useEffect(() => {
             />
           </div>
 
-          {/* Save Button */}
           <div className="pt-4">
             <button
               type="submit"
@@ -251,72 +298,68 @@ useEffect(() => {
       </div>
 
       {/* Change Password Section */}
-        <div className="bg-white rounded-lg shadow p-6 max-w-2xl">
+      <div className="bg-white rounded-lg shadow p-6 max-w-2xl">
         <h3 className="text-xl font-semibold text-gray-800 mb-4 flex items-center">
-            <Lock className="w-5 h-5 mr-2" />
-            Change Password
+          <Lock className="w-5 h-5 mr-2" />
+          Change Password
         </h3>
         
         <form onSubmit={handlePasswordChange} className="space-y-4">
-            {/* Current Password */}
-            <div>
+          <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-                Current Password *
+              Current Password *
             </label>
             <input
-                type="password"
-                value={passwordData.currentPassword}
-                onChange={(e) => setPasswordData({...passwordData, currentPassword: e.target.value})}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
-                required
-                minLength={6}
+              type="password"
+              value={passwordData.currentPassword}
+              onChange={(e) => setPasswordData({...passwordData, currentPassword: e.target.value})}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+              required
+              minLength={6}
             />
-            </div>
+          </div>
 
-            {/* New Password */}
-            <div>
+          <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-                New Password *
+              New Password *
             </label>
             <input
-                type="password"
-                value={passwordData.newPassword}
-                onChange={(e) => setPasswordData({...passwordData, newPassword: e.target.value})}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
-                required
-                minLength={6}
+              type="password"
+              value={passwordData.newPassword}
+              onChange={(e) => setPasswordData({...passwordData, newPassword: e.target.value})}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+              required
+              minLength={6}
             />
             <p className="text-xs text-gray-500 mt-1">Minimum 6 characters</p>
-            </div>
+          </div>
 
-            {/* Confirm New Password */}
-            <div>
+          <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-                Confirm New Password *
+              Confirm New Password *
             </label>
             <input
-                type="password"
-                value={passwordData.confirmPassword}
-                onChange={(e) => setPasswordData({...passwordData, confirmPassword: e.target.value})}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
-                required
-                minLength={6}
+              type="password"
+              value={passwordData.confirmPassword}
+              onChange={(e) => setPasswordData({...passwordData, confirmPassword: e.target.value})}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+              required
+              minLength={6}
             />
-            </div>
+          </div>
 
-            {/* Change Password Button */}
-            <div className="pt-2">
+          <div className="pt-2">
             <button
-                type="submit"
-                disabled={passwordLoading}
-                className="w-full md:w-auto px-6 py-3 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition disabled:opacity-50 disabled:cursor-not-allowed font-medium flex items-center justify-center space-x-2"
+              type="submit"
+              disabled={passwordLoading}
+              className="w-full md:w-auto px-6 py-3 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition disabled:opacity-50 disabled:cursor-not-allowed font-medium flex items-center justify-center space-x-2"
             >
-                <Lock className="w-5 h-5" />
-                <span>{passwordLoading ? 'Changing...' : 'Change Password'}</span>
+              <Lock className="w-5 h-5" />
+              <span>{passwordLoading ? 'Changing...' : 'Change Password'}</span>
             </button>
-            </div>
+          </div>
         </form>
-        </div>
+      </div>
 
       {/* Info Box */}
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 max-w-2xl">
@@ -325,6 +368,117 @@ useEffect(() => {
           Changes to your profile will take effect immediately. Make sure your email is correct as it's used for login.
         </p>
       </div>
+
+      {/* ✅ NEW: Delete Account Section */}
+      <div className="bg-red-50 border-2 border-red-200 rounded-lg p-6 max-w-2xl">
+        <h3 className="text-xl font-semibold text-red-900 mb-4 flex items-center">
+          <Trash2 className="w-5 h-5 mr-2" />
+          Delete Account
+        </h3>
+        
+        <div className="bg-white border border-red-200 rounded-lg p-4 mb-4">
+          <div className="flex items-start space-x-3">
+            <AlertTriangle className="w-5 h-5 text-red-600 mt-0.5 flex-shrink-0" />
+            <div>
+              <h4 className="font-semibold text-red-900 mb-2">
+                Warning: This action is permanent
+              </h4>
+              <ul className="text-sm text-red-800 space-y-1">
+                <li>• All your tasks will be permanently deleted</li>
+                <li>• All your events will be permanently deleted</li>
+                <li>• All your groups will be permanently deleted</li>
+                <li>• This action cannot be undone</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <button
+          onClick={() => setShowDeleteDialog(true)}
+          className="px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition font-medium flex items-center space-x-2"
+        >
+          <Trash2 className="w-5 h-5" />
+          <span>Delete My Account</span>
+        </button>
+      </div>
+
+      {/* ✅ NEW: Delete Confirmation Dialog */}
+      {showDeleteDialog && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg w-full max-w-md shadow-xl">
+            <div className="p-6">
+              {/* Header */}
+              <div className="flex items-start space-x-3 mb-4">
+                <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center flex-shrink-0">
+                  <AlertTriangle className="w-6 h-6 text-red-600" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold text-gray-900 mb-1">
+                    Delete Account?
+                  </h3>
+                  <p className="text-sm text-gray-600">
+                    This will permanently delete your account and all associated data.
+                  </p>
+                </div>
+              </div>
+
+              {/* Password Confirmation */}
+              <form onSubmit={handleDeleteAccount} className="space-y-4">
+                <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                  <p className="text-sm text-red-800 font-medium mb-3">
+                    ⚠️ To confirm deletion, please enter your password:
+                  </p>
+                  <input
+                    type="password"
+                    value={deletePassword}
+                    onChange={(e) => setDeletePassword(e.target.value)}
+                    placeholder="Enter your password"
+                    className="w-full px-4 py-2 border-2 border-red-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                    required
+                    autoFocus
+                  />
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex space-x-3">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowDeleteDialog(false);
+                      setDeletePassword('');
+                    }}
+                    disabled={deleteLoading}
+                    className="flex-1 px-4 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition font-medium"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={deleteLoading || !deletePassword}
+                    className="flex-1 px-4 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition disabled:opacity-50 disabled:cursor-not-allowed font-medium flex items-center justify-center space-x-2"
+                  >
+                    {deleteLoading ? (
+                      <>
+                        <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                        <span>Deleting...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Trash2 className="w-5 h-5" />
+                        <span>Delete Forever</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </form>
+
+              <p className="text-xs text-gray-500 text-center mt-4">
+                This action cannot be undone. Please be certain.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

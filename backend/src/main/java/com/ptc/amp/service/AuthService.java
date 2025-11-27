@@ -144,4 +144,36 @@ public class AuthService {
             "message", "Password changed successfully"
         );
     }
+
+    public Map<String, Object> deleteUserWithPasswordConfirmation(Long userId, String password) {
+    try {
+        // Get the user
+        Optional<User> userOpt = userRepository.findById(userId);
+        if (userOpt.isEmpty()) {
+            return Map.of("success", false, "message", "User not found");
+        }
+        
+        User user = userOpt.get();
+        
+        // ✅ CRITICAL: Verify password before deletion
+        if (!PasswordUtil.checkPassword(password, user.getPassword())) {
+            return Map.of("success", false, "message", "Incorrect password");
+        }
+        
+        // Password verified - proceed with deletion
+        userRepository.deleteById(userId);
+        
+        return Map.of(
+            "success", true,
+            "message", "Account deleted successfully"
+        );
+    } catch (Exception e) {
+        System.err.println("Error deleting user: " + e.getMessage());
+        e.printStackTrace();
+        return Map.of(
+            "success", false,
+            "message", "Failed to delete account. Please try again."
+        );
+    }
+}
 }
