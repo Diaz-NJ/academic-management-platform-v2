@@ -177,54 +177,58 @@
   }
 }
 
-/* ✨ Improved readability for long-form content */
+/* Add to frontend/src/index.css - REPLACE the existing @layer utilities section */
+
 @layer utilities {
-  .prose-enhanced {
-    @apply text-gray-700 leading-relaxed;
+  /* ===== DESKTOP LAYOUT OPTIMIZATIONS ===== */
+  
+  /* Reduce excessive padding on desktop */
+  @media (min-width: 768px) {
+    .section-spacing {
+      @apply space-y-4; /* Changed from space-y-6 */
+    }
+    
+    .card-spacing {
+      @apply space-y-3; /* Changed from space-y-4 */
+    }
   }
 
-  .prose-enhanced p {
-    @apply mb-4;
+  /* Maximize container width on large screens */
+  .max-w-7xl {
+    max-width: 90rem; /* Increased from default 80rem */
   }
 
-  .prose-enhanced h2 {
-    @apply text-2xl font-bold text-gray-900 mt-8 mb-4;
+  /* Tighter grid gaps on desktop */
+  @media (min-width: 1024px) {
+    .desktop-tight-grid {
+      gap: 1rem; /* Tighter than default 1.5rem */
+    }
   }
 
-  .prose-enhanced h3 {
-    @apply text-xl font-semibold text-gray-800 mt-6 mb-3;
+  /* Calendar day cells - larger and more visible */
+  .calendar-day-cell {
+    @apply min-h-[120px] md:min-h-[140px] lg:min-h-[160px];
   }
 
-  .prose-enhanced ul {
-    @apply list-disc list-inside mb-4 space-y-2;
+  /* Event bubbles in calendar - larger touch targets */
+  .calendar-event-bubble {
+    @apply text-xs md:text-sm px-2 py-1.5 md:py-2;
+    min-height: 28px;
   }
 
-  .prose-enhanced ol {
-    @apply list-decimal list-inside mb-4 space-y-2;
+  /* Compact stat cards */
+  @media (min-width: 1024px) {
+    .stat-card-compact {
+      @apply p-4;
+    }
   }
 
-  /* Better focus states for accessibility */
-  .focus-enhanced:focus {
-    @apply outline-none ring-2 ring-primary ring-offset-2;
+  /* Reduce excessive vertical spacing in forms */
+  .form-spacing {
+    @apply space-y-3; /* Changed from space-y-4 */
   }
 
-  /* Number formatting */
-  .text-stat {
-    @apply text-4xl font-bold tabular-nums;
-  }
-
-  /* Consistent button text */
-  .btn-text {
-    @apply text-sm font-medium tracking-wide;
-  }
-
-  .btn-text-lg {
-    @apply text-base font-medium;
-  }
-}
-
-/* Existing animations... */
-@layer utilities {
+  /* Existing animations... */
   .animate-slide-in {
     animation: slideIn 0.3s ease-out;
   }
@@ -240,7 +244,6 @@
     }
   }
 
-  /* Card Hover Effects */
   .card-hover {
     @apply transition-all duration-300 ease-in-out;
   }
@@ -257,7 +260,6 @@
     @apply shadow-md;
   }
 
-  /* Button Hover Animations */
   .btn-hover {
     @apply transition-all duration-200 ease-in-out;
   }
@@ -270,7 +272,6 @@
     @apply transform scale-95;
   }
 
-  /* Icon Hover Colors */
   .icon-hover-blue {
     @apply transition-colors duration-200;
   }
@@ -303,7 +304,6 @@
     @apply text-orange-600;
   }
 
-  /* Interactive Elements */
   .interactive-scale {
     @apply transition-transform duration-150 ease-in-out;
   }
@@ -316,7 +316,6 @@
     @apply transform scale-95;
   }
 
-  /* Smooth Background Transitions */
   .bg-hover-transition {
     @apply transition-colors duration-200 ease-in-out;
   }
@@ -346,4 +345,17 @@
 
 .animate-bounce-subtle {
   animation: bounce-subtle 1s ease-in-out infinite;
+}
+
+/* ===== COMPACT LAYOUT CLASSES ===== */
+.compact-page {
+  @apply py-4 md:py-6;
+}
+
+.compact-section {
+  @apply mb-4 md:mb-6;
+}
+
+.compact-card {
+  @apply p-4 md:p-5;
 }

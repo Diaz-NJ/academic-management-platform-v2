@@ -80,7 +80,7 @@ const Analytics = () => {
   }
 
   return (
-    <div className="section-spacing">
+    <div className="space-y-3 md:space-y-4">
       {/* Enhanced Page Header */}
       <div className="mb-8">
         <h1 className="text-page-title mb-2">Progress & Analytics</h1>
@@ -145,7 +145,7 @@ const Analytics = () => {
       </div>
 
       {/* Main Charts Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 md:gap-4 mb-4 md:mb-6">
         {/* 📊 Pie Chart - Task Status Distribution */}
         <div className="lg:col-span-1 bg-white rounded-lg shadow p-6">
           <div className="mb-6">

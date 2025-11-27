@@ -137,7 +137,7 @@ const Collaboration = () => {
   }
 
   return (
-    <div className="section-spacing">
+    <div className="space-y-3 md:space-y-4">
       {/* ✨ Enhanced Page Header */}
       <div className="mb-8">
         <div className="flex justify-between items-start">
@@ -263,7 +263,7 @@ const Collaboration = () => {
           </div>
 
               {/* ✨ Enhanced Group Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-4">
               {filteredGroups.map(group => (
                 <div 
                   key={group.id} 

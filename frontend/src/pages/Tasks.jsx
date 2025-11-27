@@ -184,9 +184,9 @@ const Tasks = () => {
   }
 
   return (
-  <div className="section-spacing">
+  <div className="space-y-3 md:space-y-4">
     {/* ✨ Enhanced Page Header */}
-    <div className="mb-8">
+    <div className="mb-4 md:mb-6">
       <div className="flex justify-between items-start">
         <div>
           <h1 className="text-page-title mb-2">All Tasks</h1>
@@ -205,7 +205,7 @@ const Tasks = () => {
     </div>
 
     {/* Search Bar - with better labels */}
-    <div className="bg-white rounded-lg shadow p-4">
+    <div className="bg-white rounded-lg shadow p-3 md:p-4">
       <label className="text-label mb-2 block">
         Search Tasks
       </label>

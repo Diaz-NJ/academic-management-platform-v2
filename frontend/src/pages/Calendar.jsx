@@ -536,9 +536,9 @@ const handleViewSeriesClick = () => {
   }
 
   return (
-    <div className="section-spacing">
+    <div className="space-y-3 md:space-y-4">
       {/* ✨ Enhanced Page Header */}
-      <div className="mb-8">
+      <div className="mb-4 md:mb-6">
         <div className="flex justify-between items-start">
           <div>
             <h1 className="text-page-title mb-2">Academic Calendar</h1>
@@ -606,7 +606,7 @@ const handleViewSeriesClick = () => {
 
       {/* Search Results */}
       {searchQuery && (
-        <div className="bg-white rounded-lg shadow p-6">
+        <div className="bg-white rounded-lg shadow p-4 md:p-5">
           <h3 className="text-xl font-semibold mb-4">Search Results</h3>
           <div className="space-y-3">
             {filteredEvents.length > 0 ? (
@@ -707,76 +707,77 @@ const handleViewSeriesClick = () => {
         </button>
       </div>
 
-      {/* Calendar grid - day names with better text */}
-      <div className="grid grid-cols-7 gap-2">
-        {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
-          <div 
-            key={day} 
-            className="text-center font-semibold text-gray-700 py-3 text-sm uppercase tracking-wider"
-          >
-            {day}
-          </div>
-        ))}
-
-        {/* Calendar days */}
-        {days.map((day, index) => {
-          if (day === null) {
-            return <div key={`empty-${index}`} className="aspect-square" />;
-          }
-
-          const date = new Date(currentDate.getFullYear(), currentDate.getMonth(), day);
-          const dayEvents = getEventsForDate(date);
-          const isToday = date.toDateString() === new Date().toDateString();
-
-          return (
-            <div
-              key={day}
-              onClick={() => handleDateClick(day)}
-              className={`aspect-square border rounded-lg p-2 cursor-pointer hover:bg-gray-50 transition ${
-                isToday ? 'border-primary border-2 bg-blue-50' : 'border-gray-200'
-              }`}
-            >
-              {/* ✨ Enhanced day number */}
-              <div className={`text-sm font-semibold mb-1 ${
-                isToday ? 'text-primary' : 'text-gray-700'
-              }`}>
+      {/* Calendar grid - OPTIMIZED */}
+          <div className="grid grid-cols-7 gap-1 md:gap-2">
+            {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
+              <div 
+                key={day} 
+                className="text-center font-semibold text-gray-700 py-2 md:py-3 text-xs md:text-sm uppercase tracking-wider"
+              >
                 {day}
               </div>
-              
-              {/* Event indicators */}
-              <div className="space-y-1">
-                {dayEvents.slice(0, 2).map(event => (
-                  <div
-                    key={event.id}
-                    onClick={(e) => handleEventClick(event, e)}
-                    className={`relative text-xs text-white rounded px-1 py-0.5 truncate cursor-pointer transition-all duration-200 hover:opacity-80 hover:scale-105 font-medium ${
-                      event.isCanceled ? 'opacity-50' : ''
-                    }`}
-                    style={{ 
-                      backgroundColor: event.colorCode || '#3788d8',
-                      textDecoration: event.isCanceled ? 'line-through' : 'none'
-                    }}
-                    title={event.isCanceled ? `${event.title} (Canceled)` : event.title}
-                  >
-                    <div className="flex items-center space-x-1">
-                      {event.isRecurring && !event.isCanceled && (
-                        <RefreshCw className="w-3 h-3 flex-shrink-0" />
-                      )}
-                      {event.isCanceled && <span>🚫</span>}
-                      <span className="truncate">{event.title}</span>
-                    </div>
+            ))}
+
+            {/* Calendar days - LARGER CELLS */}
+            {days.map((day, index) => {
+              if (day === null) {
+                return <div key={`empty-${index}`} className="min-h-[100px] md:min-h-[140px] lg:min-h-[160px]" />;
+              }
+
+              const date = new Date(currentDate.getFullYear(), currentDate.getMonth(), day);
+              const dayEvents = getEventsForDate(date);
+              const isToday = date.toDateString() === new Date().toDateString();
+
+              return (
+                <div
+                  key={day}
+                  onClick={() => handleDateClick(day)}
+                  className={`min-h-[100px] md:min-h-[140px] lg:min-h-[160px] border rounded-lg p-1.5 md:p-2 cursor-pointer hover:bg-gray-50 transition ${
+                    isToday ? 'border-primary border-2 bg-blue-50' : 'border-gray-200'
+                  }`}
+                >
+                  {/* Day number - LARGER */}
+                  <div className={`text-sm md:text-base font-semibold mb-1 md:mb-2 ${
+                    isToday ? 'text-primary' : 'text-gray-700'
+                  }`}>
+                    {day}
                   </div>
-                ))}
-                {dayEvents.length > 2 && (
-                  <div className="text-caption font-medium text-gray-600">
-                    +{dayEvents.length - 2} more
+                  
+                  {/* Event indicators - LARGER BUBBLES */}
+                  <div className="space-y-1">
+                    {dayEvents.slice(0, 3).map(event => (
+                      <div
+                        key={event.id}
+                        onClick={(e) => handleEventClick(event, e)}
+                        className={`relative text-xs md:text-sm text-white rounded px-1.5 md:px-2 py-1 md:py-1.5 truncate cursor-pointer transition-all duration-200 hover:opacity-80 hover:scale-105 font-medium shadow-sm ${
+                          event.isCanceled ? 'opacity-50' : ''
+                        }`}
+                        style={{ 
+                          backgroundColor: event.colorCode || '#3788d8',
+                          textDecoration: event.isCanceled ? 'line-through' : 'none',
+                          minHeight: '28px'
+                        }}
+                        title={event.isCanceled ? `${event.title} (Canceled)` : event.title}
+                      >
+                        <div className="flex items-center space-x-1">
+                          {event.isRecurring && !event.isCanceled && (
+                            <RefreshCw className="w-3 h-3 flex-shrink-0" />
+                          )}
+                          {event.isCanceled && <span className="text-xs">🚫</span>}
+                          <span className="truncate">{event.title}</span>
+                        </div>
+                      </div>
+                    ))}
+                    {dayEvents.length > 3 && (
+                      <div className="text-xs font-semibold text-gray-600 px-1.5 py-1">
+                        +{dayEvents.length - 3} more
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
-            </div>
-          );
-        })}
-      </div>
+                </div>
+              );
+            })}
+          </div>
     </div>
 
     {/* ✨ Enhanced Upcoming Events Section */}
