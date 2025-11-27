@@ -18,6 +18,7 @@ import Calendar from './Calendar';
 import Settings from './Settings';
 import WeeklyEvents from '../components/WeeklyEvents';
 import LoadingSpinner from '../components/LoadingSpinner';
+import axios from 'axios';
 
 const Dashboard = () => {
   const { user, logout } = useAuth();
@@ -55,14 +56,81 @@ const Dashboard = () => {
     }
   };
 
-  const loadEvents = async () => {
-    try {
-      const response = await eventAPI.getEvents(user.id);
-      setEvents(response.data);
-    } catch (error) {
-      console.error('Error loading events:', error);
-    }
-  };
+const loadEvents = async () => {
+  try {
+    const response = await eventAPI.getEvents(user.id);
+    const allEvents = response.data;
+    
+    console.log('=== DASHBOARD ORPHAN DETECTION ===');
+    console.log('Total events:', allEvents.length);
+    
+    // ✅ LOG EACH EVENT TO SEE WHAT WE'RE DEALING WITH
+    allEvents.forEach((event, index) => {
+      console.log(`Event ${index + 1}:`, {
+        id: event.id,
+        title: event.title,
+        isRecurring: event.isRecurring,
+        isException: event.isException,
+        isCanceled: event.isCanceled,
+        isRecurringInstance: event.isRecurringInstance,
+        parentEventId: event.parentEventId,
+        originalId: event.originalId,
+        startDateTime: event.startDateTime
+      });
+    });
+    
+    // Create a Set of ALL event IDs
+    const allEventIds = new Set(allEvents.map(e => e.id));
+    
+    // Filter out events that reference a non-existent parent
+    const filteredEvents = allEvents.filter(event => {
+      // Check if this event has a parentEventId
+      if (event.parentEventId) {
+        const parentExists = allEventIds.has(event.parentEventId);
+        
+        if (!parentExists) {
+          console.log('❌ DASHBOARD ORPHAN:', {
+            eventId: event.id,
+            title: event.title,
+            parentEventId: event.parentEventId
+          });
+          return false;
+        }
+      }
+      
+      return true;
+    });
+    
+    console.log('Dashboard after filtering:', filteredEvents.length);
+    console.log('Dashboard orphans removed:', allEvents.length - filteredEvents.length);
+    
+    setEvents(filteredEvents);
+  } catch (error) {
+    console.error('Error loading events:', error);
+  }
+};
+
+const handleCleanupOrphans = async () => {
+  if (!window.confirm('This will delete events with IDs 37 and 34. Continue?')) {
+    return;
+  }
+  
+  try {
+    const response = await axios.delete(
+      `${process.env.REACT_APP_API_URL || 'http://localhost:8080/api'}/events/cleanup/${user.id}`
+    );
+    
+    console.log('Cleanup response:', response.data);
+    alert('Cleanup successful! Deleted ' + response.data.deleted + ' events');
+    
+    // Reload events
+    loadEvents();
+    loadTasks();
+  } catch (error) {
+    console.error('Cleanup error:', error);
+    alert('Cleanup failed: ' + error.message);
+  }
+};
 
   const handleLogout = async () => {
     await logout();
@@ -306,6 +374,15 @@ const Dashboard = () => {
             Here's what's happening with your academic progress today
           </p>
         </div>
+
+        <div className="mb-4">
+  <button
+    onClick={handleCleanupOrphans}
+    className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition text-sm"
+  >
+    🗑️ Clean Up Orphaned Events (Temporary Fix)
+  </button>
+</div>
 
         {/* ✨ Enhanced Stats Cards with better typography */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">

@@ -77,37 +77,54 @@ const Calendar = () => {
   }, [events, searchQuery]);
 
   // ✅ FIXED: Proper load with useCallback
- const loadEvents = useCallback(async () => {
+const loadEvents = useCallback(async () => {
   try {
     setLoading(true);
     const response = await eventAPI.getEvents(user.id);
     
     const originalEvents = response.data;
     
-    // ✅ FILTER OUT ORPHANED EXCEPTIONS
-    // Remove exceptions whose parent no longer exists
-    const parentIds = new Set(
-      originalEvents
-        .filter(e => e.isRecurring)
-        .map(e => e.id)
-    );
+    console.log('=== ORPHAN DETECTION ===');
+    console.log('Total events:', originalEvents.length);
+
+    originalEvents.forEach((event, index) => {
+      console.log(`Calendar Event ${index + 1}:`, {
+        id: event.id,
+        title: event.title,
+        isRecurring: event.isRecurring,
+        deletedDates: event.deletedDates,
+        canceledDates: event.canceledDates
+      });
+         });
+
     
+    // ✅ Create a Set of ALL event IDs (not just recurring ones)
+    const allEventIds = new Set(originalEvents.map(e => e.id));
+    console.log('All event IDs:', Array.from(allEventIds));
+    
+    // ✅ Filter out events that reference a non-existent parent
     const filteredEvents = originalEvents.filter(event => {
-      // Keep non-exception events
-      if (!event.isException) return true;
-      
-      // Keep exceptions whose parent exists
-      if (event.parentEventId && parentIds.has(event.parentEventId)) {
-        return true;
+      // Check if this event has a parentEventId
+      if (event.parentEventId) {
+        const parentExists = allEventIds.has(event.parentEventId);
+        
+        if (!parentExists) {
+          console.log('❌ ORPHAN DETECTED - Parent missing:', {
+            eventId: event.id,
+            title: event.title,
+            parentEventId: event.parentEventId,
+            isException: event.isException,
+            isCanceled: event.isCanceled
+          });
+          return false; // Filter it out
+        }
       }
       
-      // Filter out orphaned exceptions
-      console.log('Filtering out orphaned exception:', event.title, event.id);
-      return false;
+      // Keep events without parentEventId or with valid parent
+      return true;
     });
     
-    console.log('Original events:', originalEvents.length);
-    console.log('After filtering orphans:', filteredEvents.length);
+    console.log('After filtering:', filteredEvents.length);
     console.log('Orphans removed:', originalEvents.length - filteredEvents.length);
     
     // Expand recurring events
@@ -124,6 +141,7 @@ const Calendar = () => {
     setLoading(false);
   }
 }, [user.id, currentDate, showToast]);
+
 
   // ✅ FIXED: Close all modals
   const closeModal = useCallback(() => {

@@ -8,6 +8,8 @@ import org.springframework.web.bind.annotation.*;
 import java.time.LocalDateTime;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.Arrays;
+import java.util.Optional;
 import java.util.List;
 import java.util.Map;
 
@@ -205,6 +207,48 @@ public class EventController {
             ));
         }
     }
+
+    @DeleteMapping("/cleanup/{userId}")
+public ResponseEntity<?> cleanupOrphanedEvents(@PathVariable Long userId) {
+    try {
+        // Get all events for the user
+        List<Event> allEvents = eventService.getEventsByUserId(userId);
+        
+        // Log what we found
+        System.out.println("Total events for user " + userId + ": " + allEvents.size());
+        
+        // Find events with IDs 37 and 34 (the orphaned ones)
+        List<Long> idsToDelete = Arrays.asList(37L, 34L);
+        int deletedCount = 0;
+        
+        for (Long id : idsToDelete) {
+            Optional<Event> eventOpt = eventService.getEventById(id);
+            if (eventOpt.isPresent()) {
+                Event event = eventOpt.get();
+                System.out.println("Deleting event: " + event.getTitle() + " (ID: " + id + ")");
+                eventService.deleteEvent(id);
+                deletedCount++;
+            } else {
+                System.out.println("Event ID " + id + " not found");
+            }
+        }
+        
+        System.out.println("Deleted " + deletedCount + " orphaned events");
+        
+        return ResponseEntity.ok(Map.of(
+            "success", true, 
+            "message", "Cleanup completed",
+            "deleted", deletedCount
+        ));
+    } catch (Exception e) {
+        System.err.println("Error during cleanup: " + e.getMessage());
+        e.printStackTrace();
+        return ResponseEntity.status(500).body(Map.of(
+            "success", false,
+            "message", "Cleanup failed: " + e.getMessage()
+        ));
+    }
+}
 
     // ✅ NEW: Permanently delete an instance
     @PostMapping("/{id}/delete-instance")
