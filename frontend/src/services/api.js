@@ -30,6 +30,13 @@ export const taskAPI = {
   createTask: (task) => api.post('/tasks', task),
   updateTask: (id, task) => api.put(`/tasks/${id}`, task),
   deleteTask: (id) => api.delete(`/tasks/${id}`),
+  // ✅ NEW: Calendar integration
+  addToCalendar: (taskId) => api.post(`/tasks/${taskId}/add-to-calendar`),
+  removeFromCalendar: (taskId) => api.delete(`/tasks/${taskId}/remove-from-calendar`),
+  // ✅ NEW: Group integration
+  linkToGroup: (taskId, groupId) => api.post(`/tasks/${taskId}/link-to-group/${groupId}`),
+  unlinkFromGroup: (taskId) => api.delete(`/tasks/${taskId}/unlink-from-group`),
+  getGroupTasks: (groupId) => api.get(`/tasks/group/${groupId}`),
 };
 
 export const eventAPI = {
@@ -38,7 +45,6 @@ export const eventAPI = {
   updateEvent: (id, event) => api.put(`/events/${id}`, event),
   deleteEvent: (id) => api.delete(`/events/${id}`),
   cancelInstance: (id, date) => api.post(`/events/${id}/cancel-instance`, { date }),
-  // ✅ Un-cancel an instance (restore it to normal)
   uncancelInstance: (id, date) => {
     return api.request({
       method: 'delete',
@@ -46,7 +52,6 @@ export const eventAPI = {
       data: { date }
     });
   },
-  // ✅ NEW: Permanently delete an instance
   deleteInstance: (id, date) => api.post(`/events/${id}/delete-instance`, { date }),
   getExceptions: (parentId) => api.get(`/events/${parentId}/exceptions`),
 };

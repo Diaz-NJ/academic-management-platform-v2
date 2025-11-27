@@ -31,6 +31,18 @@ public class Task {
     @Column(length = 20)
     private String status; // Pending, In Progress, Completed
 
+    // ✅ NEW: Link to calendar event
+    @Column(name = "event_id")
+    private Long eventId;
+
+    // ✅ NEW: Link to group
+    @Column(name = "group_id")
+    private Long groupId;
+
+    // ✅ NEW: Flag to show on calendar
+    @Column(name = "show_on_calendar")
+    private Boolean showOnCalendar = false;
+
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
@@ -40,9 +52,10 @@ public class Task {
     public Task() {
         this.createdAt = LocalDateTime.now();
         this.updatedAt = LocalDateTime.now();
+        this.showOnCalendar = false;
     }
 
-    // Getters and Setters
+    // Existing Getters and Setters
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 
@@ -72,4 +85,17 @@ public class Task {
 
     public LocalDateTime getCreatedAt() { return createdAt; }
     public LocalDateTime getUpdatedAt() { return updatedAt; }
+
+    // ✅ NEW: Getters and Setters
+    public Long getEventId() { return eventId; }
+    public void setEventId(Long eventId) { this.eventId = eventId; }
+
+    public Long getGroupId() { return groupId; }
+    public void setGroupId(Long groupId) { this.groupId = groupId; }
+
+    public Boolean getShowOnCalendar() { return showOnCalendar; }
+    public void setShowOnCalendar(Boolean showOnCalendar) { 
+        this.showOnCalendar = showOnCalendar;
+        this.updatedAt = LocalDateTime.now();
+    }
 }

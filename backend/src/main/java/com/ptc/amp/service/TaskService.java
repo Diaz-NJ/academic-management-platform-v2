@@ -26,6 +26,11 @@ public class TaskService {
         return taskRepository.findByUserIdOrderByDueDateAsc(userId);
     }
 
+    // ✅ NEW: Get tasks by group ID
+    public List<Task> getTasksByGroupId(Long groupId) {
+        return taskRepository.findByGroupIdOrderByDueDateAsc(groupId);
+    }
+
     public Task updateTask(Task task) {
         return taskRepository.save(task);
     }

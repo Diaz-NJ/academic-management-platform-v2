@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { taskAPI } from '../services/api';
-import { Plus, Trash2, Edit, Filter, CheckSquare, Square, LayoutGrid, List, Clock } from 'lucide-react';
+import { Plus, Trash2, Edit, Filter, CheckSquare, Square, LayoutGrid, List, Clock, Calendar, Users } from 'lucide-react';
 import TaskModal from '../components/TaskModal';
 import { useToast } from '../context/ToastContext';
 import ConfirmDialog from '../components/ConfirmDialog';
@@ -11,6 +11,8 @@ import LoadingSpinner from '../components/LoadingSpinner';
 import EmptyState from '../components/EmptyState';
 import { formatRelativeDate } from '../utils/dateUtils';
 import { PRIORITY_CONFIG, STATUS_CONFIG } from '../utils/colorUtils';
+import TaskIntegrationModal from '../components/TaskIntegrationModal';
+import { Link } from 'lucide-react';
 
 const Tasks = () => {
   const { user } = useAuth();
@@ -31,6 +33,13 @@ const Tasks = () => {
   const [selectedTasks, setSelectedTasks] = useState([]);
   const [showBulkDeleteDialog, setShowBulkDeleteDialog] = useState(false);
   const [bulkStatusChange, setBulkStatusChange] = useState('');
+  const [showIntegrationModal, setShowIntegrationModal] = useState(false);
+const [selectedTaskForIntegration, setSelectedTaskForIntegration] = useState(null);
+
+  const handleOpenIntegration = (task) => {
+  setSelectedTaskForIntegration(task);
+  setShowIntegrationModal(true);
+};
 
   // ✅ NEW: View Mode State
   const [viewMode, setViewMode] = useState('list'); // 'grid' or 'list'
@@ -464,6 +473,21 @@ const Tasks = () => {
                           <span>{statusConfig.icon}</span>
                           <span>{task.status}</span>
                         </span>
+                      
+                        {/* ✅ ADD THESE TWO NEW BADGES HERE: */}
+                        {task.showOnCalendar && (
+                          <span className="inline-flex items-center space-x-1 px-2 py-1 rounded-full bg-blue-100 text-blue-800 border border-blue-300 text-xs font-medium">
+                            <Calendar className="w-3 h-3" />
+                            <span>On Calendar</span>
+                          </span>
+                        )}
+                        
+                        {task.groupId && (
+                          <span className="inline-flex items-center space-x-1 px-2 py-1 rounded-full bg-purple-100 text-purple-800 border border-purple-300 text-xs font-medium">
+                            <Users className="w-3 h-3" />
+                            <span>In Group</span>
+                          </span>
+                        )}
                       </div>
 
                       {/* Subject & Due Date */}
@@ -589,6 +613,21 @@ const Tasks = () => {
                               <span className="text-sm">{statusConfig.icon}</span>
                               <span className="text-xs font-semibold">{task.status}</span>
                             </span>
+
+                            {/* ✅ ADD THESE TWO NEW BADGES HERE: */}
+                            {task.showOnCalendar && (
+                              <span className="inline-flex items-center space-x-1 px-2 py-1 rounded-full bg-blue-100 text-blue-800 border border-blue-300 text-xs font-medium">
+                                <Calendar className="w-3 h-3" />
+                                <span>On Calendar</span>
+                              </span>
+                            )}
+                            
+                            {task.groupId && (
+                              <span className="inline-flex items-center space-x-1 px-2 py-1 rounded-full bg-purple-100 text-purple-800 border border-purple-300 text-xs font-medium">
+                                <Users className="w-3 h-3" />
+                                <span>In Group</span>
+                              </span>
+                            )}
                           </div>
 
                           {task.description && (
@@ -631,6 +670,16 @@ const Tasks = () => {
                               <span>Start</span>
                             </button>
                           )}
+                          
+                          {/* ✅ ADD THIS NEW LINK BUTTON HERE: */}
+                          <button
+                            onClick={() => handleOpenIntegration(task)}
+                            className="p-2 text-purple-500 hover:bg-purple-50 rounded transition"
+                            title="Link to calendar or group"
+                          >
+                            <Link className="w-4 h-4" />
+                          </button>
+                          
                           <button
                             onClick={() => {
                               setEditingTask(task);
@@ -696,6 +745,19 @@ const Tasks = () => {
           onSave={loadTasks}
           userId={user.id}
           task={editingTask}
+        />
+      )}
+
+         {/* ✅ ADD THIS NEW INTEGRATION MODAL HERE, AFTER THE EXISTING MODALS: */}
+      {showIntegrationModal && selectedTaskForIntegration && (
+        <TaskIntegrationModal
+          task={selectedTaskForIntegration}
+          onClose={() => {
+            setShowIntegrationModal(false);
+            setSelectedTaskForIntegration(null);
+          }}
+          onUpdate={loadTasks}
+          userId={user.id}
         />
       )}
     </div>
