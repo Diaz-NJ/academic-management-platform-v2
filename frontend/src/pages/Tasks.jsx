@@ -432,99 +432,94 @@ const [selectedTaskForIntegration, setSelectedTaskForIntegration] = useState(nul
                   const statusConfig = STATUS_CONFIG[task.status] || STATUS_CONFIG.Pending;
 
                   return (
-                    <div
-                      key={task.id}
-                      className="bg-white border-2 border-gray-200 rounded-lg p-4 hover:shadow-xl hover:-translate-y-1 transition-all duration-200 cursor-pointer"
-                    >
-                      {/* Checkbox */}
-                      <div className="flex items-start justify-between mb-3">
-                        <button
-                          onClick={() => toggleTaskSelection(task.id)}
-                          className="flex-shrink-0"
-                        >
-                          {selectedTasks.includes(task.id) ? (
-                            <CheckSquare className="w-5 h-5 text-primary" />
-                          ) : (
-                            <Square className="w-5 h-5 text-gray-400 hover:text-primary" />
-                          )}
-                        </button>
-                      </div>
+                    <div className="bg-white border-2 border-gray-200 rounded-lg p-4 hover:shadow-xl hover:-translate-y-1 transition-all duration-200">
+                    {/* Checkbox */}
+                    <div className="flex items-start justify-between mb-3">
+                      <button onClick={() => toggleTaskSelection(task.id)}>
+                        {selectedTasks.includes(task.id) ? (
+                          <CheckSquare className="w-5 h-5 text-primary" />
+                        ) : (
+                          <Square className="w-5 h-5 text-gray-400 hover:text-primary" />
+                        )}
+                      </button>
+                    </div>
 
-                      {/* Title */}
-                      <h3 className="text-lg font-bold text-gray-800 mb-2 line-clamp-2 min-h-[3.5rem]">
-                        {task.title}
-                      </h3>
+                    {/* Title */}
+                    <h3 className="text-lg font-bold text-gray-800 mb-2 line-clamp-2 min-h-[3.5rem]">
+                      {task.title}
+                    </h3>
 
-                      {/* Description */}
-                      {task.description && (
-                        <p className="text-sm text-gray-600 mb-3 line-clamp-2 min-h-[2.5rem]">
-                          {task.description}
-                        </p>
-                      )}
+                    {/* Description */}
+                    {task.description && (
+                      <p className="text-sm text-gray-600 mb-3 line-clamp-2 min-h-[2.5rem]">
+                        {task.description}
+                      </p>
+                    )}
 
-                      {/* Badges */}
-                      <div className="space-y-2 mb-3">
-                        <span className={`inline-flex items-center space-x-1 px-3 py-1.5 rounded-full font-semibold border-2 text-sm ${priorityConfig.bgColor} ${priorityConfig.textColor} ${priorityConfig.borderColor}`}>
-                          <span>{priorityConfig.icon}</span>
-                          <span>{task.priority}</span>
-                        </span>
+                    {/* ✅ NEW: Show all badges including calendar and group */}
+                    <div className="space-y-2 mb-3">
+                      <span className={`inline-flex items-center space-x-1 px-3 py-1.5 rounded-full font-semibold border-2 text-sm ${priorityConfig.bgColor} ${priorityConfig.textColor} ${priorityConfig.borderColor}`}>
+                        <span>{priorityConfig.icon}</span>
+                        <span>{task.priority}</span>
+                      </span>
 
-                        <span className={`inline-flex items-center space-x-1 px-3 py-1.5 rounded-full font-semibold border-2 text-sm ${statusConfig.bgColor} ${statusConfig.textColor} ${statusConfig.borderColor}`}>
-                          <span>{statusConfig.icon}</span>
-                          <span>{task.status}</span>
-                        </span>
+                      <span className={`inline-flex items-center space-x-1 px-3 py-1.5 rounded-full font-semibold border-2 text-sm ${statusConfig.bgColor} ${statusConfig.textColor} ${statusConfig.borderColor}`}>
+                        <span>{statusConfig.icon}</span>
+                        <span>{task.status}</span>
+                      </span>
                       
-                        {/* ✅ ADD THESE TWO NEW BADGES HERE: */}
-                        {task.showOnCalendar && (
-                          <span className="inline-flex items-center space-x-1 px-2 py-1 rounded-full bg-blue-100 text-blue-800 border border-blue-300 text-xs font-medium">
-                            <Calendar className="w-3 h-3" />
-                            <span>On Calendar</span>
-                          </span>
-                        )}
-                        
-                        {task.groupId && (
-                          <span className="inline-flex items-center space-x-1 px-2 py-1 rounded-full bg-purple-100 text-purple-800 border border-purple-300 text-xs font-medium">
-                            <Users className="w-3 h-3" />
-                            <span>In Group</span>
-                          </span>
-                        )}
-                      </div>
+                      {/* ✅ Calendar badge */}
+                      {task.showOnCalendar && (
+                        <span className="inline-flex items-center space-x-1 px-2 py-1 rounded-full bg-blue-100 text-blue-800 border border-blue-300 text-xs font-medium">
+                          <Calendar className="w-3 h-3" />
+                          <span>Calendar</span>
+                        </span>
+                      )}
+                      
+                      {/* ✅ Group badge */}
+                      {task.groupId && (
+                        <span className="inline-flex items-center space-x-1 px-2 py-1 rounded-full bg-purple-100 text-purple-800 border border-purple-300 text-xs font-medium">
+                          <Users className="w-3 h-3" />
+                          <span>Group</span>
+                        </span>
+                      )}
+                    </div>
 
-                      {/* Subject & Due Date */}
-                      <div className="space-y-2 mb-3">
-                        {task.subject && (
-                          <div className="flex items-center space-x-1 text-sm bg-indigo-50 px-2 py-1 rounded">
-                            <span>📚</span>
-                            <span className="font-medium text-indigo-800">{task.subject}</span>
-                          </div>
-                        )}
-                        <div className="flex items-center space-x-1 text-sm text-gray-600">
-                          <Clock className="w-4 h-4" />
-                          <span>{formatRelativeDate(task.dueDate)}</span>
+                    {/* Subject & Due Date */}
+                    <div className="space-y-2 mb-3">
+                      {task.subject && (
+                        <div className="flex items-center space-x-1 text-sm bg-indigo-50 px-2 py-1 rounded">
+                          <span>📚</span>
+                          <span className="font-medium text-indigo-800">{task.subject}</span>
                         </div>
-                      </div>
-
-                      {/* Actions */}
-                      <div className="flex space-x-2 pt-3 border-t">
-                        <button
-                          onClick={() => {
-                            setEditingTask(task);
-                            setShowTaskModal(true);
-                          }}
-                          className="flex-1 p-2 text-primary hover:bg-blue-50 rounded transition"
-                          title="Edit"
-                        >
-                          <Edit className="w-4 h-4 mx-auto" />
-                        </button>
-                        <button
-                          onClick={() => handleDeleteClick(task)}
-                          className="flex-1 p-2 text-red-500 hover:bg-red-50 rounded transition"
-                          title="Delete"
-                        >
-                          <Trash2 className="w-4 h-4 mx-auto" />
-                        </button>
+                      )}
+                      <div className="flex items-center space-x-1 text-sm text-gray-600">
+                        <Clock className="w-4 h-4" />
+                        <span>{formatRelativeDate(task.dueDate)}</span>
                       </div>
                     </div>
+
+                    {/* Actions */}
+                    <div className="flex space-x-2 pt-3 border-t">
+                      <button
+                        onClick={() => {
+                          setEditingTask(task);
+                          setShowTaskModal(true);
+                        }}
+                        className="flex-1 p-2 text-primary hover:bg-blue-50 rounded transition"
+                        title="Edit"
+                      >
+                        <Edit className="w-4 h-4 mx-auto" />
+                      </button>
+                      <button
+                        onClick={() => handleDeleteClick(task)}
+                        className="flex-1 p-2 text-red-500 hover:bg-red-50 rounded transition"
+                        title="Delete"
+                      >
+                        <Trash2 className="w-4 h-4 mx-auto" />
+                      </button>
+                    </div>
+                  </div>
                   );
                 })}
               </div>
@@ -598,8 +593,8 @@ const [selectedTaskForIntegration, setSelectedTaskForIntegration] = useState(nul
                           )}
                         </button>
 
-                        <div className="flex-1">
-                          <h3 className="text-card-title mb-2">
+                        <div className="flex items-center space-x-2 mb-2">
+                          <h3 className="text-card-title">
                             {task.title}
                           </h3>
                           
@@ -614,20 +609,38 @@ const [selectedTaskForIntegration, setSelectedTaskForIntegration] = useState(nul
                               <span className="text-xs font-semibold">{task.status}</span>
                             </span>
 
-                            {/* ✅ ADD THESE TWO NEW BADGES HERE: */}
-                            {task.showOnCalendar && (
-                              <span className="inline-flex items-center space-x-1 px-2 py-1 rounded-full bg-blue-100 text-blue-800 border border-blue-300 text-xs font-medium">
-                                <Calendar className="w-3 h-3" />
-                                <span>On Calendar</span>
-                              </span>
-                            )}
+                                {/* ✅ Visual indicators for linked features */}
+                                  {task.showOnCalendar && (
+                                    <span 
+                                      className="inline-flex items-center space-x-1 px-2 py-1 rounded-full bg-blue-100 text-blue-800 border border-blue-300 text-xs font-medium"
+                                      title="This task appears on your calendar"
+                                    >
+                                      <Calendar className="w-3 h-3" />
+                                      <span>On Calendar</span>
+                                    </span>
+                                  )}
+                                  
+                                  {task.groupId && (
+                                    <span 
+                                      className="inline-flex items-center space-x-1 px-2 py-1 rounded-full bg-purple-100 text-purple-800 border border-purple-300 text-xs font-medium"
+                                      title="Linked to a group"
+                                    >
+                                      <Users className="w-3 h-3" />
+                                      <span>Group Task</span>
+                                    </span>
+                                  )}
+                                </div>
+
+                           <div className="flex items-center space-x-2 mb-3 flex-wrap gap-2">
+                            <span className={`inline-flex items-center space-x-1 px-3 py-1 rounded-full font-medium border ${priorityConfig.bgColor} ${priorityConfig.textColor} ${priorityConfig.borderColor}`}>
+                              <span className="text-sm">{priorityConfig.icon}</span>
+                              <span className="text-xs font-semibold">{task.priority}</span>
+                            </span>
                             
-                            {task.groupId && (
-                              <span className="inline-flex items-center space-x-1 px-2 py-1 rounded-full bg-purple-100 text-purple-800 border border-purple-300 text-xs font-medium">
-                                <Users className="w-3 h-3" />
-                                <span>In Group</span>
-                              </span>
-                            )}
+                            <span className={`inline-flex items-center space-x-1 px-3 py-1 rounded-full font-medium border ${statusConfig.bgColor} ${statusConfig.textColor} ${statusConfig.borderColor}`}>
+                              <span className="text-sm">{statusConfig.icon}</span>
+                              <span className="text-xs font-semibold">{task.status}</span>
+                            </span>
                           </div>
 
                           {task.description && (
@@ -636,17 +649,32 @@ const [selectedTaskForIntegration, setSelectedTaskForIntegration] = useState(nul
                             </p>
                           )}
 
-                          <div className="flex items-center space-x-4 text-body-sm text-gray-600">
-                            {task.subject && (
-                              <span className="flex items-center space-x-1 bg-gray-100 px-3 py-1 rounded-lg">
-                                <span>📚</span>
-                                <span className="font-medium">{task.subject}</span>
-                              </span>
+                          {/* ✅ Show group info if linked */}
+                          <div className="space-y-2">
+                            {task.groupId && (
+                              <div className="flex items-center space-x-2 text-sm bg-purple-50 px-3 py-2 rounded-lg border border-purple-200">
+                                <Users className="w-4 h-4 text-purple-600" />
+                                <span className="font-medium text-purple-900">
+                                  Group Task
+                                </span>
+                                <span className="text-purple-700">
+                                  • View in Collaboration tab
+                                </span>
+                              </div>
                             )}
-                            <span className="flex items-center space-x-1">
-                              <span>📅</span>
-                              <span>{formatRelativeDate(task.dueDate)}</span>
-                            </span>
+                            
+                            <div className="flex items-center space-x-4 text-body-sm text-gray-600">
+                              {task.subject && (
+                                <span className="flex items-center space-x-1 bg-gray-100 px-3 py-1 rounded-lg">
+                                  <span>📚</span>
+                                  <span className="font-medium">{task.subject}</span>
+                                </span>
+                              )}
+                              <span className="flex items-center space-x-1">
+                                <Calendar className="w-4 h-4" />
+                                <span>{formatRelativeDate(task.dueDate)}</span>
+                              </span>
+                            </div>
                           </div>
                         </div>
 
