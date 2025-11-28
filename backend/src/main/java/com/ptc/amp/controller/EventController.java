@@ -8,11 +8,7 @@ import org.springframework.web.bind.annotation.*;
 import java.time.LocalDateTime;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.Arrays;
-import java.util.Optional;
 import java.util.stream.Collectors;
-import java.util.List;
-import java.util.Map;
 import java.util.*;
 
 @RestController
@@ -340,28 +336,38 @@ public ResponseEntity<?> cleanupOrphanedEvents(@PathVariable Long userId) {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<?> deleteEvent(@PathVariable Long id) {
-        boolean deleted = eventService.deleteEvent(id);
-        return deleted ? 
-                ResponseEntity.ok(Map.of("success", true, "message", "Event deleted")) :
-                ResponseEntity.notFound().build();
-    }
-    
-    private LocalDateTime parseDateTime(String dateTimeStr) {
-        if (dateTimeStr == null || dateTimeStr.isEmpty()) {
-            return null;
+public ResponseEntity<?> deleteEvent(@PathVariable Long id) {
+    try {
+        // ✅ FIXED: Find and unlink any tasks linked to this event
+        Optional<Event> eventOpt = eventService.getEventById(id);
+        if (eventOpt.isEmpty()) {
+            return ResponseEntity.notFound().build();
         }
         
-        try {
-            ZonedDateTime zonedDateTime = ZonedDateTime.parse(dateTimeStr, DateTimeFormatter.ISO_DATE_TIME);
-            return zonedDateTime.toLocalDateTime();
-        } catch (Exception e) {
-            try {
-                return LocalDateTime.parse(dateTimeStr, DateTimeFormatter.ISO_LOCAL_DATE_TIME);
-            } catch (Exception ex) {
-                System.err.println("Failed to parse datetime: " + dateTimeStr);
-                throw new IllegalArgumentException("Invalid datetime format: " + dateTimeStr);
+        Event event = eventOpt.get();
+        
+        // Find tasks with this eventId
+        List<Task> allTasks = taskService.getTasksByUserId(event.getUserId());
+        for (Task task : allTasks) {
+            if (task.getEventId() != null && task.getEventId().equals(id)) {
+                task.setEventId(null);
+                task.setShowOnCalendar(false);
+                taskService.updateTask(task);
             }
         }
+        
+        boolean deleted = eventService.deleteEvent(id);
+        return deleted ? 
+                ResponseEntity.ok(Map.of(
+                    "success", true, 
+                    "message", "Event deleted"
+                )) :
+                ResponseEntity.notFound().build();
+    } catch (Exception e) {
+        return ResponseEntity.status(500).body(Map.of(
+            "success", false,
+            "message", "Failed to delete event: " + e.getMessage()
+        ));
     }
+}
 }

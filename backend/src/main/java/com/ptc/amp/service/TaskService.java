@@ -42,4 +42,8 @@ public class TaskService {
         }
         return false;
     }
+
+    public List<Task> getTasksByUserId(Long userId) {
+    return taskRepository.findByUserIdOrderByDueDateAsc(userId);
+}
 }

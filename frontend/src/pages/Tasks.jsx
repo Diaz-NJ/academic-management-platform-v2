@@ -528,213 +528,210 @@ const [selectedTaskForIntegration, setSelectedTaskForIntegration] = useState(nul
         </div>
       )}
 
-      {/* ===== LIST VIEW ===== */}
-      {viewMode === 'list' && (
-        <div className="bg-white rounded-lg shadow">
-          <div className="divide-y divide-gray-200">
-            {filteredTasks.length === 0 ? (
-              <EmptyState
-                icon={CheckSquare}
-                title={searchQuery ? "No Tasks Found" : "No Tasks Yet"}
-                message={
-                  searchQuery 
-                    ? `No tasks match "${searchQuery}". Try a different search term or clear filters.`
-                    : "Create your first task to get started!"
-                }
-                actionLabel={searchQuery ? undefined : "Create Your First Task"}
-                onAction={searchQuery ? undefined : () => setShowTaskModal(true)}
-              />
-            ) : (
-              <>
-                {/* Select All Header */}
-                {filteredTasks.length > 0 && (
-                  <div className="p-4 bg-gray-50 border-b border-gray-200">
-                    <button
-                      onClick={toggleSelectAll}
-                      className="flex items-center space-x-2 text-sm text-gray-700 hover:text-primary"
-                    >
-                      {selectedTasks.length === filteredTasks.length ? (
-                        <CheckSquare className="w-5 h-5 text-primary" />
-                      ) : (
-                        <Square className="w-5 h-5" />
-                      )}
-                      <span className="font-medium">
-                        {selectedTasks.length === filteredTasks.length 
-                          ? 'Deselect All' 
-                          : 'Select All'}
-                      </span>
-                    </button>
-                  </div>
+      // REPLACE the LIST VIEW section in Tasks.jsx with this:
+
+{/* ===== LIST VIEW ===== */}
+{viewMode === 'list' && (
+  <div className="bg-white rounded-lg shadow">
+    <div className="divide-y divide-gray-200">
+      {filteredTasks.length === 0 ? (
+        <EmptyState
+          icon={CheckSquare}
+          title={searchQuery ? "No Tasks Found" : "No Tasks Yet"}
+          message={
+            searchQuery 
+              ? `No tasks match "${searchQuery}". Try a different search term or clear filters.`
+              : "Create your first task to get started!"
+          }
+          actionLabel={searchQuery ? undefined : "Create Your First Task"}
+          onAction={searchQuery ? undefined : () => setShowTaskModal(true)}
+        />
+      ) : (
+        <>
+          {/* Select All Header */}
+          {filteredTasks.length > 0 && (
+            <div className="p-4 bg-gray-50 border-b border-gray-200">
+              <button
+                onClick={toggleSelectAll}
+                className="flex items-center space-x-2 text-sm text-gray-700 hover:text-primary"
+              >
+                {selectedTasks.length === filteredTasks.length ? (
+                  <CheckSquare className="w-5 h-5 text-primary" />
+                ) : (
+                  <Square className="w-5 h-5" />
                 )}
+                <span className="font-medium">
+                  {selectedTasks.length === filteredTasks.length 
+                    ? 'Deselect All' 
+                    : 'Select All'}
+                </span>
+              </button>
+            </div>
+          )}
 
-                {/* Task items */}
-                {filteredTasks.map((task, index) => {
-                  const priorityConfig = PRIORITY_CONFIG[task.priority] || PRIORITY_CONFIG.Medium;
-                  const statusConfig = STATUS_CONFIG[task.status] || STATUS_CONFIG.Pending;
-                  const isEven = index % 2 === 0;
-                  
-                  return (
-                    <div 
-                      key={task.id} 
-                      className={`p-6 transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5 border-l-4 ${
-                        isEven ? 'bg-gray-50' : 'bg-white'
-                      } hover:bg-blue-50`}
-                      style={{ borderLeftColor: priorityConfig.borderColor.replace('border-', '') }}
-                    >
-                      <div className="flex items-start space-x-4">
-                        <button
-                          onClick={() => toggleTaskSelection(task.id)}
-                          className="mt-1 flex-shrink-0"
+          {/* Task items */}
+          {filteredTasks.map((task, index) => {
+            const priorityConfig = PRIORITY_CONFIG[task.priority] || PRIORITY_CONFIG.Medium;
+            const statusConfig = STATUS_CONFIG[task.status] || STATUS_CONFIG.Pending;
+            const isEven = index % 2 === 0;
+            
+            return (
+              <div 
+                key={task.id} 
+                className={`p-6 transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5 border-l-4 ${
+                  isEven ? 'bg-gray-50' : 'bg-white'
+                } hover:bg-blue-50`}
+                style={{ borderLeftColor: priorityConfig.borderColor.replace('border-', '') }}
+              >
+                <div className="flex items-start space-x-4">
+                  {/* Checkbox */}
+                  <button
+                    onClick={() => toggleTaskSelection(task.id)}
+                    className="mt-1 flex-shrink-0"
+                  >
+                    {selectedTasks.includes(task.id) ? (
+                      <CheckSquare className="w-6 h-6 text-primary" />
+                    ) : (
+                      <Square className="w-6 h-6 text-gray-400 hover:text-primary" />
+                    )}
+                  </button>
+
+                  {/* ✅ FIXED: Main content area */}
+                  <div className="flex-1">
+                    {/* Title */}
+                    <h3 className="text-card-title mb-2">
+                      {task.title}
+                    </h3>
+                    
+                    {/* ✅ FIXED: Badges - No Duplicates */}
+                    <div className="flex items-center space-x-2 mb-3 flex-wrap gap-2">
+                      <span className={`inline-flex items-center space-x-1 px-3 py-1 rounded-full font-medium border ${priorityConfig.bgColor} ${priorityConfig.textColor} ${priorityConfig.borderColor}`}>
+                        <span className="text-sm">{priorityConfig.icon}</span>
+                        <span className="text-xs font-semibold">{task.priority}</span>
+                      </span>
+                      
+                      <span className={`inline-flex items-center space-x-1 px-3 py-1 rounded-full font-medium border ${statusConfig.bgColor} ${statusConfig.textColor} ${statusConfig.borderColor}`}>
+                        <span className="text-sm">{statusConfig.icon}</span>
+                        <span className="text-xs font-semibold">{task.status}</span>
+                      </span>
+
+                      {/* Calendar badge */}
+                      {task.showOnCalendar && (
+                        <span 
+                          className="inline-flex items-center space-x-1 px-2 py-1 rounded-full bg-blue-100 text-blue-800 border border-blue-300 text-xs font-medium"
+                          title="This task appears on your calendar"
                         >
-                          {selectedTasks.includes(task.id) ? (
-                            <CheckSquare className="w-6 h-6 text-primary" />
-                          ) : (
-                            <Square className="w-6 h-6 text-gray-400 hover:text-primary" />
-                          )}
-                        </button>
+                          <Calendar className="w-3 h-3" />
+                          <span>On Calendar</span>
+                        </span>
+                      )}
+                      
+                      {/* Group badge */}
+                      {task.groupId && (
+                        <span 
+                          className="inline-flex items-center space-x-1 px-2 py-1 rounded-full bg-purple-100 text-purple-800 border border-purple-300 text-xs font-medium"
+                          title="Linked to a group"
+                        >
+                          <Users className="w-3 h-3" />
+                          <span>Group Task</span>
+                        </span>
+                      )}
+                    </div>
 
-                        <div className="flex items-center space-x-2 mb-2">
-                          <h3 className="text-card-title">
-                            {task.title}
-                          </h3>
-                          
-                          <div className="flex items-center space-x-2 mb-3 flex-wrap gap-2">
-                            <span className={`inline-flex items-center space-x-1 px-3 py-1 rounded-full font-medium border transition-all duration-200 hover:scale-105 ${priorityConfig.bgColor} ${priorityConfig.textColor} ${priorityConfig.borderColor}`}>
-                              <span className="text-sm">{priorityConfig.icon}</span>
-                              <span className="text-xs font-semibold">{task.priority}</span>
-                            </span>
-                            
-                            <span className={`inline-flex items-center space-x-1 px-3 py-1 rounded-full font-medium border transition-all duration-200 hover:scale-105 ${statusConfig.bgColor} ${statusConfig.textColor} ${statusConfig.borderColor}`}>
-                              <span className="text-sm">{statusConfig.icon}</span>
-                              <span className="text-xs font-semibold">{task.status}</span>
-                            </span>
+                    {/* Description */}
+                    {task.description && (
+                      <p className="text-body mb-3 line-clamp-2">
+                        {task.description}
+                      </p>
+                    )}
 
-                                {/* ✅ Visual indicators for linked features */}
-                                  {task.showOnCalendar && (
-                                    <span 
-                                      className="inline-flex items-center space-x-1 px-2 py-1 rounded-full bg-blue-100 text-blue-800 border border-blue-300 text-xs font-medium"
-                                      title="This task appears on your calendar"
-                                    >
-                                      <Calendar className="w-3 h-3" />
-                                      <span>On Calendar</span>
-                                    </span>
-                                  )}
-                                  
-                                  {task.groupId && (
-                                    <span 
-                                      className="inline-flex items-center space-x-1 px-2 py-1 rounded-full bg-purple-100 text-purple-800 border border-purple-300 text-xs font-medium"
-                                      title="Linked to a group"
-                                    >
-                                      <Users className="w-3 h-3" />
-                                      <span>Group Task</span>
-                                    </span>
-                                  )}
-                                </div>
-
-                           <div className="flex items-center space-x-2 mb-3 flex-wrap gap-2">
-                            <span className={`inline-flex items-center space-x-1 px-3 py-1 rounded-full font-medium border ${priorityConfig.bgColor} ${priorityConfig.textColor} ${priorityConfig.borderColor}`}>
-                              <span className="text-sm">{priorityConfig.icon}</span>
-                              <span className="text-xs font-semibold">{task.priority}</span>
-                            </span>
-                            
-                            <span className={`inline-flex items-center space-x-1 px-3 py-1 rounded-full font-medium border ${statusConfig.bgColor} ${statusConfig.textColor} ${statusConfig.borderColor}`}>
-                              <span className="text-sm">{statusConfig.icon}</span>
-                              <span className="text-xs font-semibold">{task.status}</span>
-                            </span>
-                          </div>
-
-                          {task.description && (
-                            <p className="text-body mb-3 line-clamp-2">
-                              {task.description}
-                            </p>
-                          )}
-
-                          {/* ✅ Show group info if linked */}
-                          <div className="space-y-2">
-                            {task.groupId && (
-                              <div className="flex items-center space-x-2 text-sm bg-purple-50 px-3 py-2 rounded-lg border border-purple-200">
-                                <Users className="w-4 h-4 text-purple-600" />
-                                <span className="font-medium text-purple-900">
-                                  Group Task
-                                </span>
-                                <span className="text-purple-700">
-                                  • View in Collaboration tab
-                                </span>
-                              </div>
-                            )}
-                            
-                            <div className="flex items-center space-x-4 text-body-sm text-gray-600">
-                              {task.subject && (
-                                <span className="flex items-center space-x-1 bg-gray-100 px-3 py-1 rounded-lg">
-                                  <span>📚</span>
-                                  <span className="font-medium">{task.subject}</span>
-                                </span>
-                              )}
-                              <span className="flex items-center space-x-1">
-                                <Calendar className="w-4 h-4" />
-                                <span>{formatRelativeDate(task.dueDate)}</span>
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Action Buttons */}
-                        <div className="flex items-center space-x-2 ml-4">
-                          {task.status !== 'Completed' && (
-                            <button
-                              onClick={() => handleStatusChange(task.id, 'Completed')}
-                              className="px-3 py-1.5 bg-emerald-100 text-emerald-700 rounded-lg border border-emerald-300 hover:bg-emerald-200 text-sm transition font-medium inline-flex items-center space-x-1"
-                            >
-                              <span>✅</span>
-                              <span>Complete</span>
-                            </button>
-                          )}
-                          {task.status === 'Pending' && (
-                            <button
-                              onClick={() => handleStatusChange(task.id, 'In Progress')}
-                              className="px-3 py-1.5 bg-blue-100 text-blue-700 rounded-lg border border-blue-300 hover:bg-blue-200 text-sm transition font-medium inline-flex items-center space-x-1"
-                            >
-                              <span>🚀</span>
-                              <span>Start</span>
-                            </button>
-                          )}
-                          
-                          {/* ✅ ADD THIS NEW LINK BUTTON HERE: */}
-                          <button
-                            onClick={() => handleOpenIntegration(task)}
-                            className="p-2 text-purple-500 hover:bg-purple-50 rounded transition"
-                            title="Link to calendar or group"
-                          >
-                            <Link className="w-4 h-4" />
-                          </button>
-                          
-                          <button
-                            onClick={() => {
-                              setEditingTask(task);
-                              setShowTaskModal(true);
-                            }}
-                            className="p-2 text-primary hover:bg-blue-50 rounded transition"
-                            title="Edit task"
-                          >
-                            <Edit className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => handleDeleteClick(task)}
-                            className="p-2 text-red-500 hover:bg-red-50 rounded transition"
-                            title="Delete task"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
+                    {/* Group info if linked */}
+                    {task.groupId && (
+                      <div className="mb-3">
+                        <div className="flex items-center space-x-2 text-sm bg-purple-50 px-3 py-2 rounded-lg border border-purple-200">
+                          <Users className="w-4 h-4 text-purple-600" />
+                          <span className="font-medium text-purple-900">
+                            Group Task
+                          </span>
+                          <span className="text-purple-700">
+                            • View in Collaboration tab
+                          </span>
                         </div>
                       </div>
+                    )}
+                    
+                    {/* Subject & Due Date */}
+                    <div className="flex items-center space-x-4 text-body-sm text-gray-600">
+                      {task.subject && (
+                        <span className="flex items-center space-x-1 bg-gray-100 px-3 py-1 rounded-lg">
+                          <span>📚</span>
+                          <span className="font-medium">{task.subject}</span>
+                        </span>
+                      )}
+                      <span className="flex items-center space-x-1">
+                        <Calendar className="w-4 h-4" />
+                        <span>{formatRelativeDate(task.dueDate)}</span>
+                      </span>
                     </div>
-                  );
-                })}
-              </>
-            )}
-          </div>
-        </div>
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="flex items-center space-x-2 ml-4">
+                    {task.status !== 'Completed' && (
+                      <button
+                        onClick={() => handleStatusChange(task.id, 'Completed')}
+                        className="px-3 py-1.5 bg-emerald-100 text-emerald-700 rounded-lg border border-emerald-300 hover:bg-emerald-200 text-sm transition font-medium inline-flex items-center space-x-1"
+                      >
+                        <span>✅</span>
+                        <span>Complete</span>
+                      </button>
+                    )}
+                    {task.status === 'Pending' && (
+                      <button
+                        onClick={() => handleStatusChange(task.id, 'In Progress')}
+                        className="px-3 py-1.5 bg-blue-100 text-blue-700 rounded-lg border border-blue-300 hover:bg-blue-200 text-sm transition font-medium inline-flex items-center space-x-1"
+                      >
+                        <span>🚀</span>
+                        <span>Start</span>
+                      </button>
+                    )}
+                    
+                    {/* Link button */}
+                    <button
+                      onClick={() => handleOpenIntegration(task)}
+                      className="p-2 text-purple-500 hover:bg-purple-50 rounded transition"
+                      title="Link to calendar or group"
+                    >
+                      <Link className="w-4 h-4" />
+                    </button>
+                    
+                    <button
+                      onClick={() => {
+                        setEditingTask(task);
+                        setShowTaskModal(true);
+                      }}
+                      className="p-2 text-primary hover:bg-blue-50 rounded transition"
+                      title="Edit task"
+                    >
+                      <Edit className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => handleDeleteClick(task)}
+                      className="p-2 text-red-500 hover:bg-red-50 rounded transition"
+                      title="Delete task"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </>
       )}
+    </div>
+  </div>
+)}
 
       {/* Delete Single Task Dialog */}
       <ConfirmDialog

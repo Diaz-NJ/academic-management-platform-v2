@@ -6,14 +6,19 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.Map;
+import com.ptc.amp.service.TaskService;
+import com.ptc.amp.model.Task;
+import java.util.List
 
 @RestController
 @RequestMapping("/api/groups")
 public class GroupController {
     private final GroupService groupService;
+    private final TaskService taskService;
 
-    public GroupController(GroupService groupService) {
+    public GroupController(GroupService groupService, TaskService taskService) {
         this.groupService = groupService;
+        this.taskService = taskService;
     }
 
     @PostMapping
@@ -43,12 +48,30 @@ public class GroupController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<?> deleteGroup(@PathVariable Long id) {
+public ResponseEntity<?> deleteGroup(@PathVariable Long id) {
+    try {
+        // ✅ FIXED: Unlink all tasks from this group before deleting
+        List<Task> linkedTasks = taskService.getTasksByGroupId(id);
+        for (Task task : linkedTasks) {
+            task.setGroupId(null);
+            taskService.updateTask(task);
+        }
+        
         boolean deleted = groupService.deleteGroup(id);
         return deleted ? 
-                ResponseEntity.ok(Map.of("success", true, "message", "Group deleted")) :
+                ResponseEntity.ok(Map.of(
+                    "success", true, 
+                    "message", "Group deleted",
+                    "unlinkedTasks", linkedTasks.size()
+                )) :
                 ResponseEntity.notFound().build();
+    } catch (Exception e) {
+        return ResponseEntity.status(500).body(Map.of(
+            "success", false,
+            "message", "Failed to delete group: " + e.getMessage()
+        ));
     }
+}
 
     @PostMapping("/{id}/members")
     public ResponseEntity<?> addMember(

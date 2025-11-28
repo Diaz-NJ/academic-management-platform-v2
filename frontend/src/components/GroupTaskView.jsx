@@ -1,5 +1,8 @@
+
+// frontend/src/components/GroupTaskView.jsx - COMPLETE REPLACEMENT
+
 import React, { useState, useEffect } from 'react';
-import { X, CheckCircle, Clock, AlertCircle } from 'lucide-react';
+import { X, CheckCircle, Clock, AlertCircle, Calendar as CalendarIcon } from 'lucide-react';
 import { taskAPI } from '../services/api';
 import { formatRelativeDate } from '../utils/dateUtils';
 import { PRIORITY_CONFIG, STATUS_CONFIG } from '../utils/colorUtils';
@@ -45,6 +48,11 @@ const GroupTasksView = ({ group, onClose }) => {
                 {group.groupName} - Tasks
               </h2>
               <p className="text-sm text-gray-600">{group.subject}</p>
+              {group.members && (
+                <p className="text-xs text-gray-500 mt-1">
+                  {group.members.length} member{group.members.length !== 1 ? 's' : ''}
+                </p>
+              )}
             </div>
             <button
               onClick={onClose}
@@ -76,7 +84,7 @@ const GroupTasksView = ({ group, onClose }) => {
         </div>
 
         {/* Tasks List */}
-        <div className="p-6 overflow-y-auto max-h-[calc(90vh-250px)]">
+        <div className="p-6 overflow-y-auto max-h-[calc(90vh-280px)]">
           {loading ? (
             <div className="text-center py-12">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-500 mx-auto"></div>
@@ -89,7 +97,10 @@ const GroupTasksView = ({ group, onClose }) => {
                 No Tasks Assigned
               </h3>
               <p className="text-gray-600">
-                Link tasks to this group to see them here
+                Link tasks to this group from the Tasks tab to see them here.
+              </p>
+              <p className="text-sm text-gray-500 mt-2">
+                💡 Tip: When creating or editing a task, select this group from the dropdown.
               </p>
             </div>
           ) : (
@@ -125,21 +136,23 @@ const GroupTasksView = ({ group, onClose }) => {
                       </p>
                     )}
 
-                    <div className="flex items-center space-x-4 text-sm text-gray-600">
-                      {task.subject && (
+                    <div className="flex items-center justify-between text-sm text-gray-600">
+                      <div className="flex items-center space-x-4">
+                        {task.subject && (
+                          <span className="flex items-center space-x-1">
+                            <span>📚</span>
+                            <span>{task.subject}</span>
+                          </span>
+                        )}
                         <span className="flex items-center space-x-1">
-                          <span>📚</span>
-                          <span>{task.subject}</span>
+                          <Clock className="w-4 h-4" />
+                          <span>{formatRelativeDate(task.dueDate)}</span>
                         </span>
-                      )}
-                      <span className="flex items-center space-x-1">
-                        <Clock className="w-4 h-4" />
-                        <span>{formatRelativeDate(task.dueDate)}</span>
-                      </span>
+                      </div>
                       {task.showOnCalendar && (
                         <span className="flex items-center space-x-1 text-blue-600">
-                          <span>📅</span>
-                          <span>On Calendar</span>
+                          <CalendarIcon className="w-3 h-3" />
+                          <span className="text-xs">On Calendar</span>
                         </span>
                       )}
                     </div>

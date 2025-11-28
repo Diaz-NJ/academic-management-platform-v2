@@ -1,6 +1,6 @@
-// frontend/src/components/TaskIntegrationModal.jsx
+// frontend/src/components/TaskIntegrationModal.jsx - COMPLETE REPLACEMENT
 import React, { useState, useEffect } from 'react';
-import { X, Calendar, Users, Check, Unlink, Link } from 'lucide-react';
+import { X, Calendar, Users, Check, Unlink, Link as LinkIcon } from 'lucide-react';
 import { useToast } from '../context/ToastContext';
 import { taskAPI, groupAPI } from '../services/api';
 
@@ -28,6 +28,27 @@ const TaskIntegrationModal = ({
       showToast('Failed to load groups', 'error');
     } finally {
       setLoadingGroups(false);
+    }
+  };
+
+  // ✅ NEW: Manual calendar linking
+  const handleAddToCalendar = async () => {
+    if (!task.dueDate) {
+      showToast('Task needs a due date to add to calendar', 'warning');
+      return;
+    }
+    
+    setLoading(true);
+    try {
+      await taskAPI.addToCalendar(task.id);
+      showToast('Task added to calendar!', 'success');
+      onUpdate();
+      onClose();
+    } catch (error) {
+      console.error('Error adding to calendar:', error);
+      showToast(error.response?.data?.message || 'Failed to add to calendar', 'error');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -101,7 +122,7 @@ const TaskIntegrationModal = ({
 
         {/* Content */}
         <div className="p-6 space-y-6">
-          {/* Calendar Section */}
+          {/* ✅ FIXED: Calendar Section with Manual Link */}
           <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-4">
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center space-x-3">
@@ -112,8 +133,10 @@ const TaskIntegrationModal = ({
                   <h3 className="font-semibold text-gray-800">Calendar Integration</h3>
                   <p className="text-sm text-gray-600">
                     {task.showOnCalendar 
-                      ? '✅ Auto-synced to calendar' 
-                      : 'ℹ️ Tasks with deadlines appear on calendar automatically'}
+                      ? '✅ Synced to calendar' 
+                      : task.dueDate
+                      ? '📅 Ready to sync'
+                      : '⚠️ Add due date first'}
                   </p>
                 </div>
               </div>
@@ -144,12 +167,39 @@ const TaskIntegrationModal = ({
                 </button>
               </div>
             ) : (
-              <div className="bg-white border border-blue-300 rounded-lg p-3">
-                <p className="text-sm text-gray-700">
-                  {task.dueDate 
-                    ? 'This task will automatically appear on your calendar.'
-                    : 'Add a due date to this task to sync it to your calendar.'}
-                </p>
+              <div className="space-y-3">
+                <div className="bg-white border border-blue-300 rounded-lg p-3">
+                  {task.dueDate ? (
+                    <>
+                      <p className="text-sm text-gray-700 mb-2">
+                        <strong>Not synced to calendar.</strong>
+                      </p>
+                      <p className="text-xs text-gray-600">
+                        <strong>Due:</strong> {new Date(task.dueDate).toLocaleString('en-US', {
+                          month: 'short',
+                          day: 'numeric',
+                          hour: 'numeric',
+                          minute: '2-digit'
+                        })}
+                      </p>
+                    </>
+                  ) : (
+                    <p className="text-sm text-gray-700">
+                      This task needs a due date before it can be added to the calendar.
+                      Edit the task to add a due date.
+                    </p>
+                  )}
+                </div>
+                {task.dueDate && (
+                  <button
+                    onClick={handleAddToCalendar}
+                    disabled={loading}
+                    className="w-full flex items-center justify-center space-x-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition disabled:opacity-50"
+                  >
+                    <LinkIcon className="w-4 h-4" />
+                    <span>{loading ? 'Adding...' : 'Add to Calendar'}</span>
+                  </button>
+                )}
               </div>
             )}
           </div>
