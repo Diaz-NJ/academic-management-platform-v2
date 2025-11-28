@@ -10,4 +10,4 @@ services:
       - key: DATABASE_URL
         value: postgresql://amp_db_dhqn_user:4wmAw9ifFcvPJkY8vMAZPDwZdtTg4GyL@dpg-d4hrcaf5r7bs73c2f2g0-a/amp_db_dhqn
       - key: ALLOWED_ORIGINS
-        value: http://localhost:3000
+        value: http://localhost:3000,https://your-frontend-url.netlify.app

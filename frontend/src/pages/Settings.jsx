@@ -1,9 +1,10 @@
+// frontend/src/pages/Settings.jsx - FIXED VERSION
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { useNavigate } from 'react-router-dom';
 import { User, Mail, IdCard, BookOpen, Save, Lock, Trash2, AlertTriangle } from 'lucide-react';
-import axios from 'axios';
+import { authAPI } from '../services/api'; // ✅ FIXED: Use centralized API
 
 const Settings = () => {
   const { user, logout } = useAuth();
@@ -24,7 +25,7 @@ const Settings = () => {
   });
   const [passwordLoading, setPasswordLoading] = useState(false);
 
-  // ✅ NEW: Delete Account State
+  // Delete Account State
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [deletePassword, setDeletePassword] = useState('');
   const [deleteLoading, setDeleteLoading] = useState(false);
@@ -54,17 +55,8 @@ const Settings = () => {
     setLoading(true);
 
     try {
-      const sessionId = localStorage.getItem('sessionId');
-      const response = await axios.put(
-        `http://localhost:8080/api/auth/users/${user.id}`,
-        formData,
-        {
-          headers: {
-            'Session-Id': sessionId,
-            'Content-Type': 'application/json'
-          }
-        }
-      );
+      // ✅ FIXED: Use centralized API instead of axios directly
+      const response = await authAPI.updateUser(user.id, formData);
 
       if (response.data.success) {
         const updatedUser = {
@@ -107,20 +99,11 @@ const Settings = () => {
     setPasswordLoading(true);
 
     try {
-      const sessionId = localStorage.getItem('sessionId');
-      const response = await axios.put(
-        `http://localhost:8080/api/auth/users/${user.id}/password`,
-        {
-          currentPassword: passwordData.currentPassword,
-          newPassword: passwordData.newPassword
-        },
-        {
-          headers: {
-            'Session-Id': sessionId,
-            'Content-Type': 'application/json'
-          }
-        }
-      );
+      // ✅ FIXED: Use centralized API
+      const response = await authAPI.changePassword(user.id, {
+        currentPassword: passwordData.currentPassword,
+        newPassword: passwordData.newPassword
+      });
 
       if (response.data.success) {
         showToast('Password changed successfully!', 'success');
@@ -139,7 +122,6 @@ const Settings = () => {
     }
   };
 
-  // ✅ NEW: Handle Account Deletion
   const handleDeleteAccount = async (e) => {
     e.preventDefault();
     
@@ -151,19 +133,8 @@ const Settings = () => {
     setDeleteLoading(true);
 
     try {
-      const sessionId = localStorage.getItem('sessionId');
-      const response = await axios.delete(
-        `http://localhost:8080/api/auth/users/${user.id}`,
-        {
-          headers: {
-            'Session-Id': sessionId,
-            'Content-Type': 'application/json'
-          },
-          data: {
-            password: deletePassword
-          }
-        }
-      );
+      // ✅ FIXED: Use centralized API
+      const response = await authAPI.deleteUser(user.id, deletePassword);
 
       if (response.data.success) {
         showToast('Account deleted successfully', 'success');
@@ -369,7 +340,7 @@ const Settings = () => {
         </p>
       </div>
 
-      {/* ✅ NEW: Delete Account Section */}
+      {/* Delete Account Section */}
       <div className="bg-red-50 border-2 border-red-200 rounded-lg p-6 max-w-2xl">
         <h3 className="text-xl font-semibold text-red-900 mb-4 flex items-center">
           <Trash2 className="w-5 h-5 mr-2" />
@@ -402,7 +373,7 @@ const Settings = () => {
         </button>
       </div>
 
-      {/* ✅ NEW: Delete Confirmation Dialog */}
+      {/* Delete Confirmation Dialog */}
       {showDeleteDialog && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg w-full max-w-md shadow-xl">

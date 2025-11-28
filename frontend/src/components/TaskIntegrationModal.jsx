@@ -1,9 +1,15 @@
+// frontend/src/components/TaskIntegrationModal.jsx
 import React, { useState, useEffect } from 'react';
 import { X, Calendar, Users, Check, Unlink, Link } from 'lucide-react';
-import { taskAPI, groupAPI } from '../services/api';
 import { useToast } from '../context/ToastContext';
+import { taskAPI, groupAPI } from '../services/api';
 
-const TaskIntegrationModal = ({ task, onClose, onUpdate, userId }) => {
+const TaskIntegrationModal = ({ 
+  task, 
+  onClose, 
+  onUpdate, 
+  userId 
+}) => {
   const { showToast } = useToast();
   const [groups, setGroups] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -22,21 +28,6 @@ const TaskIntegrationModal = ({ task, onClose, onUpdate, userId }) => {
       showToast('Failed to load groups', 'error');
     } finally {
       setLoadingGroups(false);
-    }
-  };
-
-  const handleAddToCalendar = async () => {
-    setLoading(true);
-    try {
-      await taskAPI.addToCalendar(task.id);
-      showToast('Task added to calendar!', 'success');
-      onUpdate();
-      onClose();
-    } catch (error) {
-      console.error('Error adding to calendar:', error);
-      showToast(error.response?.data?.message || 'Failed to add to calendar', 'error');
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -121,8 +112,8 @@ const TaskIntegrationModal = ({ task, onClose, onUpdate, userId }) => {
                   <h3 className="font-semibold text-gray-800">Calendar Integration</h3>
                   <p className="text-sm text-gray-600">
                     {task.showOnCalendar 
-                      ? '✅ Currently on calendar' 
-                      : 'Show this task on your calendar'}
+                      ? '✅ Auto-synced to calendar' 
+                      : 'ℹ️ Tasks with deadlines appear on calendar automatically'}
                   </p>
                 </div>
               </div>
@@ -153,14 +144,13 @@ const TaskIntegrationModal = ({ task, onClose, onUpdate, userId }) => {
                 </button>
               </div>
             ) : (
-              <button
-                onClick={handleAddToCalendar}
-                disabled={loading}
-                className="w-full flex items-center justify-center space-x-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition disabled:opacity-50"
-              >
-                <Calendar className="w-4 h-4" />
-                <span>{loading ? 'Adding...' : 'Add to Calendar'}</span>
-              </button>
+              <div className="bg-white border border-blue-300 rounded-lg p-3">
+                <p className="text-sm text-gray-700">
+                  {task.dueDate 
+                    ? 'This task will automatically appear on your calendar.'
+                    : 'Add a due date to this task to sync it to your calendar.'}
+                </p>
+              </div>
             )}
           </div>
 

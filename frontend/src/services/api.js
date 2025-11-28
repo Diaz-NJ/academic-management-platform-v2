@@ -1,6 +1,11 @@
+// frontend/src/services/api.js - COMPLETE VERSION
 import axios from 'axios';
 
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8080/api';
+const API_URL = process.env.REACT_APP_API_URL;
+
+if (!API_URL) {
+  console.error('⚠️ REACT_APP_API_URL is not set! Check your .env file');
+}
 
 const api = axios.create({
   baseURL: API_URL,
@@ -23,6 +28,11 @@ export const authAPI = {
   login: (credentials) => api.post('/auth/login', credentials),
   logout: () => api.post('/auth/logout'),
   validateSession: () => api.get('/auth/session'),
+  updateUser: (userId, userData) => api.put(`/auth/users/${userId}`, userData),
+  changePassword: (userId, passwordData) => 
+    api.put(`/auth/users/${userId}/password`, passwordData),
+  deleteUser: (userId, password) => 
+    api.delete(`/auth/users/${userId}`, { data: { password } }),
 };
 
 export const taskAPI = {
@@ -30,10 +40,10 @@ export const taskAPI = {
   createTask: (task) => api.post('/tasks', task),
   updateTask: (id, task) => api.put(`/tasks/${id}`, task),
   deleteTask: (id) => api.delete(`/tasks/${id}`),
-  // ✅ NEW: Calendar integration
+  // ✅ NEW: Calendar integration (automatic on backend)
   addToCalendar: (taskId) => api.post(`/tasks/${taskId}/add-to-calendar`),
   removeFromCalendar: (taskId) => api.delete(`/tasks/${taskId}/remove-from-calendar`),
-  // ✅ NEW: Group integration
+  // ✅ NEW: Group integration (manual)
   linkToGroup: (taskId, groupId) => api.post(`/tasks/${taskId}/link-to-group/${groupId}`),
   unlinkFromGroup: (taskId) => api.delete(`/tasks/${taskId}/unlink-from-group`),
   getGroupTasks: (groupId) => api.get(`/tasks/group/${groupId}`),
