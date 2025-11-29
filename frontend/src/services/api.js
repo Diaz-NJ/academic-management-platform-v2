@@ -76,4 +76,20 @@ export const groupAPI = {
   removeMember: (groupId, userId) => api.delete(`/groups/${groupId}/members/${userId}`),
 };
 
+export const invitationAPI = {
+  sendInvitation: (data) => api.post('/invitations/send', data),
+  getReceivedInvitations: (userId) => api.get(`/invitations/received/${userId}`),
+  getSentInvitations: (userId) => api.get(`/invitations/sent/${userId}`),
+  acceptInvitation: (id) => api.post(`/invitations/${id}/accept`),
+  rejectInvitation: (id) => api.post(`/invitations/${id}/reject`),
+  cancelInvitation: (id) => api.delete(`/invitations/${id}`),
+};
+
+export const discussionAPI = {
+  getDiscussions: (groupId) => api.get(`/discussions/group/${groupId}`),
+  createDiscussion: (data) => api.post('/discussions', data),
+  getMessages: (discussionId) => api.get(`/discussions/${discussionId}/messages`),
+  createMessage: (data) => api.post('/discussions/messages', data),
+};
+
 export default api;

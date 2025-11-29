@@ -1,12 +1,15 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
-import { groupAPI } from '../services/api';
-import { Users, Plus, Edit, Trash2, FileText, BookOpen, CheckSquare, Square } from 'lucide-react';
+import { groupAPI, invitationAPI, discussionAPI } from '../services/api';
+import { Users, Plus, Edit, Trash2, FileText, BookOpen, CheckSquare, Square, UserPlus, MessageSquare } from 'lucide-react';
 import GroupModal from '../components/GroupModal';
 import ConfirmDialog from '../components/ConfirmDialog';
 import LoadingSpinner from '../components/LoadingSpinner';
 import EmptyState from '../components/EmptyState';
+import InviteUserModal from '../components/InviteUserModal';
+import DiscussionBoard from '../components/DiscussionBoard';
+import InvitationsPanel from '../components/InvitationsPanel';
 
 const Collaboration = () => {
   const { user } = useAuth();
@@ -20,9 +23,13 @@ const Collaboration = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [filteredGroups, setFilteredGroups] = useState([]);
   
-  // ✅ NEW: Bulk Actions State
+  // Bulk Actions State
   const [selectedGroups, setSelectedGroups] = useState([]);
   const [showBulkDeleteDialog, setShowBulkDeleteDialog] = useState(false);
+
+  // ✅ NEW: Invitation & Discussion States
+  const [showInviteModal, setShowInviteModal] = useState(false);
+  const [showDiscussionBoard, setShowDiscussionBoard] = useState(false);
 
   useEffect(() => {
     loadGroups();
@@ -46,7 +53,7 @@ const Collaboration = () => {
     try {
       const response = await groupAPI.getGroups(user.id);
       setGroups(response.data);
-      setSelectedGroups([]); // Clear selections on reload
+      setSelectedGroups([]);
     } catch (error) {
       console.error('Error loading groups:', error);
       showToast('Failed to load groups', 'error');
@@ -55,7 +62,6 @@ const Collaboration = () => {
     }
   }, [user.id, showToast]);
 
-  // ✅ NEW: Toggle individual group selection
   const toggleGroupSelection = (groupId) => {
     setSelectedGroups(prev => 
       prev.includes(groupId) 
@@ -64,7 +70,6 @@ const Collaboration = () => {
     );
   };
 
-  // ✅ NEW: Select/Deselect all groups
   const toggleSelectAll = () => {
     if (selectedGroups.length === filteredGroups.length) {
       setSelectedGroups([]);
@@ -73,7 +78,6 @@ const Collaboration = () => {
     }
   };
 
-  // ✅ NEW: Bulk delete
   const handleBulkDelete = async () => {
     try {
       await Promise.all(selectedGroups.map(id => groupAPI.deleteGroup(id)));
@@ -138,7 +142,7 @@ const Collaboration = () => {
 
   return (
     <div className="space-y-3 md:space-y-4">
-      {/* ✨ Enhanced Page Header */}
+      {/* Page Header */}
       <div className="mb-8">
         <div className="flex justify-between items-start">
           <div>
@@ -157,7 +161,13 @@ const Collaboration = () => {
         </div>
       </div>
 
-      {/* ✨ Enhanced Search Bar */}
+      {/* ✅ NEW: Invitations Panel */}
+      <InvitationsPanel 
+        userId={user.id} 
+        onUpdate={loadGroups}
+      />
+
+      {/* Search Bar */}
       <div className="bg-white rounded-lg shadow p-4">
         <label className="text-label mb-2 block">
           Search Groups
@@ -196,7 +206,7 @@ const Collaboration = () => {
         </div>
       </div>
 
-      {/* ✅ NEW: Bulk Actions Bar */}
+      {/* Bulk Actions Bar */}
       {selectedGroups.length > 0 && (
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
           <div className="flex items-center justify-between">
@@ -213,7 +223,6 @@ const Collaboration = () => {
             </div>
             
             <div className="flex items-center space-x-2">
-              {/* Bulk Delete */}
               <button
                 onClick={() => setShowBulkDeleteDialog(true)}
                 className="flex items-center space-x-2 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition"
@@ -243,7 +252,7 @@ const Collaboration = () => {
         </div>
       ) : (
         <>
-          {/* ✅ NEW: Select All Header */}
+          {/* Select All Header */}
           <div className="bg-white rounded-lg shadow p-4">
             <button
               onClick={toggleSelectAll}
@@ -262,14 +271,14 @@ const Collaboration = () => {
             </button>
           </div>
 
-              {/* ✨ Enhanced Group Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-4">
-              {filteredGroups.map(group => (
-                <div 
-                  key={group.id} 
-                  className="card-hover bg-white rounded-lg shadow"
-                >
-                {/* ✅ NEW: Checkbox */}
+          {/* Group Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-4">
+            {filteredGroups.map(group => (
+              <div 
+                key={group.id} 
+                className="card-hover bg-white rounded-lg shadow"
+              >
+                {/* Checkbox */}
                 <div className="p-4 border-b border-gray-200 bg-gray-50">
                   <button
                     onClick={() => toggleGroupSelection(group.id)}
@@ -332,57 +341,82 @@ const Collaboration = () => {
                 </div>
 
                 {/* Card Body */}
-                  <div className="p-6">
-                    <div className="mb-4">
-                      <div className="flex items-start space-x-2">
-                        <FileText className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
-                        <p className="text-body-sm text-gray-600 line-clamp-3">
-                          {group.taskDescription}
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center justify-between pt-4 border-t border-gray-200">
-                      <span className="text-body-sm text-gray-600 flex items-center">
-                        <Users className="w-4 h-4 mr-1" />
-                        <span className="font-medium">{group.members.length}</span> member{group.members.length !== 1 ? 's' : ''}
-                      </span>
-                      <span className="text-caption text-gray-400">
-                        {new Date(group.createdAt).toLocaleDateString('en-US', {
-                          month: 'short',
-                          day: 'numeric'
-                        })}
-                      </span>
+                <div className="p-6">
+                  <div className="mb-4">
+                    <div className="flex items-start space-x-2">
+                      <FileText className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
+                      <p className="text-body-sm text-gray-600 line-clamp-3">
+                        {group.taskDescription}
+                      </p>
                     </div>
                   </div>
 
-                {/* Card Footer - Members Preview */}
-                <div className="px-6 pb-6">
-                  <p className="text-label mb-2">Members</p>
-                  <div className="flex items-center space-x-2">
-                      {group.members.slice(0, 4).map((member, idx) => (
-                        <div
-                          key={idx}
-                          className="w-8 h-8 bg-gradient-to-br from-indigo-400 to-cyan-400 rounded-full border-2 border-white flex items-center justify-center text-xs font-medium text-white shadow-md"
-                          title={member.name}
-                        >
-                          {member.name.charAt(0).toUpperCase()}
-                        </div>
-                      ))}
-                      {group.members.length > 4 && (
-                        <div className="w-8 h-8 bg-gray-200 rounded-full border-2 border-white flex items-center justify-center text-xs font-medium text-gray-600">
-                          +{group.members.length - 4}
-                        </div>
-                      )}
-                    </div>
-                    <button
-                      onClick={() => handleEditGroup(group)}
-                      className="text-xs text-primary hover:underline ml-2"
-                    >
-                      View all members
-                    </button>
+                  <div className="flex items-center justify-between pt-4 border-t border-gray-200">
+                    <span className="text-body-sm text-gray-600 flex items-center">
+                      <Users className="w-4 h-4 mr-1" />
+                      <span className="font-medium">{group.members.length}</span> member{group.members.length !== 1 ? 's' : ''}
+                    </span>
+                    <span className="text-caption text-gray-400">
+                      {new Date(group.createdAt).toLocaleDateString('en-US', {
+                        month: 'short',
+                        day: 'numeric'
+                      })}
+                    </span>
                   </div>
                 </div>
+
+                {/* ✅ NEW: Action Buttons */}
+                <div className="px-6 pb-4 flex items-center space-x-2">
+                  <button
+                    onClick={() => {
+                      setSelectedGroup(group);
+                      setShowInviteModal(true);
+                    }}
+                    className="flex-1 flex items-center justify-center space-x-1 px-3 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition text-sm font-medium"
+                  >
+                    <UserPlus className="w-4 h-4" />
+                    <span>Invite</span>
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setSelectedGroup(group);
+                      setShowDiscussionBoard(true);
+                    }}
+                    className="flex-1 flex items-center justify-center space-x-1 px-3 py-2 bg-purple-100 text-purple-700 rounded-lg hover:bg-purple-200 transition text-sm font-medium"
+                  >
+                    <MessageSquare className="w-4 h-4" />
+                    <span>Discuss</span>
+                  </button>
+                </div>
+
+                {/* Card Footer - Members Preview */}
+                <div className="px-6 pb-6 border-t border-gray-200 pt-4">
+                  <p className="text-label mb-2">Members</p>
+                  <div className="flex items-center space-x-2">
+                    {group.members.slice(0, 4).map((member, idx) => (
+                      <div
+                        key={idx}
+                        className="w-8 h-8 bg-gradient-to-br from-indigo-400 to-cyan-400 rounded-full border-2 border-white flex items-center justify-center text-xs font-medium text-white shadow-md"
+                        title={member.name}
+                      >
+                        {member.name.charAt(0).toUpperCase()}
+                      </div>
+                    ))}
+                    {group.members.length > 4 && (
+                      <div className="w-8 h-8 bg-gray-200 rounded-full border-2 border-white flex items-center justify-center text-xs font-medium text-gray-600">
+                        +{group.members.length - 4}
+                      </div>
+                    )}
+                  </div>
+                  <button
+                    onClick={() => handleEditGroup(group)}
+                    className="text-xs text-primary hover:underline ml-2 mt-2"
+                  >
+                    View all members
+                  </button>
+                </div>
+              </div>
             ))}
           </div>
         </>
@@ -401,6 +435,33 @@ const Collaboration = () => {
         />
       )}
 
+      {/* ✅ NEW: Invite Modal */}
+      {showInviteModal && selectedGroup && (
+        <InviteUserModal
+          group={selectedGroup}
+          onClose={() => {
+            setShowInviteModal(false);
+            setSelectedGroup(null);
+          }}
+          onInviteSent={loadGroups}
+          currentUserId={user.id}
+          invitationAPI={invitationAPI}
+        />
+      )}
+
+      {/* ✅ NEW: Discussion Board */}
+      {showDiscussionBoard && selectedGroup && (
+        <DiscussionBoard
+          group={selectedGroup}
+          onClose={() => {
+            setShowDiscussionBoard(false);
+            setSelectedGroup(null);
+          }}
+          currentUser={user}
+          discussionAPI={discussionAPI}
+        />
+      )}
+
       {/* Delete Single Group Dialog */}
       <ConfirmDialog
         isOpen={showDeleteConfirm}
@@ -416,7 +477,7 @@ const Collaboration = () => {
         type="danger"
       />
 
-      {/* ✅ NEW: Bulk Delete Dialog */}
+      {/* Bulk Delete Dialog */}
       <ConfirmDialog
         isOpen={showBulkDeleteDialog}
         onClose={() => setShowBulkDeleteDialog(false)}

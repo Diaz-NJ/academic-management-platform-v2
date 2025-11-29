@@ -65,6 +65,11 @@ public class AuthService {
         );
     }
 
+    // Add this method to find users by email
+        public User getUserByEmail(String email) {
+            return userRepository.findByEmail(email).orElse(null);
+        }
+
     public Optional<Long> validateSession(String sessionId) {
         return Optional.ofNullable(sessions.get(sessionId));
     }
