@@ -395,7 +395,6 @@ const Collaboration = () => {
           <li>• Real-time chat with group members</li>
           <li>• File sharing and document collaboration</li>
           <li>• Add registered users to groups via email/student ID</li>
-          <li>• Group task assignments and progress tracking</li>
         </ul>
       </div>
 

@@ -502,6 +502,13 @@ const [selectedTaskForIntegration, setSelectedTaskForIntegration] = useState(nul
                     {/* Actions */}
                     <div className="flex space-x-2 pt-3 border-t">
                       <button
+                        onClick={() => handleOpenIntegration(task)}
+                        className="flex-1 p-2 text-purple-500 hover:bg-purple-50 rounded transition"
+                        title="Link to calendar or group"
+                      >
+                        <Link className="w-4 h-4 mx-auto" />
+                      </button>
+                      <button
                         onClick={() => {
                           setEditingTask(task);
                           setShowTaskModal(true);
