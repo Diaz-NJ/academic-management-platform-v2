@@ -99,8 +99,7 @@ const loadEvents = useCallback(async () => {
 
     
     // ✅ Create a Set of ALL event IDs (not just recurring ones)
-    const allEventIds = new Set(originalEvents.map(e => e.id));
-    console.log('All event IDs:', Array.from(allEventIds));
+    const allEventIds = new Set(originalEvents.filter(e => e.id).map(e => e.id));
     
     // ✅ Filter out events that reference a non-existent parent
     const filteredEvents = originalEvents.filter(event => {

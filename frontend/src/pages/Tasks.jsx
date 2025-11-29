@@ -528,8 +528,6 @@ const [selectedTaskForIntegration, setSelectedTaskForIntegration] = useState(nul
         </div>
       )}
 
-      // REPLACE the LIST VIEW section in Tasks.jsx with this:
-
 {/* ===== LIST VIEW ===== */}
 {viewMode === 'list' && (
   <div className="bg-white rounded-lg shadow">

@@ -10,14 +10,18 @@ import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.stream.Collectors;
 import java.util.*;
+import com.ptc.amp.model.Task;
+import com.ptc.amp.service.TaskService;
 
 @RestController
 @RequestMapping("/api/events")
 public class EventController {
     private final EventService eventService;
+    private final TaskService taskService;
 
-    public EventController(EventService eventService) {
-        this.eventService = eventService;
+    public EventController(EventService eventService, TaskService taskService) { // ADD taskService
+    this.eventService = eventService;
+    this.taskService = taskService;
     }
 
     @PostMapping
@@ -368,6 +372,16 @@ public ResponseEntity<?> deleteEvent(@PathVariable Long id) {
             "success", false,
             "message", "Failed to delete event: " + e.getMessage()
         ));
+    }
+}
+
+    private LocalDateTime parseDateTime(String dateTimeStr) {
+    try {
+        // Try parsing ISO 8601 format
+        return LocalDateTime.parse(dateTimeStr, DateTimeFormatter.ISO_DATE_TIME);
+    } catch (Exception e) {
+        // Fallback to custom format if needed
+        return LocalDateTime.parse(dateTimeStr);
     }
 }
 }

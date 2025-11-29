@@ -8,7 +8,7 @@ import java.util.List;
 import java.util.Map;
 import com.ptc.amp.service.TaskService;
 import com.ptc.amp.model.Task;
-import java.util.List
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/groups")
