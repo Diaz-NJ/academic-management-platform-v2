@@ -155,9 +155,19 @@ const Dashboard = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div 
+    className="min-h-screen relative"
+    style={{
+      backgroundImage: 'url(/images/bg-science.jpg)',
+      backgroundSize: 'cover',
+      backgroundPosition: 'center',
+      backgroundAttachment: 'fixed'
+    }}
+  >
+    <div className="absolute inset-0 bg-white/85 backdrop-blur-sm"></div>
+    <div className="relative z-10">
       {/* Navigation Bar - ENLARGED */}
-      <nav className="bg-white shadow-md border-b-2 border-gray-100">
+      <nav className="bg-white/95 backdrop-blur-sm shadow-md border-b-2 border-gray-100">
         <div className="max-w-[95%] mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-20 md:h-24">
             {/* Left side - Logo and Navigation */}
@@ -559,6 +569,7 @@ const Dashboard = () => {
           task={editingTask}
         />
       )}
+    </div>
     </div>
   );
 };

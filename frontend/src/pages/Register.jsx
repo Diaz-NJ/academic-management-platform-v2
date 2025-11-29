@@ -11,7 +11,7 @@ const Register = () => {
     email: '',
     password: '',
     confirmPassword: '',
-    section: '' // ✅ Changed: Now empty by default
+    section: ''
   });
   const [loading, setLoading] = useState(false);
   const { register } = useAuth();
@@ -49,50 +49,67 @@ const Register = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary to-blue-500 flex items-center justify-center p-4">
-      <div className="bg-white rounded-lg shadow-xl p-8 w-full max-w-md">
+    <div 
+      className="min-h-screen flex items-center justify-center p-4 relative"
+      style={{
+        backgroundImage: 'url(/images/bg-chalkboard.jpg)',
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundAttachment: 'fixed'
+      }}
+    >
+      {/* ✨ Overlay for transparency/dimming */}
+      <div className="absolute inset-0 bg-gradient-to-br from-primary/70 to-blue-900/80"></div>
+      
+      {/* ✨ Content */}
+      <div className="relative z-10 bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl p-8 md:p-12 w-full max-w-2xl my-8">
         <div className="text-center mb-8">
-          <h2 className="text-3xl font-bold text-primary mb-2">
+          <div className="inline-block p-4 bg-gradient-to-br from-primary to-blue-600 rounded-2xl mb-4 shadow-lg">
+            <svg className="w-12 h-12 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+            </svg>
+          </div>
+          <h2 className="text-4xl font-bold text-gray-800 mb-2">
             Create Account
           </h2>
-          <p className="text-gray-600">
+          <p className="text-gray-600 text-lg">
             Join Academic Management Platform
           </p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
+        <form onSubmit={handleSubmit} className="space-y-5">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                First Name
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                First Name *
               </label>
               <input
                 type="text"
                 name="firstName"
                 value={formData.firstName}
                 onChange={handleChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary transition"
+                className="w-full px-4 py-3 text-base border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-primary transition"
                 required
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Last Name
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Last Name *
               </label>
               <input
                 type="text"
                 name="lastName"
                 value={formData.lastName}
                 onChange={handleChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary transition"
+                className="w-full px-4 py-3 text-base border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-primary transition"
                 required
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Student ID
+            <label className="block text-sm font-semibold text-gray-700 mb-2">
+              Student ID *
             </label>
             <input
               type="text"
@@ -100,14 +117,14 @@ const Register = () => {
               value={formData.studentId}
               onChange={handleChange}
               placeholder="e.g., 2021-00123"
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary transition"
+              className="w-full px-4 py-3 text-base border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-primary transition"
               required
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Email
+            <label className="block text-sm font-semibold text-gray-700 mb-2">
+              Email *
             </label>
             <input
               type="email"
@@ -115,15 +132,14 @@ const Register = () => {
               value={formData.email}
               onChange={handleChange}
               placeholder="your.email@example.com"
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary transition"
+              className="w-full px-4 py-3 text-base border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-primary transition"
               required
             />
           </div>
 
-          {/* ✅ CHANGED: Dropdown replaced with text input */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Course/Year/Section
+            <label className="block text-sm font-semibold text-gray-700 mb-2">
+              Course/Year/Section *
             </label>
             <input
               type="text"
@@ -131,24 +147,24 @@ const Register = () => {
               value={formData.section}
               onChange={handleChange}
               placeholder="e.g., BSIT 3A, BSCS 4B, BSA 2C"
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary transition"
+              className="w-full px-4 py-3 text-base border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-primary transition"
               required
             />
             <p className="text-xs text-gray-500 mt-1">
-              Enter your course, year, and section (e.g., BSIT 3A)
+              Enter your course, year, and section
             </p>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Password
+            <label className="block text-sm font-semibold text-gray-700 mb-2">
+              Password *
             </label>
             <input
               type="password"
               name="password"
               value={formData.password}
               onChange={handleChange}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary transition"
+              className="w-full px-4 py-3 text-base border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-primary transition"
               required
               minLength={6}
               placeholder="••••••••"
@@ -157,15 +173,15 @@ const Register = () => {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Confirm Password
+            <label className="block text-sm font-semibold text-gray-700 mb-2">
+              Confirm Password *
             </label>
             <input
               type="password"
               name="confirmPassword"
               value={formData.confirmPassword}
               onChange={handleChange}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary transition"
+              className="w-full px-4 py-3 text-base border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-primary transition"
               required
               placeholder="••••••••"
             />
@@ -174,11 +190,11 @@ const Register = () => {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-primary text-white py-3 rounded-lg hover:bg-blue-600 transition disabled:opacity-50 disabled:cursor-not-allowed font-medium flex items-center justify-center space-x-2"
+            className="w-full bg-gradient-to-r from-primary to-blue-600 text-white py-4 rounded-xl hover:from-blue-600 hover:to-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed font-semibold text-lg flex items-center justify-center space-x-2 shadow-lg"
           >
             {loading ? (
               <>
-                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white"></div>
                 <span>Creating account...</span>
               </>
             ) : (
@@ -187,9 +203,9 @@ const Register = () => {
           </button>
         </form>
 
-        <p className="text-center text-gray-600 mt-6">
+        <p className="text-center text-gray-600 mt-8 text-base">
           Already have an account?{' '}
-          <a href="/login" className="text-primary hover:underline font-medium">
+          <a href="/login" className="text-primary hover:text-blue-700 font-semibold hover:underline transition">
             Login here
           </a>
         </p>
