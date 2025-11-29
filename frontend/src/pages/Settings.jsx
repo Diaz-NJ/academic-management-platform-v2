@@ -5,6 +5,7 @@ import { useToast } from '../context/ToastContext';
 import { useNavigate } from 'react-router-dom';
 import { User, Mail, IdCard, BookOpen, Save, Lock, Trash2, AlertTriangle } from 'lucide-react';
 import { authAPI } from '../services/api'; // ✅ FIXED: Use centralized API
+import axios from 'axios';
 
 const Settings = () => {
   const { user, logout } = useAuth();
@@ -123,40 +124,53 @@ const Settings = () => {
   };
 
   const handleDeleteAccount = async (e) => {
-    e.preventDefault();
-    
-    if (!deletePassword) {
-      showToast('Please enter your password', 'error');
-      return;
-    }
+  e.preventDefault();
+  
+  if (!deletePassword) {
+    showToast('Please enter your password', 'error');
+    return;
+  }
 
-    setDeleteLoading(true);
+  setDeleteLoading(true);
 
-    try {
-      // ✅ FIXED: Use centralized API
-      const response = await authAPI.deleteUser(user.id, deletePassword);
-
-      if (response.data.success) {
-        showToast('Account deleted successfully', 'success');
-        
-        // Clear all local storage
-        localStorage.clear();
-        
-        // Redirect to login after short delay
-        setTimeout(() => {
-          logout();
-          navigate('/login');
-        }, 1500);
+  try {
+    const sessionId = localStorage.getItem('sessionId');
+    const response = await axios.delete(
+      `http://localhost:8080/api/auth/users/${user.id}`,
+      {
+        headers: {
+          'Session-Id': sessionId,
+          'Content-Type': 'application/json'
+        },
+        data: {
+          password: deletePassword
+        }
       }
-    } catch (error) {
-      console.error('Error deleting account:', error);
-      const errorMessage = error.response?.data?.message || 'Failed to delete account';
-      showToast(errorMessage, 'error');
-      setDeletePassword('');
-    } finally {
-      setDeleteLoading(false);
+    );
+
+    if (response.data.success) {
+      showToast('Account deleted successfully', 'success');
+      
+      // ✅ FIX: Clear local storage FIRST, then navigate
+      // Don't call logout() because the session is already invalid
+      localStorage.removeItem('sessionId');
+      localStorage.removeItem('user');
+      
+      // Redirect to login after short delay
+      setTimeout(() => {
+        navigate('/login');
+        window.location.reload(); // Force a clean reload
+      }, 1500);
     }
-  };
+  } catch (error) {
+    console.error('Error deleting account:', error);
+    const errorMessage = error.response?.data?.message || 'Failed to delete account';
+    showToast(errorMessage, 'error');
+    setDeletePassword('');
+  } finally {
+    setDeleteLoading(false);
+  }
+};
 
   return (
     <div className="space-y-6">
