@@ -8,7 +8,7 @@ import java.util.List;
 import java.util.Map;
 import com.ptc.amp.service.TaskService;
 import com.ptc.amp.model.Task;
-import java.util.List;
+import java.util.*;
 
 @RestController
 @RequestMapping("/api/groups")
@@ -91,5 +91,80 @@ public ResponseEntity<?> deleteGroup(@PathVariable Long id) {
         return removed ?
                 ResponseEntity.ok(Map.of("success", true, "message", "Member removed")) :
                 ResponseEntity.notFound().build();
+    }
+
+     @PostMapping("/{groupId}/leave")
+    public ResponseEntity<?> leaveGroup(
+            @PathVariable Long groupId,
+            @RequestBody Map<String, Object> data) {
+        try {
+            Long userId = ((Number) data.get("userId")).longValue();
+            
+            // Get the group
+            Optional<Group> groupOpt = groupService.getGroupById(groupId);
+            if (groupOpt.isEmpty()) {
+                return ResponseEntity.notFound().build();
+            }
+            
+            Group group = groupOpt.get();
+            
+            // Check if user is a member
+            boolean isMember = group.getMembers().stream()
+                .anyMatch(m -> m.getUserId().equals(userId));
+            
+            if (!isMember) {
+                return ResponseEntity.badRequest().body(Map.of(
+                    "success", false,
+                    "message", "You are not a member of this group"
+                ));
+            }
+            
+            // Check if user is the only leader
+            long leaderCount = group.getMembers().stream()
+                .filter(m -> "Leader".equals(m.getRole()))
+                .count();
+            
+            boolean isLeader = group.getMembers().stream()
+                .anyMatch(m -> m.getUserId().equals(userId) && "Leader".equals(m.getRole()));
+            
+            if (isLeader && leaderCount == 1) {
+                return ResponseEntity.badRequest().body(Map.of(
+                    "success", false,
+                    "message", "You cannot leave as you are the only leader. Transfer leadership or delete the group."
+                ));
+            }
+            
+            // Remove the member
+            groupService.removeMemberFromGroup(groupId, userId);
+            
+            // If no members left, delete the group
+            groupOpt = groupService.getGroupById(groupId);
+            if (groupOpt.isPresent() && groupOpt.get().getMembers().isEmpty()) {
+                // ✅ Unlink all tasks from this group before deleting
+                List<Task> linkedTasks = taskService.getTasksByGroupId(groupId);
+                for (Task task : linkedTasks) {
+                    task.setGroupId(null);
+                    taskService.updateTask(task);
+                }
+                
+                groupService.deleteGroup(groupId);
+                return ResponseEntity.ok(Map.of(
+                    "success", true,
+                    "message", "Left group successfully. Group was deleted as no members remain.",
+                    "groupDeleted", true
+                ));
+            }
+            
+            return ResponseEntity.ok(Map.of(
+                "success", true,
+                "message", "Left group successfully"
+            ));
+            
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body(Map.of(
+                "success", false,
+                "message", "Failed to leave group: " + e.getMessage()
+            ));
+        }
     }
 }

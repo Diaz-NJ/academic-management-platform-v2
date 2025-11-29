@@ -6,10 +6,32 @@ import { X, CheckCircle, Clock, AlertCircle, Calendar as CalendarIcon } from 'lu
 import { taskAPI } from '../services/api';
 import { formatRelativeDate } from '../utils/dateUtils';
 import { PRIORITY_CONFIG, STATUS_CONFIG } from '../utils/colorUtils';
+import { useAuth } from '../context/AuthContext';
 
 const GroupTasksView = ({ group, onClose }) => {
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
+  const { user } = useAuth();
+    const isMember = group.members?.some(m => m.userId === user.id);
+
+      if (!isMember) {
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="bg-white rounded-lg w-full max-w-md p-6 shadow-xl">
+          <h3 className="text-xl font-bold text-gray-800 mb-4">Access Denied</h3>
+          <p className="text-gray-600 mb-6">
+            You are not a member of this group and cannot view its tasks.
+          </p>
+          <button
+            onClick={onClose}
+            className="w-full px-4 py-2 bg-primary text-white rounded-lg hover:bg-blue-600 transition"
+          >
+            Close
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   useEffect(() => {
     loadGroupTasks();

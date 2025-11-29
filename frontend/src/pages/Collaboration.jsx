@@ -30,6 +30,9 @@ const Collaboration = () => {
   // ✅ NEW: Invitation & Discussion States
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [showDiscussionBoard, setShowDiscussionBoard] = useState(false);
+  // ✅ NEW: Leave group state
+  const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
+  const [groupToLeave, setGroupToLeave] = useState(null);
 
   useEffect(() => {
     loadGroups();
@@ -133,6 +136,32 @@ const Collaboration = () => {
     } catch (error) {
       console.error('Error deleting group:', error);
       showToast('Failed to delete group', 'error');
+    }
+  };
+
+  // ✅ NEW: Leave group handler
+  const handleLeaveGroup = (group) => {
+    setGroupToLeave(group);
+    setShowLeaveConfirm(true);
+  };
+
+  const handleLeaveConfirm = async () => {
+    try {
+      const response = await groupAPI.leaveGroup(groupToLeave.id, user.id);
+      
+      if (response.data.groupDeleted) {
+        showToast('Left group successfully. Group was deleted as no members remain.', 'success');
+      } else {
+        showToast('Left group successfully', 'success');
+      }
+      
+      setShowLeaveConfirm(false);
+      setGroupToLeave(null);
+      loadGroups();
+    } catch (error) {
+      console.error('Error leaving group:', error);
+      const errorMessage = error.response?.data?.message || 'Failed to leave group';
+      showToast(errorMessage, 'error');
     }
   };
 
@@ -311,28 +340,57 @@ const Collaboration = () => {
                         </h3>
                       </div>
                     </div>
+                    {/* ✅ FIXED: Role-based action buttons */}
                     <div className="flex items-center space-x-1">
-                      <button
-                        onClick={() => handleEditGroup(group)}
-                        className="p-2 text-gray-500 hover:text-primary hover:bg-blue-50 rounded transition"
-                        title="Edit group"
-                      >
-                        <Edit className="w-4 h-4" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          handleDeleteClick(group);
-                        }}
-                        className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded transition"
-                        title="Delete group"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+                      {(() => {
+                        const currentMember = group.members?.find(m => m.userId === user.id);
+                        const isLeader = currentMember?.role === 'Leader';
+                        
+                        if (isLeader) {
+                          // Leaders can edit and delete
+                          return (
+                            <>
+                              <button
+                                onClick={() => handleEditGroup(group)}
+                                className="p-2 text-gray-500 hover:text-primary hover:bg-blue-50 rounded transition"
+                                title="Edit group"
+                              >
+                                <Edit className="w-4 h-4" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  handleDeleteClick(group);
+                                }}
+                                className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded transition"
+                                title="Delete group"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </>
+                          );
+                        } else if (currentMember) {
+                          // Members can only leave
+                          return (
+                            <button
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                handleLeaveGroup(group);
+                              }}
+                              className="p-2 text-gray-500 hover:text-orange-600 hover:bg-orange-50 rounded transition"
+                              title="Leave group"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          );
+                        }
+                        return null;
+                      })()}
                     </div>
-                  </div>
+                    </div>
 
                   <div className="flex items-center space-x-2 text-sm text-gray-600">
                     <BookOpen className="w-4 h-4" />
@@ -487,6 +545,25 @@ const Collaboration = () => {
         confirmText="Delete All"
         cancelText="Cancel"
         type="danger"
+      />
+
+      {/* Leave Group Confirmation */}
+      <ConfirmDialog
+        isOpen={showLeaveConfirm}
+        onClose={() => {
+          setShowLeaveConfirm(false);
+          setGroupToLeave(null);
+        }}
+        onConfirm={handleLeaveConfirm}
+        title="Leave Group"
+        message={`Are you sure you want to leave "${groupToLeave?.groupName}"? ${
+          groupToLeave?.members?.length === 1 
+            ? 'Since you are the only member, the group will be permanently deleted.' 
+            : 'You will no longer have access to this group.'
+        }`}
+        confirmText="Leave Group"
+        cancelText="Cancel"
+        type="warning"
       />
     </div>
   );

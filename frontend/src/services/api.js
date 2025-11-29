@@ -74,6 +74,7 @@ export const groupAPI = {
   deleteGroup: (id) => api.delete(`/groups/${id}`),
   addMember: (groupId, member) => api.post(`/groups/${groupId}/members`, member),
   removeMember: (groupId, userId) => api.delete(`/groups/${groupId}/members/${userId}`),
+  leaveGroup: (groupId, userId) => api.post(`/groups/${groupId}/leave`, { userId }), // ✅ NEW
 };
 
 export const invitationAPI = {
