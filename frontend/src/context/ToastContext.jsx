@@ -17,9 +17,8 @@ export const ToastProvider = ({ children }) => {
 
   const showToast = (message, type = 'success', duration = 3000) => {
     // ✅ FIX: Use counter + timestamp to ensure uniqueness
-    const id = `${Date.now()}-${idCounter}`;
-    setIdCounter(prev => prev + 1);
-    setToasts(prev => [...prev, { id, message, type, duration }]);
+      const id = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      setToasts(prev => [...prev, { id, message, type, duration }]);
   };
 
   const removeToast = (id) => {

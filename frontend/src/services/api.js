@@ -85,10 +85,13 @@ export const invitationAPI = {
   cancelInvitation: (id) => api.delete(`/invitations/${id}`),
 };
 
-// ADD THIS SECTION - Discussion API
 export const discussionAPI = {
   getDiscussions: (groupId) => api.get(`/discussions/group/${groupId}`),
   createDiscussion: (data) => api.post('/discussions', data),
+  updateDiscussion: (id, data) => api.put(`/discussions/${id}`, data),
+  deleteDiscussion: (id) => api.delete(`/discussions/${id}`),
+  togglePin: (id) => api.post(`/discussions/${id}/pin`),
+  toggleLock: (id) => api.post(`/discussions/${id}/lock`),
   getMessages: (discussionId) => api.get(`/discussions/${discussionId}/messages`),
   createMessage: (data) => api.post('/discussions/messages', data),
 };

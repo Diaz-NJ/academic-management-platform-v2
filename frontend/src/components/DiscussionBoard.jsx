@@ -1,7 +1,9 @@
+// frontend/src/components/DiscussionBoard.jsx - COMPLETE REPLACEMENT
 import React, { useState, useEffect } from 'react';
-import { X, Plus, MessageSquare, Pin, Lock, Send, ArrowLeft } from 'lucide-react';
+import { X, Plus, MessageSquare, Pin, Lock, Send, ArrowLeft, Edit, Trash2, MoreVertical } from 'lucide-react';
 import { useToast } from '../context/ToastContext';
 import { formatRelativeDate } from '../utils/dateUtils';
+import ConfirmDialog from './ConfirmDialog';
 
 const DiscussionBoard = ({ group, onClose, currentUser, discussionAPI }) => {
   const { showToast } = useToast();
@@ -9,6 +11,15 @@ const DiscussionBoard = ({ group, onClose, currentUser, discussionAPI }) => {
   const [selectedDiscussion, setSelectedDiscussion] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showNewThread, setShowNewThread] = useState(false);
+  const [showEditThread, setShowEditThread] = useState(false);
+  const [editingDiscussion, setEditingDiscussion] = useState(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [discussionToDelete, setDiscussionToDelete] = useState(null);
+
+  // ✅ Check if current user is a leader
+  const isLeader = group.members?.some(
+    m => m.userId === currentUser.id && m.role === 'Leader'
+  );
 
   useEffect(() => {
     loadDiscussions();
@@ -41,74 +52,197 @@ const DiscussionBoard = ({ group, onClose, currentUser, discussionAPI }) => {
     }
   };
 
+  const handleEditThread = async (threadData) => {
+    try {
+      await discussionAPI.updateDiscussion(editingDiscussion.id, threadData);
+      showToast('Discussion updated!', 'success');
+      setShowEditThread(false);
+      setEditingDiscussion(null);
+      loadDiscussions();
+      if (selectedDiscussion?.id === editingDiscussion.id) {
+        setSelectedDiscussion(null);
+      }
+    } catch (error) {
+      showToast('Failed to update thread', 'error');
+    }
+  };
+
+  const handleDeleteThread = async () => {
+    try {
+      await discussionAPI.deleteDiscussion(discussionToDelete.id);
+      showToast('Discussion deleted', 'success');
+      setShowDeleteConfirm(false);
+      setDiscussionToDelete(null);
+      loadDiscussions();
+      if (selectedDiscussion?.id === discussionToDelete.id) {
+        setSelectedDiscussion(null);
+      }
+    } catch (error) {
+      showToast('Failed to delete thread', 'error');
+    }
+  };
+
+  const handleTogglePin = async (discussion) => {
+    try {
+      await discussionAPI.togglePin(discussion.id);
+      showToast(discussion.isPinned ? 'Thread unpinned' : 'Thread pinned', 'success');
+      loadDiscussions();
+    } catch (error) {
+      showToast('Failed to toggle pin', 'error');
+    }
+  };
+
+  const handleToggleLock = async (discussion) => {
+    try {
+      await discussionAPI.toggleLock(discussion.id);
+      showToast(discussion.isLocked ? 'Thread unlocked' : 'Thread locked', 'success');
+      loadDiscussions();
+      if (selectedDiscussion?.id === discussion.id) {
+        loadDiscussions(); // Refresh to update the selected discussion state
+      }
+    } catch (error) {
+      showToast('Failed to toggle lock', 'error');
+    }
+  };
+
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg w-full max-w-6xl max-h-[90vh] overflow-hidden shadow-xl flex flex-col">
-        {/* Header */}
-        <div className="p-6 border-b border-gray-200 bg-gradient-to-r from-purple-50 to-blue-50 flex-shrink-0">
-          <div className="flex justify-between items-start">
-            <div className="flex items-center space-x-3">
-              <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-blue-500 rounded-full flex items-center justify-center">
-                <MessageSquare className="w-6 h-6 text-white" />
+    <>
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="bg-white rounded-lg w-full max-w-6xl max-h-[90vh] overflow-hidden shadow-xl flex flex-col">
+          {/* Header */}
+          <div className="p-6 border-b border-gray-200 bg-gradient-to-r from-purple-50 to-blue-50 flex-shrink-0">
+            <div className="flex justify-between items-start">
+              <div className="flex items-center space-x-3">
+                <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-blue-500 rounded-full flex items-center justify-center">
+                  <MessageSquare className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <h2 className="text-2xl font-bold text-gray-800">
+                    Discussion Board
+                  </h2>
+                  <p className="text-sm text-gray-600">
+                    {group.groupName} • {discussions.length} threads
+                  </p>
+                </div>
               </div>
-              <div>
-                <h2 className="text-2xl font-bold text-gray-800">
-                  Discussion Board
-                </h2>
-                <p className="text-sm text-gray-600">
-                  {group.groupName} • {discussions.length} threads
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center space-x-2">
-              {!selectedDiscussion && (
+              <div className="flex items-center space-x-2">
+                {!selectedDiscussion && (
+                  <button
+                    onClick={() => setShowNewThread(true)}
+                    className="flex items-center space-x-2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-blue-600 transition font-medium"
+                  >
+                    <Plus className="w-5 h-5" />
+                    <span>New Thread</span>
+                  </button>
+                )}
                 <button
-                  onClick={() => setShowNewThread(true)}
-                  className="flex items-center space-x-2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-blue-600 transition font-medium"
+                  onClick={onClose}
+                  className="text-gray-400 hover:text-gray-600 transition"
                 >
-                  <Plus className="w-5 h-5" />
-                  <span>New Thread</span>
+                  <X className="w-6 h-6" />
                 </button>
-              )}
-              <button
-                onClick={onClose}
-                className="text-gray-400 hover:text-gray-600 transition"
-              >
-                <X className="w-6 h-6" />
-              </button>
+              </div>
             </div>
           </div>
-        </div>
 
-        {/* Content */}
-        <div className="flex-1 overflow-hidden flex">
-          {selectedDiscussion ? (
-            <DiscussionThread
-              discussion={selectedDiscussion}
-              currentUser={currentUser}
-              onBack={() => setSelectedDiscussion(null)}
-              discussionAPI={discussionAPI}
-              showToast={showToast}
-            />
-          ) : (
-            <DiscussionList
-              discussions={discussions}
-              loading={loading}
-              onSelectDiscussion={setSelectedDiscussion}
-              showNewThread={showNewThread}
-              onCreateThread={handleCreateThread}
-              onCancelNew={() => setShowNewThread(false)}
-            />
-          )}
+          {/* Content */}
+          <div className="flex-1 overflow-hidden flex">
+            {selectedDiscussion ? (
+              <DiscussionThread
+                discussion={selectedDiscussion}
+                currentUser={currentUser}
+                isLeader={isLeader}
+                onBack={() => {
+                  setSelectedDiscussion(null);
+                  loadDiscussions();
+                }}
+                onEdit={(disc) => {
+                  setEditingDiscussion(disc);
+                  setShowEditThread(true);
+                }}
+                onDelete={(disc) => {
+                  setDiscussionToDelete(disc);
+                  setShowDeleteConfirm(true);
+                }}
+                onTogglePin={handleTogglePin}
+                onToggleLock={handleToggleLock}
+                discussionAPI={discussionAPI}
+                showToast={showToast}
+              />
+            ) : (
+              <DiscussionList
+                discussions={discussions}
+                loading={loading}
+                currentUser={currentUser}
+                isLeader={isLeader}
+                onSelectDiscussion={setSelectedDiscussion}
+                onEdit={(disc) => {
+                  setEditingDiscussion(disc);
+                  setShowEditThread(true);
+                }}
+                onDelete={(disc) => {
+                  setDiscussionToDelete(disc);
+                  setShowDeleteConfirm(true);
+                }}
+                onTogglePin={handleTogglePin}
+                onToggleLock={handleToggleLock}
+                showNewThread={showNewThread}
+                onCreateThread={handleCreateThread}
+                onCancelNew={() => setShowNewThread(false)}
+              />
+            )}
+          </div>
         </div>
       </div>
-    </div>
+
+      {/* Edit Thread Modal */}
+      {showEditThread && editingDiscussion && (
+        <ThreadEditModal
+          discussion={editingDiscussion}
+          onSave={handleEditThread}
+          onCancel={() => {
+            setShowEditThread(false);
+            setEditingDiscussion(null);
+          }}
+        />
+      )}
+
+      {/* Delete Confirmation */}
+      <ConfirmDialog
+        isOpen={showDeleteConfirm}
+        onClose={() => {
+          setShowDeleteConfirm(false);
+          setDiscussionToDelete(null);
+        }}
+        onConfirm={handleDeleteThread}
+        title="Delete Discussion Thread"
+        message={`Are you sure you want to delete "${discussionToDelete?.title}"? All messages in this thread will be permanently deleted.`}
+        confirmText="Delete"
+        cancelText="Cancel"
+        type="danger"
+      />
+    </>
   );
 };
 
-const DiscussionList = ({ discussions, loading, onSelectDiscussion, showNewThread, onCreateThread, onCancelNew }) => {
+// ===== DISCUSSION LIST COMPONENT =====
+const DiscussionList = ({ 
+  discussions, 
+  loading, 
+  currentUser,
+  isLeader,
+  onSelectDiscussion, 
+  onEdit,
+  onDelete,
+  onTogglePin,
+  onToggleLock,
+  showNewThread, 
+  onCreateThread, 
+  onCancelNew 
+}) => {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
+  const [openMenuId, setOpenMenuId] = useState(null);
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -174,11 +308,13 @@ const DiscussionList = ({ discussions, loading, onSelectDiscussion, showNewThrea
           discussions.map(discussion => (
             <div
               key={discussion.id}
-              onClick={() => onSelectDiscussion(discussion)}
-              className="bg-white border-2 border-gray-200 rounded-lg p-4 hover:border-primary hover:shadow-md transition cursor-pointer"
+              className="bg-white border-2 border-gray-200 rounded-lg p-4 hover:border-primary hover:shadow-md transition relative"
             >
               <div className="flex items-start justify-between mb-2">
-                <div className="flex-1">
+                <div 
+                  className="flex-1 cursor-pointer"
+                  onClick={() => onSelectDiscussion(discussion)}
+                >
                   <div className="flex items-center space-x-2 mb-1">
                     {discussion.isPinned && <Pin className="w-4 h-4 text-blue-600" />}
                     {discussion.isLocked && <Lock className="w-4 h-4 text-red-600" />}
@@ -188,7 +324,76 @@ const DiscussionList = ({ discussions, loading, onSelectDiscussion, showNewThrea
                     <p className="text-sm text-gray-600 line-clamp-2">{discussion.description}</p>
                   )}
                 </div>
-                <span className="text-xs bg-gray-100 px-2 py-1 rounded-full">
+                
+                {/* Menu for thread creator or leaders */}
+                {(discussion.createdBy === currentUser.id || isLeader) && (
+                  <div className="relative">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setOpenMenuId(openMenuId === discussion.id ? null : discussion.id);
+                      }}
+                      className="p-2 hover:bg-gray-100 rounded transition"
+                    >
+                      <MoreVertical className="w-4 h-4 text-gray-600" />
+                    </button>
+                    
+                    {openMenuId === discussion.id && (
+                      <div className="absolute right-0 mt-1 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-10">
+                        {isLeader && (
+                          <>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onTogglePin(discussion);
+                                setOpenMenuId(null);
+                              }}
+                              className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center space-x-2"
+                            >
+                              <Pin className="w-4 h-4" />
+                              <span>{discussion.isPinned ? 'Unpin' : 'Pin'} Thread</span>
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onToggleLock(discussion);
+                                setOpenMenuId(null);
+                              }}
+                              className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center space-x-2"
+                            >
+                              <Lock className="w-4 h-4" />
+                              <span>{discussion.isLocked ? 'Unlock' : 'Lock'} Thread</span>
+                            </button>
+                          </>
+                        )}
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onEdit(discussion);
+                            setOpenMenuId(null);
+                          }}
+                          className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center space-x-2"
+                        >
+                          <Edit className="w-4 h-4" />
+                          <span>Edit Thread</span>
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onDelete(discussion);
+                            setOpenMenuId(null);
+                          }}
+                          className="w-full text-left px-4 py-2 hover:bg-red-50 text-red-600 flex items-center space-x-2"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                          <span>Delete Thread</span>
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
+                
+                <span className="text-xs bg-gray-100 px-2 py-1 rounded-full ml-2">
                   {discussion.messageCount || 0} replies
                 </span>
               </div>
@@ -204,10 +409,23 @@ const DiscussionList = ({ discussions, loading, onSelectDiscussion, showNewThrea
   );
 };
 
-const DiscussionThread = ({ discussion, currentUser, onBack, discussionAPI, showToast }) => {
+// ===== DISCUSSION THREAD COMPONENT =====
+const DiscussionThread = ({ 
+  discussion, 
+  currentUser, 
+  isLeader,
+  onBack, 
+  onEdit,
+  onDelete,
+  onTogglePin,
+  onToggleLock,
+  discussionAPI, 
+  showToast 
+}) => {
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(true);
+  const [showMenu, setShowMenu] = useState(false);
 
   useEffect(() => {
     loadMessages();
@@ -245,15 +463,83 @@ const DiscussionThread = ({ discussion, currentUser, onBack, discussionAPI, show
     <div className="flex-1 flex flex-col">
       {/* Thread Header */}
       <div className="p-4 border-b bg-gray-50 flex-shrink-0">
-        <button 
-          onClick={onBack} 
-          className="text-primary hover:underline mb-2 flex items-center space-x-1"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          <span>Back to threads</span>
-        </button>
-        <h3 className="text-xl font-bold text-gray-800">{discussion.title}</h3>
-        {discussion.description && <p className="text-sm text-gray-600 mt-1">{discussion.description}</p>}
+        <div className="flex items-center justify-between mb-2">
+          <button 
+            onClick={onBack} 
+            className="text-primary hover:underline flex items-center space-x-1"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            <span>Back to threads</span>
+          </button>
+          
+          {/* Menu for thread creator or leaders */}
+          {(discussion.createdBy === currentUser.id || isLeader) && (
+            <div className="relative">
+              <button
+                onClick={() => setShowMenu(!showMenu)}
+                className="p-2 hover:bg-gray-100 rounded transition"
+              >
+                <MoreVertical className="w-5 h-5 text-gray-600" />
+              </button>
+              
+              {showMenu && (
+                <div className="absolute right-0 mt-1 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-10">
+                  {isLeader && (
+                    <>
+                      <button
+                        onClick={() => {
+                          onTogglePin(discussion);
+                          setShowMenu(false);
+                        }}
+                        className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center space-x-2"
+                      >
+                        <Pin className="w-4 h-4" />
+                        <span>{discussion.isPinned ? 'Unpin' : 'Pin'} Thread</span>
+                      </button>
+                      <button
+                        onClick={() => {
+                          onToggleLock(discussion);
+                          setShowMenu(false);
+                        }}
+                        className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center space-x-2"
+                      >
+                        <Lock className="w-4 h-4" />
+                        <span>{discussion.isLocked ? 'Unlock' : 'Lock'} Thread</span>
+                      </button>
+                    </>
+                  )}
+                  <button
+                    onClick={() => {
+                      onEdit(discussion);
+                      setShowMenu(false);
+                    }}
+                    className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center space-x-2"
+                  >
+                    <Edit className="w-4 h-4" />
+                    <span>Edit Thread</span>
+                  </button>
+                  <button
+                    onClick={() => {
+                      onDelete(discussion);
+                      setShowMenu(false);
+                    }}
+                    className="w-full text-left px-4 py-2 hover:bg-red-50 text-red-600 flex items-center space-x-2"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    <span>Delete Thread</span>
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+        
+        <div className="flex items-center space-x-2 mb-1">
+          {discussion.isPinned && <Pin className="w-4 h-4 text-blue-600" />}
+          {discussion.isLocked && <Lock className="w-4 h-4 text-red-600" />}
+          <h3 className="text-xl font-bold text-gray-800">{discussion.title}</h3>
+        </div>
+        {discussion.description && <p className="text-sm text-gray-600">{discussion.description}</p>}
       </div>
 
       {/* Messages */}
@@ -287,7 +573,7 @@ const DiscussionThread = ({ discussion, currentUser, onBack, discussionAPI, show
       </div>
 
       {/* Message Input */}
-      {!discussion.isLocked && (
+      {!discussion.isLocked ? (
         <form onSubmit={handleSendMessage} className="p-4 border-t bg-white flex-shrink-0">
           <div className="flex space-x-2">
             <input
@@ -307,9 +593,76 @@ const DiscussionThread = ({ discussion, currentUser, onBack, discussionAPI, show
             </button>
           </div>
         </form>
+      ) : (
+        <div className="p-4 border-t bg-red-50 text-center">
+          <Lock className="w-6 h-6 mx-auto mb-2 text-red-600" />
+          <p className="text-sm text-red-800 font-medium">This thread is locked. No new messages can be posted.</p>
+        </div>
       )}
     </div>
   );
 };
 
+// ===== THREAD EDIT MODAL =====
+const ThreadEditModal = ({ discussion, onSave, onCancel }) => {
+  const [title, setTitle] = useState(discussion.title);
+  const [description, setDescription] = useState(discussion.description || '');
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    onSave({ title, description });
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60] p-4">
+      <div className="bg-white rounded-lg w-full max-w-md shadow-xl">
+<div className="p-6">
+<h3 className="text-xl font-bold text-gray-800 mb-4">Edit Discussion Thread</h3>
+<form onSubmit={handleSubmit} className="space-y-4">
+<div>
+<label className="block text-sm font-medium text-gray-700 mb-1">
+Thread Title *
+</label>
+<input
+type="text"
+value={title}
+onChange={(e) => setTitle(e.target.value)}
+placeholder="Thread title..."
+className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary"
+required
+/>
+</div>
+<div>
+<label className="block text-sm font-medium text-gray-700 mb-1">
+Description
+</label>
+<textarea
+value={description}
+onChange={(e) => setDescription(e.target.value)}
+placeholder="What is this thread about?"
+rows="3"
+className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary"
+/>
+</div>
+<div className="flex space-x-3 pt-4">
+<button
+             type="button"
+             onClick={onCancel}
+             className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
+           >
+Cancel
+</button>
+<button
+             type="submit"
+             className="flex-1 px-4 py-2 bg-primary text-white rounded-lg hover:bg-blue-600 transition"
+           >
+Save Changes
+</button>
+</div>
+</form>
+</div>
+</div>
+</div>
+);
+};
 export default DiscussionBoard;

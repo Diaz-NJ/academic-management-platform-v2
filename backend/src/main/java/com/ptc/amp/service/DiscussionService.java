@@ -42,4 +42,48 @@ public class DiscussionService {
         
         return created;
     }
+
+    public Discussion updateDiscussion(Long discussionId, String title, String description) {
+        Optional<Discussion> discussionOpt = discussionRepository.findById(discussionId);
+        if (discussionOpt.isEmpty()) {
+            throw new RuntimeException("Discussion not found");
+        }
+        
+        Discussion discussion = discussionOpt.get();
+        discussion.setTitle(title);
+        discussion.setDescription(description);
+        discussion.setUpdatedAt(java.time.LocalDateTime.now());
+        
+        return discussionRepository.save(discussion);
+    }
+
+    public boolean deleteDiscussion(Long discussionId) {
+        if (discussionRepository.existsById(discussionId)) {
+            discussionRepository.deleteById(discussionId);
+            return true;
+        }
+        return false;
+    }
+
+    public Discussion togglePin(Long discussionId) {
+        Optional<Discussion> discussionOpt = discussionRepository.findById(discussionId);
+        if (discussionOpt.isEmpty()) {
+            throw new RuntimeException("Discussion not found");
+        }
+        
+        Discussion discussion = discussionOpt.get();
+        discussion.setIsPinned(!discussion.getIsPinned());
+        return discussionRepository.save(discussion);
+    }
+
+    public Discussion toggleLock(Long discussionId) {
+        Optional<Discussion> discussionOpt = discussionRepository.findById(discussionId);
+        if (discussionOpt.isEmpty()) {
+            throw new RuntimeException("Discussion not found");
+        }
+        
+        Discussion discussion = discussionOpt.get();
+        discussion.setIsLocked(!discussion.getIsLocked());
+        return discussionRepository.save(discussion);
+    }
 }

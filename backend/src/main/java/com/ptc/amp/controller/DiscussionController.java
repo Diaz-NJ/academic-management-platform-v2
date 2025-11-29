@@ -60,6 +60,65 @@ public class DiscussionController {
         }
     }
 
+      @PutMapping("/{discussionId}")
+    public ResponseEntity<?> updateDiscussion(
+            @PathVariable Long discussionId,
+            @RequestBody Map<String, Object> discussionData) {
+        try {
+            String title = (String) discussionData.get("title");
+            String description = (String) discussionData.get("description");
+            
+            Discussion updated = discussionService.updateDiscussion(discussionId, title, description);
+            return ResponseEntity.ok(updated);
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(Map.of(
+                "success", false,
+                "message", "Failed to update discussion: " + e.getMessage()
+            ));
+        }
+    }
+
+    @DeleteMapping("/{discussionId}")
+    public ResponseEntity<?> deleteDiscussion(@PathVariable Long discussionId) {
+        try {
+            boolean deleted = discussionService.deleteDiscussion(discussionId);
+            return deleted ? 
+                ResponseEntity.ok(Map.of("success", true, "message", "Discussion deleted")) :
+                ResponseEntity.notFound().build();
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(Map.of(
+                "success", false,
+                "message", "Failed to delete discussion: " + e.getMessage()
+            ));
+        }
+    }
+
+    @PostMapping("/{discussionId}/pin")
+    public ResponseEntity<?> togglePin(@PathVariable Long discussionId) {
+        try {
+            Discussion updated = discussionService.togglePin(discussionId);
+            return ResponseEntity.ok(updated);
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(Map.of(
+                "success", false,
+                "message", "Failed to toggle pin: " + e.getMessage()
+            ));
+        }
+    }
+
+    @PostMapping("/{discussionId}/lock")
+    public ResponseEntity<?> toggleLock(@PathVariable Long discussionId) {
+        try {
+            Discussion updated = discussionService.toggleLock(discussionId);
+            return ResponseEntity.ok(updated);
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(Map.of(
+                "success", false,
+                "message", "Failed to toggle lock: " + e.getMessage()
+            ));
+        }
+    }
+
     // ===== MESSAGE ENDPOINTS =====
     
     @GetMapping("/{discussionId}/messages")
