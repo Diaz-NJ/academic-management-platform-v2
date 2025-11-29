@@ -2,106 +2,91 @@ package com.ptc.amp.controller;
 
 import com.ptc.amp.model.Discussion;
 import com.ptc.amp.model.DiscussionMessage;
+import com.ptc.amp.model.User;
 import com.ptc.amp.service.DiscussionService;
+import com.ptc.amp.service.DiscussionMessageService;
+import com.ptc.amp.service.AuthService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import java.util.Map;
+
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/discussions")
 public class DiscussionController {
     private final DiscussionService discussionService;
+    private final DiscussionMessageService messageService;
+    private final AuthService authService;
 
-    public DiscussionController(DiscussionService discussionService) {
+    public DiscussionController(
+            DiscussionService discussionService,
+            DiscussionMessageService messageService,
+            AuthService authService) {
         this.discussionService = discussionService;
+        this.messageService = messageService;
+        this.authService = authService;
     }
 
-    // Create new discussion thread
-    @PostMapping
-    public ResponseEntity<Discussion> createDiscussion(@RequestBody Discussion discussion) {
-        Discussion created = discussionService.createDiscussion(discussion);
-        return ResponseEntity.ok(created);
-    }
-
-    // Get all discussions for a group
+    // ===== DISCUSSION ENDPOINTS =====
+    
     @GetMapping("/group/{groupId}")
     public ResponseEntity<List<Discussion>> getGroupDiscussions(@PathVariable Long groupId) {
-        List<Discussion> discussions = discussionService.getDiscussionsByGroupId(groupId);
+        List<Discussion> discussions = discussionService.getGroupDiscussions(groupId);
         return ResponseEntity.ok(discussions);
     }
 
-    // Get a single discussion
-    @GetMapping("/{id}")
-    public ResponseEntity<Discussion> getDiscussion(@PathVariable Long id) {
-        return discussionService.getDiscussionById(id)
-            .map(ResponseEntity::ok)
-            .orElse(ResponseEntity.notFound().build());
+    @PostMapping
+    public ResponseEntity<?> createDiscussion(@RequestBody Map<String, Object> discussionData) {
+        try {
+            Long groupId = ((Number) discussionData.get("groupId")).longValue();
+            Long createdBy = ((Number) discussionData.get("createdBy")).longValue();
+            String title = (String) discussionData.get("title");
+            String description = (String) discussionData.get("description");
+
+            Discussion discussion = new Discussion();
+            discussion.setGroupId(groupId);
+            discussion.setCreatedBy(createdBy);
+            discussion.setTitle(title);
+            discussion.setDescription(description);
+
+            Discussion created = discussionService.createDiscussion(discussion);
+            return ResponseEntity.ok(created);
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(Map.of(
+                "success", false,
+                "message", "Failed to create discussion: " + e.getMessage()
+            ));
+        }
     }
 
-    // Update discussion (title, description, pinned, locked)
-    @PutMapping("/{id}")
-    public ResponseEntity<Discussion> updateDiscussion(
-            @PathVariable Long id, 
-            @RequestBody Discussion discussion) {
-        Discussion updated = discussionService.updateDiscussion(id, discussion);
-        return ResponseEntity.ok(updated);
-    }
-
-    // Delete discussion
-    @DeleteMapping("/{id}")
-    public ResponseEntity<?> deleteDiscussion(@PathVariable Long id) {
-        discussionService.deleteDiscussion(id);
-        return ResponseEntity.ok(Map.of(
-            "success", true,
-            "message", "Discussion deleted"
-        ));
-    }
-
-    // Create new message in discussion
-    @PostMapping("/messages")
-    public ResponseEntity<DiscussionMessage> createMessage(@RequestBody DiscussionMessage message) {
-        DiscussionMessage created = discussionService.createMessage(message);
-        return ResponseEntity.ok(created);
-    }
-
-    // Get all messages for a discussion
+    // ===== MESSAGE ENDPOINTS =====
+    
     @GetMapping("/{discussionId}/messages")
-    public ResponseEntity<List<DiscussionMessage>> getMessages(
-            @PathVariable Long discussionId,
-            @RequestHeader("Session-Id") String sessionId) {
-        
-        // For now, we'll get userId from the first message or default to 0
-        // In production, you'd validate the session and get the real userId
-        List<DiscussionMessage> messages = discussionService.getMessagesByDiscussionId(discussionId, 0L);
+    public ResponseEntity<List<DiscussionMessage>> getDiscussionMessages(@PathVariable Long discussionId) {
+        List<DiscussionMessage> messages = messageService.getDiscussionMessages(discussionId);
         return ResponseEntity.ok(messages);
     }
 
-    // Update message
-    @PutMapping("/messages/{id}")
-    public ResponseEntity<DiscussionMessage> updateMessage(
-            @PathVariable Long id,
-            @RequestBody Map<String, Object> updateData) {
-        
-        String newContent = (String) updateData.get("content");
-        Long userId = ((Number) updateData.get("userId")).longValue();
-        
-        DiscussionMessage updated = discussionService.updateMessage(id, newContent, userId);
-        return ResponseEntity.ok(updated);
-    }
+    @PostMapping("/messages")
+    public ResponseEntity<?> createMessage(@RequestBody Map<String, Object> messageData) {
+        try {
+            Long discussionId = ((Number) messageData.get("discussionId")).longValue();
+            Long userId = ((Number) messageData.get("userId")).longValue();
+            String content = (String) messageData.get("content");
 
-    // Delete message
-    @DeleteMapping("/messages/{id}")
-    public ResponseEntity<?> deleteMessage(
-            @PathVariable Long id,
-            @RequestBody Map<String, Object> deleteData) {
-        
-        Long userId = ((Number) deleteData.get("userId")).longValue();
-        discussionService.deleteMessage(id, userId);
-        
-        return ResponseEntity.ok(Map.of(
-            "success", true,
-            "message", "Message deleted"
-        ));
+            DiscussionMessage message = new DiscussionMessage();
+            message.setDiscussionId(discussionId);
+            message.setUserId(userId);
+            message.setContent(content);
+
+            DiscussionMessage created = messageService.createMessage(message);
+            return ResponseEntity.ok(created);
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(Map.of(
+                "success", false,
+                "message", "Failed to create message: " + e.getMessage()
+            ));
+        }
     }
 }
