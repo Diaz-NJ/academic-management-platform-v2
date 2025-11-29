@@ -107,16 +107,24 @@ public ResponseEntity<?> deleteUser(
         @RequestHeader("Session-Id") String sessionId,
         @RequestBody Map<String, String> requestData) {
     
-    // Verify session
+    // ✅ Verify session
     Optional<Long> sessionUserIdOpt = authService.validateSession(sessionId);
-    if (sessionUserIdOpt.isEmpty() || !sessionUserIdOpt.get().equals(id)) {
+    if (sessionUserIdOpt.isEmpty()) {
         return ResponseEntity.status(403).body(Map.of(
             "success", false, 
-            "message", "Unauthorized"
+            "message", "Session invalid or expired"
         ));
     }
     
-    // ✅ SECURITY: Require password confirmation
+    // ✅ Verify user is deleting their own account
+    if (!sessionUserIdOpt.get().equals(id)) {
+        return ResponseEntity.status(403).body(Map.of(
+            "success", false, 
+            "message", "Unauthorized - You can only delete your own account"
+        ));
+    }
+    
+    // ✅ Get password from request body
     String password = requestData.get("password");
     if (password == null || password.isEmpty()) {
         return ResponseEntity.badRequest().body(Map.of(
@@ -125,12 +133,11 @@ public ResponseEntity<?> deleteUser(
         ));
     }
     
-    // Verify password before deletion
+    // ✅ Verify password and delete
     Map<String, Object> result = authService.deleteUserWithPasswordConfirmation(id, password);
     boolean success = (boolean) result.get("success");
     
     if (success) {
-        // Log out the user
         authService.logout(sessionId);
         return ResponseEntity.ok(result);
     } else {

@@ -135,8 +135,12 @@ const Settings = () => {
 
   try {
     const sessionId = localStorage.getItem('sessionId');
+    
+    // ✅ FIX: Use the correct API URL
+    const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8080/api';
+    
     const response = await axios.delete(
-      `http://localhost:8080/api/auth/users/${user.id}`,
+      `${API_URL}/auth/users/${user.id}`,
       {
         headers: {
           'Session-Id': sessionId,
@@ -151,15 +155,14 @@ const Settings = () => {
     if (response.data.success) {
       showToast('Account deleted successfully', 'success');
       
-      // ✅ FIX: Clear local storage FIRST, then navigate
-      // Don't call logout() because the session is already invalid
+      // Clear local storage
       localStorage.removeItem('sessionId');
       localStorage.removeItem('user');
       
       // Redirect to login after short delay
       setTimeout(() => {
         navigate('/login');
-        window.location.reload(); // Force a clean reload
+        window.location.reload();
       }, 1500);
     }
   } catch (error) {

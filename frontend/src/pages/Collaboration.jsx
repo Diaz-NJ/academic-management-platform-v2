@@ -388,16 +388,6 @@ const Collaboration = () => {
         </>
       )}
 
-      {/* Info Box */}
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
-        <h3 className="font-semibold text-blue-900 mb-2">📌 Coming Soon</h3>
-        <ul className="text-blue-800 text-sm space-y-1">
-          <li>• Real-time chat with group members</li>
-          <li>• File sharing and document collaboration</li>
-          <li>• Add registered users to groups via email/student ID</li>
-        </ul>
-      </div>
-
       {/* Group Modal */}
       {showGroupModal && (
         <GroupModal
