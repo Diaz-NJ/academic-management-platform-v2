@@ -85,6 +85,7 @@ export const invitationAPI = {
   cancelInvitation: (id) => api.delete(`/invitations/${id}`),
 };
 
+// ADD THIS SECTION - Discussion API
 export const discussionAPI = {
   getDiscussions: (groupId) => api.get(`/discussions/group/${groupId}`),
   createDiscussion: (data) => api.post('/discussions', data),

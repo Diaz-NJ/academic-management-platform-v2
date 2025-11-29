@@ -1,4 +1,3 @@
-// frontend/src/components/InvitationsPanel.jsx
 import React, { useState, useEffect } from 'react';
 import { Mail, Check, X } from 'lucide-react';
 import { invitationAPI } from '../services/api';

@@ -1,4 +1,3 @@
-// backend/src/main/java/com/ptc/amp/model/Discussion.java
 package com.ptc.amp.model;
 
 import jakarta.persistence.*;

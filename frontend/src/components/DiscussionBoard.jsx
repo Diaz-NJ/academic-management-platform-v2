@@ -1,4 +1,3 @@
-// frontend/src/components/DiscussionBoard.jsx
 import React, { useState, useEffect } from 'react';
 import { X, Plus, MessageSquare, Pin, Lock, Send, ArrowLeft } from 'lucide-react';
 import { useToast } from '../context/ToastContext';

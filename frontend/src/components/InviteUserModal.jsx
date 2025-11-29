@@ -1,4 +1,3 @@
-// frontend/src/components/InviteUserModal.jsx
 import React, { useState } from 'react';
 import { X, Mail, UserPlus, Search } from 'lucide-react';
 import { useToast } from '../context/ToastContext';

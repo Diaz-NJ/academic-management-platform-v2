@@ -79,4 +79,4 @@ public class GroupInvitation {
 
     public String getInvitedUserEmail() { return invitedUserEmail; }
     public void setInvitedUserEmail(String invitedUserEmail) { this.invitedUserEmail = invitedUserEmail; }
-} 
+}
