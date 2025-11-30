@@ -1,6 +1,6 @@
-// frontend/src/components/DiscussionBoard.jsx - COMPLETE REPLACEMENT
+// frontend/src/components/DiscussionBoard.jsx - FIXED VERSION
 import React, { useState, useEffect } from 'react';
-import { X, Plus, MessageSquare, Pin, Lock, Send, ArrowLeft, Edit, Trash2, MoreVertical } from 'lucide-react';
+import { X, Plus, MessageSquare, Pin, Lock, Send, ArrowLeft, Edit, Trash2, MoreVertical, ArrowDown } from 'lucide-react';
 import { useToast } from '../context/ToastContext';
 import { formatRelativeDate } from '../utils/dateUtils';
 import ConfirmDialog from './ConfirmDialog';
@@ -82,28 +82,26 @@ const DiscussionBoard = ({ group, onClose, currentUser, discussionAPI }) => {
     }
   };
 
-    const handleTogglePin = async (discussion) => {
-        try {
-        const response = await discussionAPI.togglePin(discussion.id);
-        showToast(response.data.isPinned ? 'Thread pinned' : 'Thread unpinned', 'success');
-        
-        // ✅ Update selected discussion if currently viewing it
-        if (selectedDiscussion?.id === discussion.id) {
-            setSelectedDiscussion(response.data);
-        }
-        
-        loadDiscussions();
-        } catch (error) {
-        showToast('Failed to toggle pin', 'error');
-        }
-    };
+  const handleTogglePin = async (discussion) => {
+    try {
+      const response = await discussionAPI.togglePin(discussion.id);
+      showToast(response.data.isPinned ? 'Thread pinned' : 'Thread unpinned', 'success');
+      
+      if (selectedDiscussion?.id === discussion.id) {
+        setSelectedDiscussion(response.data);
+      }
+      
+      loadDiscussions();
+    } catch (error) {
+      showToast('Failed to toggle pin', 'error');
+    }
+  };
 
-const handleToggleLock = async (discussion) => {
+  const handleToggleLock = async (discussion) => {
     try {
       const response = await discussionAPI.toggleLock(discussion.id);
       showToast(response.data.isLocked ? 'Thread locked' : 'Thread unlocked', 'success');
       
-      // ✅ Update selected discussion if currently viewing it
       if (selectedDiscussion?.id === discussion.id) {
         setSelectedDiscussion(response.data);
       }
@@ -155,7 +153,7 @@ const handleToggleLock = async (discussion) => {
           </div>
 
           {/* Content */}
-          <div className="flex-1 overflow-hidden flex">
+          <div className="flex-1 overflow-hidden flex flex-col">
             {selectedDiscussion ? (
               <DiscussionThread
                 discussion={selectedDiscussion}
@@ -269,166 +267,173 @@ const DiscussionList = ({
   }
 
   return (
-    <div className="flex-1 overflow-y-auto p-6 pb-40" style={{ position: 'relative' }}>
-      {showNewThread && (
-        <form onSubmit={handleSubmit} className="bg-blue-50 border-2 border-blue-200 rounded-lg p-4 mb-6">
-          <h3 className="font-semibold text-gray-800 mb-3">Create New Thread</h3>
-          <input
-            type="text"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            placeholder="Thread title..."
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg mb-3 focus:ring-2 focus:ring-primary"
-            required
-          />
-          <textarea
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            placeholder="What would you like to discuss?"
-            rows="3"
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg mb-3 focus:ring-2 focus:ring-primary"
-          />
-          <div className="flex space-x-2">
-            <button 
-              type="button" 
-              onClick={onCancelNew} 
-              className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
-            >
-              Cancel
-            </button>
-            <button 
-              type="submit" 
-              className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-blue-600 transition"
-            >
-              Create Thread
-            </button>
-          </div>
-        </form>
-      )}
+    <>
+      {/* ✅ FIXED: Scrollable content area */}
+      <div className="flex-1 overflow-y-auto p-6 pb-40" style={{ position: 'relative' }}>
+        {showNewThread && (
+          <form onSubmit={handleSubmit} className="bg-blue-50 border-2 border-blue-200 rounded-lg p-4 mb-6">
+            <h3 className="font-semibold text-gray-800 mb-3">Create New Thread</h3>
+            <input
+              type="text"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="Thread title..."
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg mb-3 focus:ring-2 focus:ring-primary"
+              required
+            />
+            <textarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="What would you like to discuss?"
+              rows="3"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg mb-3 focus:ring-2 focus:ring-primary"
+            />
+            <div className="flex space-x-2">
+              <button 
+                type="button" 
+                onClick={onCancelNew} 
+                className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
+              >
+                Cancel
+              </button>
+              <button 
+                type="submit" 
+                className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-blue-600 transition"
+              >
+                Create Thread
+              </button>
+            </div>
+          </form>
+        )}
 
-      <div className="space-y-3">
-        {discussions.length === 0 ? (
-          <div className="text-center py-12">
-            <MessageSquare className="w-16 h-16 mx-auto text-gray-300 mb-4" />
-            <h3 className="text-lg font-semibold text-gray-800 mb-2">No Discussions Yet</h3>
-            <p className="text-gray-600">Start a new thread to begin the conversation!</p>
-          </div>
-        ) : (
-          discussions.map(discussion => (
-            <div
+        <div className="space-y-3">
+          {discussions.length === 0 ? (
+            <div className="text-center py-12">
+              <MessageSquare className="w-16 h-16 mx-auto text-gray-300 mb-4" />
+              <h3 className="text-lg font-semibold text-gray-800 mb-2">No Discussions Yet</h3>
+              <p className="text-gray-600">Start a new thread to begin the conversation!</p>
+            </div>
+          ) : (
+            discussions.map(discussion => (
+              <div
                 key={discussion.id}
                 className="bg-white border-2 border-gray-200 rounded-lg p-4 hover:border-primary hover:shadow-md transition relative z-0"
                 style={{ zIndex: openMenuId === discussion.id ? 10 : 0 }}
-                >
-              <div className="flex items-start justify-between mb-2">
-                <div 
-                  className="flex-1 cursor-pointer"
-                  onClick={() => onSelectDiscussion(discussion)}
-                >
-                  <div className="flex items-center space-x-2 mb-1">
-                    {discussion.isPinned && <Pin className="w-4 h-4 text-blue-600" />}
-                    {discussion.isLocked && <Lock className="w-4 h-4 text-red-600" />}
-                    <h3 className="font-semibold text-gray-800">{discussion.title}</h3>
+              >
+                <div className="flex items-start justify-between mb-2">
+                  <div 
+                    className="flex-1 cursor-pointer"
+                    onClick={() => onSelectDiscussion(discussion)}
+                  >
+                    <div className="flex items-center space-x-2 mb-1">
+                      {discussion.isPinned && <Pin className="w-4 h-4 text-blue-600" />}
+                      {discussion.isLocked && <Lock className="w-4 h-4 text-red-600" />}
+                      <h3 className="font-semibold text-gray-800">{discussion.title}</h3>
+                    </div>
+                    {discussion.description && (
+                      <p className="text-sm text-gray-600 line-clamp-2">{discussion.description}</p>
+                    )}
                   </div>
-                  {discussion.description && (
-                    <p className="text-sm text-gray-600 line-clamp-2">{discussion.description}</p>
-                  )}
-                </div>
-                
-                {/* Menu for thread creator or leaders */}
-                {(discussion.createdBy === currentUser.id || isLeader) && (
-                  <div className="relative">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setOpenMenuId(openMenuId === discussion.id ? null : discussion.id);
-                      }}
-                      className="p-2 hover:bg-gray-100 rounded transition"
-                    >
-                      <MoreVertical className="w-4 h-4 text-gray-600" />
-                    </button>
-                    
-                    {openMenuId === discussion.id && (
+                  
+                  {/* Menu for thread creator or leaders */}
+                  {(discussion.createdBy === currentUser.id || isLeader) && (
+                    <div className="relative">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setOpenMenuId(openMenuId === discussion.id ? null : discussion.id);
+                        }}
+                        className="p-2 hover:bg-gray-100 rounded transition"
+                      >
+                        <MoreVertical className="w-4 h-4 text-gray-600" />
+                      </button>
+                      
+                      {openMenuId === discussion.id && (
                         <div 
-                            className="absolute right-0 top-full mt-1 w-48 bg-white rounded-lg shadow-xl border border-gray-200 py-1 z-50"
-                            style={{ 
+                          className="absolute right-0 top-full mt-1 w-48 bg-white rounded-lg shadow-xl border border-gray-200 py-1 z-50"
+                          style={{ 
                             maxHeight: '80vh',
                             overflowY: 'auto'
-                            }}
+                          }}
                         >
-                            {isLeader && (
+                          {isLeader && (
                             <>
-                                <button
+                              <button
                                 onClick={(e) => {
-                                    e.stopPropagation();
-                                    onTogglePin(discussion);
-                                    setOpenMenuId(null);
+                                  e.stopPropagation();
+                                  onTogglePin(discussion);
+                                  setOpenMenuId(null);
                                 }}
                                 className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center space-x-2 text-sm"
-                                >
+                              >
                                 <Pin className="w-4 h-4" />
                                 <span>{discussion.isPinned ? 'Unpin' : 'Pin'} Thread</span>
-                                </button>
-                                <button
+                              </button>
+                              <button
                                 onClick={(e) => {
-                                    e.stopPropagation();
-                                    onToggleLock(discussion);
-                                    setOpenMenuId(null);
+                                  e.stopPropagation();
+                                  onToggleLock(discussion);
+                                  setOpenMenuId(null);
                                 }}
                                 className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center space-x-2 text-sm"
-                                >
+                              >
                                 <Lock className="w-4 h-4" />
                                 <span>{discussion.isLocked ? 'Unlock' : 'Lock'} Thread</span>
-                                </button>
-                                <div className="border-t border-gray-200 my-1"></div>
+                              </button>
+                              <div className="border-t border-gray-200 my-1"></div>
                             </>
-                            )}
-                            <button
+                          )}
+                          <button
                             onClick={(e) => {
-                                e.stopPropagation();
-                                onEdit(discussion);
-                                setOpenMenuId(null);
+                              e.stopPropagation();
+                              onEdit(discussion);
+                              setOpenMenuId(null);
                             }}
                             className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center space-x-2 text-sm"
-                            >
+                          >
                             <Edit className="w-4 h-4" />
                             <span>Edit Thread</span>
-                            </button>
-                            <button
+                          </button>
+                          <button
                             onClick={(e) => {
-                                e.stopPropagation();
-                                onDelete(discussion);
-                                setOpenMenuId(null);
+                              e.stopPropagation();
+                              onDelete(discussion);
+                              setOpenMenuId(null);
                             }}
                             className="w-full text-left px-4 py-2 hover:bg-red-50 text-red-600 flex items-center space-x-2 text-sm"
-                            >
+                          >
                             <Trash2 className="w-4 h-4" />
                             <span>Delete Thread</span>
-                            </button>
+                          </button>
                         </div>
-                        )}
-                        </div>
-                        )}
-                
-                <span className="text-xs bg-gray-100 px-2 py-1 rounded-full ml-2">
-                  {discussion.messageCount || 0} replies
-                </span>
-              </div>
-              <div className="flex items-center justify-between text-xs text-gray-500">
-                <span>By {discussion.creatorName || 'Unknown'}</span>
-                <span>{formatRelativeDate(discussion.createdAt)}</span>
-
-                <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-gray-50 via-gray-50/50 to-transparent pointer-events-none border-t border-gray-100">
-                <div className="flex items-end justify-center h-full pb-4 text-xs text-gray-400">
-                <span>Scroll for more threads</span>
+                      )}
+                    </div>
+                  )}
+                  
+                  <span className="text-xs bg-gray-100 px-2 py-1 rounded-full ml-2">
+                    {discussion.messageCount || 0} replies
+                  </span>
                 </div>
-            </div>
-            </div>
+                <div className="flex items-center justify-between text-xs text-gray-500">
+                  <span>By {discussion.creatorName || 'Unknown'}</span>
+                  <span>{formatRelativeDate(discussion.createdAt)}</span>
+                </div>
               </div>
-          ))
-        )}
+            ))
+          )}
+        </div>
       </div>
-    </div>
+
+      {/* ✅ FIXED: Footer with scroll hint */}
+      {discussions.length > 3 && (
+        <div className="flex-shrink-0 p-4 border-t border-gray-200 bg-gray-50">
+          <div className="flex items-center justify-center space-x-2 text-sm text-gray-600">
+            <ArrowDown className="w-4 h-4 animate-bounce" />
+            <span>Scroll for more threads</span>
+          </div>
+        </div>
+      )}
+    </>
   );
 };
 
@@ -483,7 +488,7 @@ const DiscussionThread = ({
   };
 
   return (
-    <div className="flex-1 flex flex-col">
+    <>
       {/* Thread Header */}
       <div className="p-4 border-b bg-gray-50 flex-shrink-0">
         <div className="flex items-center justify-between mb-2">
@@ -622,7 +627,7 @@ const DiscussionThread = ({
           <p className="text-sm text-red-800 font-medium">This thread is locked. No new messages can be posted.</p>
         </div>
       )}
-    </div>
+    </>
   );
 };
 
@@ -639,53 +644,54 @@ const ThreadEditModal = ({ discussion, onSave, onCancel }) => {
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60] p-4">
       <div className="bg-white rounded-lg w-full max-w-md shadow-xl">
-<div className="p-6">
-<h3 className="text-xl font-bold text-gray-800 mb-4">Edit Discussion Thread</h3>
-<form onSubmit={handleSubmit} className="space-y-4">
-<div>
-<label className="block text-sm font-medium text-gray-700 mb-1">
-Thread Title *
-</label>
-<input
-type="text"
-value={title}
-onChange={(e) => setTitle(e.target.value)}
-placeholder="Thread title..."
-className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary"
-required
-/>
-</div>
-<div>
-<label className="block text-sm font-medium text-gray-700 mb-1">
-Description
-</label>
-<textarea
-value={description}
-onChange={(e) => setDescription(e.target.value)}
-placeholder="What is this thread about?"
-rows="3"
-className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary"
-/>
-</div>
-<div className="flex space-x-3 pt-4">
-<button
-             type="button"
-             onClick={onCancel}
-             className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
-           >
-Cancel
-</button>
-<button
-             type="submit"
-             className="flex-1 px-4 py-2 bg-primary text-white rounded-lg hover:bg-blue-600 transition"
-           >
-Save Changes
-</button>
-</div>
-</form>
-</div>
-</div>
-</div>
-);
+        <div className="p-6">
+          <h3 className="text-xl font-bold text-gray-800 mb-4">Edit Discussion Thread</h3>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Thread Title *
+              </label>
+              <input
+                type="text"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="Thread title..."
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Description
+              </label>
+              <textarea
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="What is this thread about?"
+                rows="3"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary"
+              />
+            </div>
+            <div className="flex space-x-3 pt-4">
+              <button
+                type="button"
+                onClick={onCancel}
+                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="flex-1 px-4 py-2 bg-primary text-white rounded-lg hover:bg-blue-600 transition"
+              >
+                Save Changes
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  );
 };
+
 export default DiscussionBoard;
