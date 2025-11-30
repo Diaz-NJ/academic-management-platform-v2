@@ -349,59 +349,66 @@ const DiscussionList = ({
                     </button>
                     
                     {openMenuId === discussion.id && (
-                    <div className="absolute right-0 top-8 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50">
-                        {isLeader && (
-                          <>
+                        <div 
+                            className="absolute right-0 top-full mt-1 w-48 bg-white rounded-lg shadow-xl border border-gray-200 py-1 z-50"
+                            style={{ 
+                            maxHeight: '80vh',
+                            overflowY: 'auto'
+                            }}
+                        >
+                            {isLeader && (
+                            <>
+                                <button
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    onTogglePin(discussion);
+                                    setOpenMenuId(null);
+                                }}
+                                className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center space-x-2 text-sm"
+                                >
+                                <Pin className="w-4 h-4" />
+                                <span>{discussion.isPinned ? 'Unpin' : 'Pin'} Thread</span>
+                                </button>
+                                <button
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    onToggleLock(discussion);
+                                    setOpenMenuId(null);
+                                }}
+                                className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center space-x-2 text-sm"
+                                >
+                                <Lock className="w-4 h-4" />
+                                <span>{discussion.isLocked ? 'Unlock' : 'Lock'} Thread</span>
+                                </button>
+                                <div className="border-t border-gray-200 my-1"></div>
+                            </>
+                            )}
                             <button
-                              onClick={(e) => {
+                            onClick={(e) => {
                                 e.stopPropagation();
-                                onTogglePin(discussion);
+                                onEdit(discussion);
                                 setOpenMenuId(null);
-                              }}
-                              className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center space-x-2"
+                            }}
+                            className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center space-x-2 text-sm"
                             >
-                              <Pin className="w-4 h-4" />
-                              <span>{discussion.isPinned ? 'Unpin' : 'Pin'} Thread</span>
+                            <Edit className="w-4 h-4" />
+                            <span>Edit Thread</span>
                             </button>
                             <button
-                              onClick={(e) => {
+                            onClick={(e) => {
                                 e.stopPropagation();
-                                onToggleLock(discussion);
+                                onDelete(discussion);
                                 setOpenMenuId(null);
-                              }}
-                              className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center space-x-2"
+                            }}
+                            className="w-full text-left px-4 py-2 hover:bg-red-50 text-red-600 flex items-center space-x-2 text-sm"
                             >
-                              <Lock className="w-4 h-4" />
-                              <span>{discussion.isLocked ? 'Unlock' : 'Lock'} Thread</span>
+                            <Trash2 className="w-4 h-4" />
+                            <span>Delete Thread</span>
                             </button>
-                          </>
+                        </div>
                         )}
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onEdit(discussion);
-                            setOpenMenuId(null);
-                          }}
-                          className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center space-x-2"
-                        >
-                          <Edit className="w-4 h-4" />
-                          <span>Edit Thread</span>
-                        </button>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onDelete(discussion);
-                            setOpenMenuId(null);
-                          }}
-                          className="w-full text-left px-4 py-2 hover:bg-red-50 text-red-600 flex items-center space-x-2"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                          <span>Delete Thread</span>
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                )}
+                        </div>
+                        )}
                 
                 <span className="text-xs bg-gray-100 px-2 py-1 rounded-full ml-2">
                   {discussion.messageCount || 0} replies

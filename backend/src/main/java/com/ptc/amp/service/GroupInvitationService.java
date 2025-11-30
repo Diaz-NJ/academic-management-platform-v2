@@ -58,39 +58,47 @@ public class GroupInvitationService {
     }
 
    public GroupInvitation acceptInvitation(Long invitationId) {
-        GroupInvitation invitation = invitationRepository.findById(invitationId)
-            .orElseThrow(() -> new RuntimeException("Invitation not found"));
-        
-        if (!"PENDING".equals(invitation.getStatus())) {
-            throw new RuntimeException("Invitation already processed");
-        }
-
-        // Add user to group
-        Group group = groupRepository.findById(invitation.getGroupId())
-            .orElseThrow(() -> new RuntimeException("Group not found"));
-        
-        User user = userRepository.findById(invitation.getInvitedUserId())
-            .orElseThrow(() -> new RuntimeException("User not found"));
-
-        // ✅ Check if user is already a member (prevent duplicates)
-        boolean isAlreadyMember = group.getMembers().stream()
-            .anyMatch(m -> m.getUserId().equals(user.getId()));
-        
-        if (!isAlreadyMember) {
-            Group.GroupMember member = new Group.GroupMember(
-                user.getId(),
-                user.getFullName(),
-                "Member"
-            );
-            
-            groupService.addMemberToGroup(group.getId(), member);
-        }
-
-        invitation.setStatus("ACCEPTED");
-        invitation.setRespondedAt(LocalDateTime.now());
-        
-        return invitationRepository.save(invitation);
+    GroupInvitation invitation = invitationRepository.findById(invitationId)
+        .orElseThrow(() -> new RuntimeException("Invitation not found"));
+    
+    if (!"PENDING".equals(invitation.getStatus())) {
+        throw new RuntimeException("Invitation already processed");
     }
+
+    // Get the group with all members
+    Group group = groupRepository.findById(invitation.getGroupId())
+        .orElseThrow(() -> new RuntimeException("Group not found"));
+    
+    User user = userRepository.findById(invitation.getInvitedUserId())
+        .orElseThrow(() -> new RuntimeException("User not found"));
+
+    // ✅ FIX: Check if user is already a member (prevent duplicates)
+    boolean isAlreadyMember = group.getMembers().stream()
+        .anyMatch(m -> m.getUserId().equals(user.getId()));
+    
+    if (!isAlreadyMember) {
+        Group.GroupMember member = new Group.GroupMember(
+            user.getId(),
+            user.getFullName(),
+            "Member"
+        );
+        
+        // ✅ CRITICAL FIX: Use the proper add method that sets bidirectional relationship
+        group.addMember(member);
+        
+        // ✅ Save the group to persist the new member
+        groupRepository.save(group);
+        
+        System.out.println("✅ Member added to group. Total members now: " + group.getMembers().size());
+    } else {
+        System.out.println("⚠️ User already a member, skipping add");
+    }
+
+    invitation.setStatus("ACCEPTED");
+    invitation.setRespondedAt(LocalDateTime.now());
+    
+    return invitationRepository.save(invitation);
+}
 
     public GroupInvitation rejectInvitation(Long invitationId) {
         GroupInvitation invitation = invitationRepository.findById(invitationId)
