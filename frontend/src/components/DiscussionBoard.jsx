@@ -424,15 +424,21 @@ const DiscussionList = ({
         </div>
       </div>
 
-      {/* ✅ FIXED: Footer with scroll hint */}
-      {discussions.length > 3 && (
-        <div className="flex-shrink-0 p-4 border-t border-gray-200 bg-gray-50">
-          <div className="flex items-center justify-center space-x-2 text-sm text-gray-600">
-            <ArrowDown className="w-4 h-4 animate-bounce" />
-            <span>Scroll for more threads</span>
-          </div>
-        </div>
-      )}
+      {/* ✅ ENHANCED: Footer with scroll hint and design */}
+            {discussions.length > 1 && (
+            <div className="flex-shrink-0 relative">
+                {/* Gradient overlay */}
+                <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-gray-50 via-gray-50/50 to-transparent pointer-events-none border-t border-gray-100"></div>
+                
+                {/* Scroll hint content */}
+                <div className="relative p-4 border-t border-gray-200 bg-gray-50">
+                <div className="flex items-center justify-center space-x-2 text-sm text-gray-600">
+                    <ArrowDown className="w-4 h-4 animate-bounce" />
+                    <span>Scroll for more threads</span>
+                </div>
+                </div>
+            </div>
+            )}
     </>
   );
 };

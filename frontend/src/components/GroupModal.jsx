@@ -137,10 +137,16 @@ const GroupModal = ({ onClose, onSave, group, currentUser }) => {
 
     setLoading(true);
 
-    const groupData = {
-      ...formData,
-      createdBy: currentUser.id
-    };
+  const groupData = {
+    ...formData,
+    createdBy: currentUser.id,
+    // ✅ ENSURE: Members are properly formatted
+    members: formData.members.map(m => ({
+      userId: Number(m.userId),
+      name: m.name,
+      role: m.role
+    }))
+  };
 
     try {
       await onSave(groupData);

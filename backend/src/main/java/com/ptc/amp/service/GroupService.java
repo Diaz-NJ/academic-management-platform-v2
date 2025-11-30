@@ -53,33 +53,59 @@ public class GroupService {
     }
 
     public Group updateGroup(Group updatedGroup) {
-        Optional<Group> existingGroupOpt = groupRepository.findById(updatedGroup.getId());
+    System.out.println("=== GROUP SERVICE: updateGroup ===");
+    System.out.println("Updating group ID: " + updatedGroup.getId());
+    
+    Optional<Group> existingGroupOpt = groupRepository.findById(updatedGroup.getId());
+    
+    if (existingGroupOpt.isPresent()) {
+        Group existingGroup = existingGroupOpt.get();
         
-        if (existingGroupOpt.isPresent()) {
-            Group existingGroup = existingGroupOpt.get();
+        System.out.println("Existing group found with " + existingGroup.getMembers().size() + " members");
+        
+        // Update basic fields
+        existingGroup.setGroupNumber(updatedGroup.getGroupNumber());
+        existingGroup.setGroupName(updatedGroup.getGroupName());
+        existingGroup.setSubject(updatedGroup.getSubject());
+        existingGroup.setTaskDescription(updatedGroup.getTaskDescription());
+        
+        // ✅ FIX: Properly handle member updates
+        // 1. Clear existing members
+        existingGroup.getMembers().clear();
+        
+        // ✅ 2. Flush to database to ensure orphan removal
+        groupRepository.flush();
+        
+        // ✅ 3. Add new members with proper bidirectional relationship
+        if (updatedGroup.getMembers() != null && !updatedGroup.getMembers().isEmpty()) {
+            System.out.println("Adding " + updatedGroup.getMembers().size() + " new members");
             
-            // Update basic fields
-            existingGroup.setGroupNumber(updatedGroup.getGroupNumber());
-            existingGroup.setGroupName(updatedGroup.getGroupName());
-            existingGroup.setSubject(updatedGroup.getSubject());
-            existingGroup.setTaskDescription(updatedGroup.getTaskDescription());
-            
-            // Clear existing members
-            existingGroup.getMembers().clear();
-            
-            // Add new members with proper bidirectional relationship
-            if (updatedGroup.getMembers() != null) {
-                updatedGroup.getMembers().forEach(member -> {
-                    member.setGroup(existingGroup);
-                    existingGroup.getMembers().add(member);
-                });
+            for (Group.GroupMember member : updatedGroup.getMembers()) {
+                System.out.println("  - Adding: " + member.getName() + " (Role: " + member.getRole() + ")");
+                
+                // ✅ Create new member instance to avoid detached entity issues
+                Group.GroupMember newMember = new Group.GroupMember(
+                    member.getUserId(),
+                    member.getName(),
+                    member.getRole()
+                );
+                newMember.setGroup(existingGroup);
+                existingGroup.getMembers().add(newMember);
             }
-            
-            return groupRepository.save(existingGroup);
         }
         
-        return updatedGroup;
+        System.out.println("Saving updated group with " + existingGroup.getMembers().size() + " members");
+        
+        Group saved = groupRepository.saveAndFlush(existingGroup);
+        
+        System.out.println("✅ Group updated successfully! Final member count: " + saved.getMembers().size());
+        
+        return saved;
     }
+    
+    System.out.println("⚠️ Group not found, creating new one");
+    return createGroup(updatedGroup);
+}
 
     public boolean deleteGroup(Long id) {
         if (groupRepository.existsById(id)) {
