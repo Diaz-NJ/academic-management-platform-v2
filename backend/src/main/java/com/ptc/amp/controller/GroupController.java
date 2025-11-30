@@ -4,8 +4,7 @@ import com.ptc.amp.model.Group;
 import com.ptc.amp.service.GroupService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import java.util.List;
-import java.util.Map;
+
 import com.ptc.amp.service.TaskService;
 import com.ptc.amp.model.Task;
 import java.util.*;
@@ -22,10 +21,66 @@ public class GroupController {
     }
 
     @PostMapping
-    public ResponseEntity<Group> createGroup(@RequestBody Group group) {
+public ResponseEntity<?> createGroup(@RequestBody Group group) {
+    try {
+        // ✅ Log incoming data for debugging
+        System.out.println("=== CREATE GROUP REQUEST ===");
+        System.out.println("Group Name: " + group.getGroupName());
+        System.out.println("Members Count: " + (group.getMembers() != null ? group.getMembers().size() : 0));
+        
+        if (group.getMembers() != null) {
+            group.getMembers().forEach(member -> {
+                System.out.println("Member: " + member.getName() + " (UserID: " + member.getUserId() + ", Role: " + member.getRole() + ")");
+            });
+        }
+        
+        // ✅ Validate required fields
+        if (group.getGroupName() == null || group.getGroupName().trim().isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of(
+                "success", false,
+                "message", "Group name is required"
+            ));
+        }
+        
+        if (group.getSubject() == null || group.getSubject().trim().isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of(
+                "success", false,
+                "message", "Subject is required"
+            ));
+        }
+        
+        if (group.getTaskDescription() == null || group.getTaskDescription().trim().isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of(
+                "success", false,
+                "message", "Task description is required"
+            ));
+        }
+        
+        if (group.getCreatedBy() == null) {
+            return ResponseEntity.badRequest().body(Map.of(
+                "success", false,
+                "message", "Creator ID is required"
+            ));
+        }
+        
         Group created = groupService.createGroup(group);
+        
+        System.out.println("✅ Group created successfully! ID: " + created.getId());
+        System.out.println("✅ Final members count: " + created.getMembers().size());
+        
         return ResponseEntity.ok(created);
+        
+    } catch (Exception e) {
+        System.err.println("❌ ERROR creating group: " + e.getMessage());
+        e.printStackTrace();
+        
+        return ResponseEntity.status(500).body(Map.of(
+            "success", false,
+            "message", "Failed to create group: " + e.getMessage(),
+            "error", e.getClass().getSimpleName()
+        ));
     }
+}
 
     @GetMapping("/{id}")
     public ResponseEntity<Group> getGroup(@PathVariable Long id) {

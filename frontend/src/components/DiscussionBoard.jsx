@@ -269,7 +269,7 @@ const DiscussionList = ({
   }
 
   return (
-    <div className="flex-1 overflow-y-auto p-6" style={{ position: 'relative' }}>
+    <div className="flex-1 overflow-y-auto p-6 pb-40" style={{ position: 'relative' }}>
       {showNewThread && (
         <form onSubmit={handleSubmit} className="bg-blue-50 border-2 border-blue-200 rounded-lg p-4 mb-6">
           <h3 className="font-semibold text-gray-800 mb-3">Create New Thread</h3>
@@ -417,8 +417,14 @@ const DiscussionList = ({
               <div className="flex items-center justify-between text-xs text-gray-500">
                 <span>By {discussion.creatorName || 'Unknown'}</span>
                 <span>{formatRelativeDate(discussion.createdAt)}</span>
-              </div>
+
+                <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-gray-50 via-gray-50/50 to-transparent pointer-events-none border-t border-gray-100">
+                <div className="flex items-end justify-center h-full pb-4 text-xs text-gray-400">
+                <span>Scroll for more threads</span>
+                </div>
             </div>
+            </div>
+              </div>
           ))
         )}
       </div>

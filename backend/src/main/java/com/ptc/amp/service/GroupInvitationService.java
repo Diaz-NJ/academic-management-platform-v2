@@ -58,6 +58,8 @@ public class GroupInvitationService {
     }
 
    public GroupInvitation acceptInvitation(Long invitationId) {
+    System.out.println("=== ACCEPTING INVITATION ID: " + invitationId + " ===");
+    
     GroupInvitation invitation = invitationRepository.findById(invitationId)
         .orElseThrow(() -> new RuntimeException("Invitation not found"));
     
@@ -65,33 +67,48 @@ public class GroupInvitationService {
         throw new RuntimeException("Invitation already processed");
     }
 
-    // Get the group with all members
+    // Get the group with all members - FORCE EAGER FETCH
     Group group = groupRepository.findById(invitation.getGroupId())
         .orElseThrow(() -> new RuntimeException("Group not found"));
+    
+    // ✅ Force load members
+    int existingMemberCount = group.getMembers().size();
+    System.out.println("Current group has " + existingMemberCount + " members:");
+    group.getMembers().forEach(m -> 
+        System.out.println("  - " + m.getName() + " (Role: " + m.getRole() + ")")
+    );
     
     User user = userRepository.findById(invitation.getInvitedUserId())
         .orElseThrow(() -> new RuntimeException("User not found"));
 
-    // ✅ FIX: Check if user is already a member (prevent duplicates)
+    System.out.println("Adding user: " + user.getFullName() + " (ID: " + user.getId() + ")");
+
+    // ✅ Check if user is already a member
     boolean isAlreadyMember = group.getMembers().stream()
         .anyMatch(m -> m.getUserId().equals(user.getId()));
     
-    if (!isAlreadyMember) {
+    if (isAlreadyMember) {
+        System.out.println("⚠️ User already a member!");
+    } else {
+        System.out.println("✅ Adding new member...");
+        
         Group.GroupMember member = new Group.GroupMember(
             user.getId(),
             user.getFullName(),
             "Member"
         );
         
-        // ✅ CRITICAL FIX: Use the proper add method that sets bidirectional relationship
-        group.addMember(member);
+        // ✅ Set bidirectional relationship explicitly
+        member.setGroup(group);
+        group.getMembers().add(member);
         
-        // ✅ Save the group to persist the new member
-        groupRepository.save(group);
+        // ✅ Save and flush immediately
+        Group savedGroup = groupRepository.saveAndFlush(group);
         
-        System.out.println("✅ Member added to group. Total members now: " + group.getMembers().size());
-    } else {
-        System.out.println("⚠️ User already a member, skipping add");
+        System.out.println("✅ Member added! New total: " + savedGroup.getMembers().size());
+        savedGroup.getMembers().forEach(m -> 
+            System.out.println("  - " + m.getName() + " (Role: " + m.getRole() + ")")
+        );
     }
 
     invitation.setStatus("ACCEPTED");

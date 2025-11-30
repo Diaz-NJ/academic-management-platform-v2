@@ -4,6 +4,8 @@ import com.ptc.amp.model.Group;
 import com.ptc.amp.repository.GroupRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -17,12 +19,30 @@ public class GroupService {
     }
 
     public Group createGroup(Group group) {
-        // Ensure bidirectional relationship is set
-        if (group.getMembers() != null) {
-            group.getMembers().forEach(member -> member.setGroup(group));
+    System.out.println("=== GROUP SERVICE: createGroup ===");
+    
+    // Ensure bidirectional relationship is set
+    if (group.getMembers() != null && !group.getMembers().isEmpty()) {
+        System.out.println("Setting up " + group.getMembers().size() + " members");
+        
+        // ✅ Clear and re-add to ensure proper relationships
+        List<Group.GroupMember> membersCopy = new ArrayList<>(group.getMembers());
+        group.getMembers().clear();
+        
+        for (Group.GroupMember member : membersCopy) {
+            System.out.println("  - Adding member: " + member.getName() + " (Role: " + member.getRole() + ")");
+            member.setGroup(group);
+            group.getMembers().add(member);
         }
-        return groupRepository.save(group);
+    } else {
+        System.out.println("⚠️ No members provided in group creation");
     }
+    
+    Group saved = groupRepository.save(group);
+    System.out.println("✅ Group saved with ID: " + saved.getId() + ", Members: " + saved.getMembers().size());
+    
+    return saved;
+}
 
     public Optional<Group> getGroupById(Long id) {
         return groupRepository.findById(id);

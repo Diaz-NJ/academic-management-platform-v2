@@ -159,7 +159,7 @@ const Analytics = () => {
               { label: 'In Progress', value: stats.inProgress || 0, color: '#3b82f6' },
               { label: 'Completed', value: stats.completed || 0, color: '#10b981' }
             ]}
-          />
+          />  
         </div>
 
         {/* ⭕ Progress Ring - Completion Rate */}
@@ -374,7 +374,7 @@ const PieChart = ({ data }) => {
 
 // ⭕ Progress Ring Component
 const ProgressRing = ({ percentage }) => {
-  const radius = 70;
+  const radius = 90;
   const circumference = 2 * Math.PI * radius;
   const offset = circumference - (percentage / 100) * circumference;
 
