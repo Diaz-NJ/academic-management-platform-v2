@@ -82,24 +82,33 @@ const DiscussionBoard = ({ group, onClose, currentUser, discussionAPI }) => {
     }
   };
 
-  const handleTogglePin = async (discussion) => {
-    try {
-      await discussionAPI.togglePin(discussion.id);
-      showToast(discussion.isPinned ? 'Thread unpinned' : 'Thread pinned', 'success');
-      loadDiscussions();
-    } catch (error) {
-      showToast('Failed to toggle pin', 'error');
-    }
-  };
+    const handleTogglePin = async (discussion) => {
+        try {
+        const response = await discussionAPI.togglePin(discussion.id);
+        showToast(response.data.isPinned ? 'Thread pinned' : 'Thread unpinned', 'success');
+        
+        // ✅ Update selected discussion if currently viewing it
+        if (selectedDiscussion?.id === discussion.id) {
+            setSelectedDiscussion(response.data);
+        }
+        
+        loadDiscussions();
+        } catch (error) {
+        showToast('Failed to toggle pin', 'error');
+        }
+    };
 
-  const handleToggleLock = async (discussion) => {
+const handleToggleLock = async (discussion) => {
     try {
-      await discussionAPI.toggleLock(discussion.id);
-      showToast(discussion.isLocked ? 'Thread unlocked' : 'Thread locked', 'success');
-      loadDiscussions();
+      const response = await discussionAPI.toggleLock(discussion.id);
+      showToast(response.data.isLocked ? 'Thread locked' : 'Thread unlocked', 'success');
+      
+      // ✅ Update selected discussion if currently viewing it
       if (selectedDiscussion?.id === discussion.id) {
-        loadDiscussions(); // Refresh to update the selected discussion state
+        setSelectedDiscussion(response.data);
       }
+      
+      loadDiscussions();
     } catch (error) {
       showToast('Failed to toggle lock', 'error');
     }
@@ -260,7 +269,7 @@ const DiscussionList = ({
   }
 
   return (
-    <div className="flex-1 overflow-y-auto p-6">
+    <div className="flex-1 overflow-y-auto p-6" style={{ position: 'relative' }}>
       {showNewThread && (
         <form onSubmit={handleSubmit} className="bg-blue-50 border-2 border-blue-200 rounded-lg p-4 mb-6">
           <h3 className="font-semibold text-gray-800 mb-3">Create New Thread</h3>
@@ -307,9 +316,10 @@ const DiscussionList = ({
         ) : (
           discussions.map(discussion => (
             <div
-              key={discussion.id}
-              className="bg-white border-2 border-gray-200 rounded-lg p-4 hover:border-primary hover:shadow-md transition relative"
-            >
+                key={discussion.id}
+                className="bg-white border-2 border-gray-200 rounded-lg p-4 hover:border-primary hover:shadow-md transition relative z-0"
+                style={{ zIndex: openMenuId === discussion.id ? 10 : 0 }}
+                >
               <div className="flex items-start justify-between mb-2">
                 <div 
                   className="flex-1 cursor-pointer"
@@ -339,7 +349,7 @@ const DiscussionList = ({
                     </button>
                     
                     {openMenuId === discussion.id && (
-                      <div className="absolute right-0 mt-1 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-10">
+                    <div className="absolute right-0 top-8 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50">
                         {isLeader && (
                           <>
                             <button

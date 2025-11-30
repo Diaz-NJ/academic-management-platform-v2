@@ -57,7 +57,7 @@ public class GroupInvitationService {
         return invitations;
     }
 
-    public GroupInvitation acceptInvitation(Long invitationId) {
+   public GroupInvitation acceptInvitation(Long invitationId) {
         GroupInvitation invitation = invitationRepository.findById(invitationId)
             .orElseThrow(() -> new RuntimeException("Invitation not found"));
         
@@ -72,13 +72,19 @@ public class GroupInvitationService {
         User user = userRepository.findById(invitation.getInvitedUserId())
             .orElseThrow(() -> new RuntimeException("User not found"));
 
-        Group.GroupMember member = new Group.GroupMember(
-            user.getId(),
-            user.getFullName(),
-            "Member"
-        );
+        // ✅ Check if user is already a member (prevent duplicates)
+        boolean isAlreadyMember = group.getMembers().stream()
+            .anyMatch(m -> m.getUserId().equals(user.getId()));
         
-        groupService.addMemberToGroup(group.getId(), member);
+        if (!isAlreadyMember) {
+            Group.GroupMember member = new Group.GroupMember(
+                user.getId(),
+                user.getFullName(),
+                "Member"
+            );
+            
+            groupService.addMemberToGroup(group.getId(), member);
+        }
 
         invitation.setStatus("ACCEPTED");
         invitation.setRespondedAt(LocalDateTime.now());
