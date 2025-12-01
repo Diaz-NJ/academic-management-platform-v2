@@ -176,22 +176,41 @@ const handleSaveGroup = async (groupData) => {
   return (
     <div className="space-y-3 md:space-y-4">
       {/* Page Header */}
-      <div className="mb-8">
-        <div className="flex justify-between items-start">
-          <div>
-            <h1 className="text-page-title mb-2">Collaboration Groups</h1>
-            <p className="text-body text-gray-600">
-              Manage your group projects and assignments
-            </p>
-          </div>
-          <button
-            onClick={handleCreateGroup}
-            className="btn-hover flex items-center space-x-2 px-4 py-2 bg-primary text-white rounded-lg font-medium shadow-sm"
-          >
-            <Plus className="w-5 h-5" />
-            <span className="btn-text">Create Group</span>
-          </button>
-        </div>
+<div className="mb-8">
+  <div className="flex justify-between items-start">
+    <div>
+      <h1 className="text-page-title mb-2">Collaboration Groups</h1>
+      <p className="text-body text-gray-600">
+        Manage your group projects and assignments
+      </p>
+    </div>
+    {/* ✅ UPDATED: Both buttons in upper right */}
+    <div className="flex items-center space-x-2">
+      <button
+        onClick={async () => {
+          setLoading(true);
+          await loadGroups();
+          setLoading(false);
+          showToast('Groups refreshed', 'success');
+        }}
+        className="btn-hover flex items-center space-x-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg font-medium shadow-sm hover:bg-gray-200"
+      >
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+        </svg>
+        <span className="hidden sm:inline">Refresh</span>
+      </button>
+      
+      <button
+        onClick={handleCreateGroup}
+        className="btn-hover flex items-center space-x-2 px-4 py-2 bg-primary text-white rounded-lg font-medium shadow-sm"
+      >
+        <Plus className="w-5 h-5" />
+        <span className="btn-text">Create Group</span>
+      </button>
+    </div>
+  </div>
+</div>
 
         {/* Add this refresh button next to "Create Group" */}
 <div className="flex items-center space-x-2">
@@ -218,7 +237,6 @@ const handleSaveGroup = async (groupData) => {
     <span className="btn-text">Create Group</span>
   </button>
 </div>
-      </div>
 
       {/* ✅ NEW: Invitations Panel */}
       <InvitationsPanel 
