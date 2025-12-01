@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Mail, Check, X } from 'lucide-react';
 import { invitationAPI } from '../services/api';
 import { useToast } from '../context/ToastContext';
+import { playNotificationSoundEnhanced } from '../utils/notificationSound';
 
 const InvitationsPanel = ({ userId, onUpdate }) => {
   const [invitations, setInvitations] = useState([]);
@@ -9,8 +10,35 @@ const InvitationsPanel = ({ userId, onUpdate }) => {
   const { showToast } = useToast();
 
   useEffect(() => {
-    loadInvitations();
-  }, [userId]);
+  loadInvitations();
+  
+  // ✅ Poll for new invitations every 5 seconds
+  const interval = setInterval(() => {
+    loadInvitationsQuietly();
+  }, 5000);
+  
+  return () => clearInterval(interval);
+}, [userId]);
+
+const loadInvitationsQuietly = async () => {
+  try {
+    const response = await invitationAPI.getReceivedInvitations(userId);
+    
+    if (JSON.stringify(response.data) !== JSON.stringify(invitations)) {
+      const newInvitationCount = response.data.length - invitations.length;
+      
+      setInvitations(response.data);
+      
+      // ✅ Show notification and play sound for NEW invitations
+      if (newInvitationCount > 0) {
+        showToast(`🔔 You have ${newInvitationCount} new group invitation(s)!`, 'info');
+        playNotificationSoundEnhanced();
+      }
+    }
+  } catch (error) {
+    console.error('Error polling invitations:', error);
+  }
+};
 
   const loadInvitations = async () => {
     try {

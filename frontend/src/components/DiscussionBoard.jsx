@@ -443,7 +443,6 @@ const DiscussionList = ({
   );
 };
 
-// ===== DISCUSSION THREAD COMPONENT =====
 const DiscussionThread = ({ 
   discussion, 
   currentUser, 
@@ -460,10 +459,47 @@ const DiscussionThread = ({
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(true);
   const [showMenu, setShowMenu] = useState(false);
+  
+  // ✅ NEW: Auto-scroll reference
+  const messagesEndRef = React.useRef(null);
+  const messageContainerRef = React.useRef(null);
+  
+  // ✅ NEW: Track if user is near bottom
+  const [isNearBottom, setIsNearBottom] = useState(true);
 
+  // ✅ NEW: Load messages with auto-refresh
   useEffect(() => {
     loadMessages();
+    
+    // ✅ Poll for new messages every 3 seconds
+    const interval = setInterval(() => {
+      loadMessagesQuietly();
+    }, 3000);
+    
+    return () => clearInterval(interval);
   }, [discussion.id]);
+
+  // ✅ NEW: Scroll to bottom when new messages arrive (only if user was near bottom)
+  useEffect(() => {
+    if (isNearBottom && messages.length > 0) {
+      scrollToBottom();
+    }
+  }, [messages.length]);
+
+  // ✅ NEW: Track scroll position
+  const handleScroll = () => {
+    if (!messageContainerRef.current) return;
+    
+    const { scrollTop, scrollHeight, clientHeight } = messageContainerRef.current;
+    const distanceFromBottom = scrollHeight - scrollTop - clientHeight;
+    
+    // Consider "near bottom" if within 100px of bottom
+    setIsNearBottom(distanceFromBottom < 100);
+  };
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
 
   const loadMessages = async () => {
     try {
@@ -473,6 +509,21 @@ const DiscussionThread = ({
       showToast('Failed to load messages', 'error');
     } finally {
       setLoading(false);
+    }
+  };
+
+  // ✅ NEW: Load messages quietly (no loading state)
+  const loadMessagesQuietly = async () => {
+    try {
+      const response = await discussionAPI.getMessages(discussion.id);
+      
+      // Only update if there are new messages
+      if (response.data.length !== messages.length) {
+        setMessages(response.data);
+      }
+    } catch (error) {
+      // Silently fail - don't show error toast for background polling
+      console.error('Error polling messages:', error);
     }
   };
 
@@ -487,7 +538,13 @@ const DiscussionThread = ({
         content: newMessage.trim()
       });
       setNewMessage('');
+      
+      // ✅ Load messages immediately after sending
       loadMessages();
+      
+      // ✅ Force scroll to bottom when you send a message
+      setIsNearBottom(true);
+      setTimeout(scrollToBottom, 100);
     } catch (error) {
       showToast('Failed to send message', 'error');
     }
@@ -499,12 +556,18 @@ const DiscussionThread = ({
       <div className="p-4 border-b bg-gray-50 flex-shrink-0">
         <div className="flex items-center justify-between mb-2">
           <button 
-            onClick={onBack} 
-            className="text-primary hover:underline flex items-center space-x-1"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            <span>Back to threads</span>
-          </button>
+                onClick={onBack} 
+                className="text-primary hover:underline flex items-center space-x-1 relative"
+                >
+                <ArrowLeft className="w-4 h-4" />
+                <span>Back to threads</span>
+                {/* ✅ Show message count */}
+                {messages.length > 0 && (
+                    <span className="ml-2 px-2 py-0.5 bg-blue-100 text-blue-800 text-xs font-semibold rounded-full">
+                    {messages.length} messages
+                    </span>
+                )}
+                </button>
           
           {/* Menu for thread creator or leaders */}
           {(discussion.createdBy === currentUser.id || isLeader) && (
@@ -576,8 +639,12 @@ const DiscussionThread = ({
         {discussion.description && <p className="text-sm text-gray-600">{discussion.description}</p>}
       </div>
 
-      {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-6 space-y-4">
+      {/* ✅ UPDATED: Messages with scroll tracking */}
+      <div 
+        ref={messageContainerRef}
+        onScroll={handleScroll}
+        className="flex-1 overflow-y-auto p-6 space-y-4"
+      >
         {loading ? (
           <div className="text-center py-8">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
@@ -589,20 +656,41 @@ const DiscussionThread = ({
             <p>No messages yet. Start the discussion!</p>
           </div>
         ) : (
-          messages.map(msg => (
-            <div key={msg.id} className="bg-gray-50 rounded-lg p-4">
-              <div className="flex items-center space-x-2 mb-2">
-                <div className="w-8 h-8 bg-gradient-to-br from-blue-400 to-cyan-400 rounded-full flex items-center justify-center text-white text-sm font-medium">
-                  {msg.userName?.charAt(0).toUpperCase() || '?'}
+          <>
+            {messages.map(msg => (
+              <div key={msg.id} className="bg-gray-50 rounded-lg p-4">
+                <div className="flex items-center space-x-2 mb-2">
+                  <div className="w-8 h-8 bg-gradient-to-br from-blue-400 to-cyan-400 rounded-full flex items-center justify-center text-white text-sm font-medium">
+                    {msg.userName?.charAt(0).toUpperCase() || '?'}
+                  </div>
+                  <div>
+                    <p className="font-medium text-gray-800">{msg.userName || 'Unknown'}</p>
+                    <p className="text-xs text-gray-500">{formatRelativeDate(msg.createdAt)}</p>
+                  </div>
                 </div>
-                <div>
-                  <p className="font-medium text-gray-800">{msg.userName || 'Unknown'}</p>
-                  <p className="text-xs text-gray-500">{formatRelativeDate(msg.createdAt)}</p>
-                </div>
+                <p className="text-gray-700 whitespace-pre-wrap">{msg.content}</p>
               </div>
-              <p className="text-gray-700 whitespace-pre-wrap">{msg.content}</p>
-            </div>
-          ))
+            ))}
+            
+            {/* ✅ NEW: Invisible element to scroll to */}
+            <div ref={messagesEndRef} />
+          </>
+        )}
+        
+        {/* ✅ NEW: Show "new messages" indicator when not at bottom */}
+        {!isNearBottom && messages.length > 0 && (
+          <button
+            onClick={() => {
+              setIsNearBottom(true);
+              scrollToBottom();
+            }}
+            className="fixed bottom-24 right-8 bg-primary text-white px-4 py-2 rounded-full shadow-lg hover:bg-blue-600 transition flex items-center space-x-2 z-10"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+            </svg>
+            <span>New messages</span>
+          </button>
         )}
       </div>
 

@@ -35,8 +35,30 @@ const Collaboration = () => {
   const [groupToLeave, setGroupToLeave] = useState(null);
 
   useEffect(() => {
-    loadGroups();
-  }, [user]);
+  loadGroups();
+  
+  // ✅ Poll for group updates every 5 seconds
+  const interval = setInterval(() => {
+    loadGroupsQuietly();
+  }, 5000);
+  
+  return () => clearInterval(interval);
+}, [user]);
+
+// ✅ NEW: Quiet group loading (no loading state)
+const loadGroupsQuietly = useCallback(async () => {
+  try {
+    const response = await groupAPI.getGroups(user.id);
+    
+    // Only update if there are changes
+    const hasChanges = JSON.stringify(response.data) !== JSON.stringify(groups);
+    if (hasChanges) {
+      setGroups(response.data);
+    }
+  } catch (error) {
+    console.error('Error polling groups:', error);
+  }
+}, [user.id, groups]);
 
   useEffect(() => {
     if (searchQuery.trim()) {

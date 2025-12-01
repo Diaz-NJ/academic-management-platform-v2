@@ -19,6 +19,7 @@ import Settings from './Settings';
 import WeeklyEvents from '../components/WeeklyEvents';
 import LoadingSpinner from '../components/LoadingSpinner';
 import { expandRecurringEvents } from '../utils/recurringUtils';
+import { invitationAPI } from '../services/api';
 
 const Dashboard = () => {
   const { user, logout } = useAuth();
@@ -30,6 +31,7 @@ const Dashboard = () => {
   const [editingTask, setEditingTask] = useState(null);
   const [activeTab, setActiveTab] = useState('dashboard');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [pendingInvitations, setPendingInvitations] = useState(0);
 
   const loadTasks = async () => {
     try {
@@ -111,6 +113,25 @@ const Dashboard = () => {
       console.error('Error loading events:', error);
     }
   };
+
+  // ✅ NEW: Poll for pending invitations
+useEffect(() => {
+  const checkInvitations = async () => {
+    try {
+      const response = await invitationAPI.getReceivedInvitations(user.id);
+      setPendingInvitations(response.data.length);
+    } catch (error) {
+      console.error('Error checking invitations:', error);
+    }
+  };
+
+  checkInvitations();
+  
+  // Poll every 10 seconds
+  const interval = setInterval(checkInvitations, 10000);
+  
+  return () => clearInterval(interval);
+}, [user.id]);
 
   useEffect(() => {
     loadTasks();
@@ -218,16 +239,22 @@ const Dashboard = () => {
                 </button>
                 
                 <button
-                  onClick={() => setActiveTab('collaboration')}
-                  className={`px-4 lg:px-5 py-2.5 lg:py-3 rounded-lg text-sm lg:text-base font-semibold transition-all duration-200 flex items-center space-x-2 ${
-                    activeTab === 'collaboration'
-                      ? 'bg-primary text-white shadow-lg transform scale-105'
-                      : 'text-gray-700 hover:bg-gray-100 hover:scale-105'
-                  }`}
-                >
-                  <Users className={`w-5 h-5 ${activeTab === 'collaboration' ? '' : 'icon-hover-blue'}`} />
-                  <span>Collaborate</span>
-                </button>
+                    onClick={() => setActiveTab('collaboration')}
+                    className={`px-4 lg:px-5 py-2.5 lg:py-3 rounded-lg text-sm lg:text-base font-semibold transition-all duration-200 flex items-center space-x-2 relative ${
+                      activeTab === 'collaboration'
+                        ? 'bg-primary text-white shadow-lg transform scale-105'
+                        : 'text-gray-700 hover:bg-gray-100 hover:scale-105'
+                    }`}
+                  >
+                    <Users className={`w-5 h-5 ${activeTab === 'collaboration' ? '' : 'icon-hover-blue'}`} />
+                    <span>Collaborate</span>
+                    {/* ✅ NEW: Notification Badge */}
+                    {pendingInvitations > 0 && (
+                      <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center animate-pulse">
+                        {pendingInvitations}
+                      </span>
+                    )}
+                  </button>
                 
                 <button
                   onClick={() => setActiveTab('analytics')}
@@ -346,7 +373,7 @@ const Dashboard = () => {
                   setActiveTab('collaboration');
                   setMobileMenuOpen(false);
                 }}
-                className={`block w-full text-left px-4 py-3 rounded-lg text-base font-semibold ${
+                className={`block w-full text-left px-4 py-3 rounded-lg text-base font-semibold relative ${
                   activeTab === 'collaboration'
                     ? 'bg-primary text-white'
                     : 'text-gray-700 hover:bg-gray-100'
@@ -354,6 +381,12 @@ const Dashboard = () => {
               >
                 <Users className="w-5 h-5 inline mr-2" />
                 Collaborate
+                {/* ✅ Badge for mobile */}
+                {pendingInvitations > 0 && (
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center">
+                    {pendingInvitations}
+                  </span>
+                )}
               </button>
               <button
                 onClick={() => {

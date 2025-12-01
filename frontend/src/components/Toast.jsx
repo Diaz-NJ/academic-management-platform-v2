@@ -1,14 +1,20 @@
 import React, { useEffect } from 'react';
 import { CheckCircle, X, AlertCircle, Info, XCircle } from 'lucide-react';
+import { playNotificationSoundEnhanced } from '../utils/notificationSound';
 
 const Toast = ({ message, type = 'success', onClose, duration = 3000 }) => {
   useEffect(() => {
-    const timer = setTimeout(() => {
-      onClose();
-    }, duration);
+  // ✅ Play sound for important notifications
+  if (type === 'info' || type === 'warning') {
+    playNotificationSoundEnhanced();
+  }
+  
+  const timer = setTimeout(() => {
+    onClose();
+  }, duration);
 
-    return () => clearTimeout(timer);
-  }, [duration, onClose]);
+  return () => clearTimeout(timer);
+}, [duration, onClose, type]);
 
   const types = {
     success: {
