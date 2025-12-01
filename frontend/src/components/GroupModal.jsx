@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Plus, Trash2, Edit2, Check } from 'lucide-react';
+import { X, Plus, Trash2, Edit2, Check, Users } from 'lucide-react';
 import { useToast } from '../context/ToastContext';
 
 const GroupModal = ({ onClose, onSave, group, currentUser }) => {
