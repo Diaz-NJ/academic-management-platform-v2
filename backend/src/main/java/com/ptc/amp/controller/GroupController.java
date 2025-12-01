@@ -7,6 +7,9 @@ import org.springframework.web.bind.annotation.*;
 
 import com.ptc.amp.service.TaskService;
 import com.ptc.amp.model.Task;
+import com.ptc.amp.model.User;
+import com.ptc.amp.service.AuthService;
+
 import java.util.*;
 
 @RestController
@@ -14,25 +17,20 @@ import java.util.*;
 public class GroupController {
     private final GroupService groupService;
     private final TaskService taskService;
+    private final AuthService authService;
 
-    public GroupController(GroupService groupService, TaskService taskService) {
-        this.groupService = groupService;
-        this.taskService = taskService;
+    public GroupController(GroupService groupService, TaskService taskService, AuthService authService) { // ✅ ADD authService
+    this.groupService = groupService;
+    this.taskService = taskService;
+    this.authService = authService; 
     }
 
     @PostMapping
 public ResponseEntity<?> createGroup(@RequestBody Group group) {
     try {
-        // ✅ Log incoming data for debugging
         System.out.println("=== CREATE GROUP REQUEST ===");
         System.out.println("Group Name: " + group.getGroupName());
-        System.out.println("Members Count: " + (group.getMembers() != null ? group.getMembers().size() : 0));
-        
-        if (group.getMembers() != null) {
-            group.getMembers().forEach(member -> {
-                System.out.println("Member: " + member.getName() + " (UserID: " + member.getUserId() + ", Role: " + member.getRole() + ")");
-            });
-        }
+        System.out.println("Created By: " + group.getCreatedBy());
         
         // ✅ Validate required fields
         if (group.getGroupName() == null || group.getGroupName().trim().isEmpty()) {
@@ -42,25 +40,35 @@ public ResponseEntity<?> createGroup(@RequestBody Group group) {
             ));
         }
         
-        if (group.getSubject() == null || group.getSubject().trim().isEmpty()) {
-            return ResponseEntity.badRequest().body(Map.of(
-                "success", false,
-                "message", "Subject is required"
-            ));
-        }
-        
-        if (group.getTaskDescription() == null || group.getTaskDescription().trim().isEmpty()) {
-            return ResponseEntity.badRequest().body(Map.of(
-                "success", false,
-                "message", "Task description is required"
-            ));
-        }
-        
         if (group.getCreatedBy() == null) {
             return ResponseEntity.badRequest().body(Map.of(
                 "success", false,
                 "message", "Creator ID is required"
             ));
+        }
+        
+        // ✅ NEW: Auto-add creator as leader if no members provided
+        if (group.getMembers() == null || group.getMembers().isEmpty()) {
+            System.out.println("No members provided - adding creator as leader");
+            
+            // Get creator's info from database
+            Optional<User> creator = authService.getUserById(group.getCreatedBy());
+            if (creator.isEmpty()) {
+                return ResponseEntity.badRequest().body(Map.of(
+                    "success", false,
+                    "message", "Creator user not found"
+                ));
+            }
+            
+            // Add creator as leader
+            Group.GroupMember leaderMember = new Group.GroupMember(
+                creator.get().getId(),
+                creator.get().getFullName(),
+                "Leader"
+            );
+            group.addMember(leaderMember);
+            
+            System.out.println("✅ Added creator as leader: " + creator.get().getFullName());
         }
         
         Group created = groupService.createGroup(group);
@@ -76,8 +84,7 @@ public ResponseEntity<?> createGroup(@RequestBody Group group) {
         
         return ResponseEntity.status(500).body(Map.of(
             "success", false,
-            "message", "Failed to create group: " + e.getMessage(),
-            "error", e.getClass().getSimpleName()
+            "message", "Failed to create group: " + e.getMessage()
         ));
     }
 }
