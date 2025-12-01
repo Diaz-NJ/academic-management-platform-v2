@@ -28,6 +28,10 @@ public class DiscussionMessage {
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
+    // ✅ NEW: Track who has read this message
+@Column(name = "read_by", columnDefinition = "TEXT")
+private String readBy; // Comma-separated list of user IDs who have read this message
+
     // Transient fields for UI
     @Transient
     private String userName;
@@ -66,4 +70,7 @@ public class DiscussionMessage {
 
     public Boolean getIsOwner() { return isOwner; }
     public void setIsOwner(Boolean isOwner) { this.isOwner = isOwner; }
+
+    public String getReadBy() { return readBy; }
+public void setReadBy(String readBy) { this.readBy = readBy; }
 }

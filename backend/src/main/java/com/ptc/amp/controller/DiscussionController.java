@@ -9,6 +9,7 @@ import com.ptc.amp.service.AuthService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -148,4 +149,71 @@ public class DiscussionController {
             ));
         }
     }
+
+    // ===== MESSAGE READ STATUS ENDPOINTS =====
+
+@PostMapping("/{discussionId}/mark-read")
+public ResponseEntity<?> markDiscussionAsRead(
+        @PathVariable Long discussionId,
+        @RequestBody Map<String, Object> data) {
+    try {
+        Long userId = ((Number) data.get("userId")).longValue();
+        
+        messageService.markAllMessagesAsRead(discussionId, userId);
+        
+        return ResponseEntity.ok(Map.of(
+            "success", true,
+            "message", "All messages marked as read"
+        ));
+    } catch (Exception e) {
+        return ResponseEntity.internalServerError().body(Map.of(
+            "success", false,
+            "message", "Failed to mark as read: " + e.getMessage()
+        ));
+    }
+}
+
+@GetMapping("/{discussionId}/unread-count")
+public ResponseEntity<?> getUnreadCount(
+        @PathVariable Long discussionId,
+        @RequestParam Long userId) {
+    try {
+        int unreadCount = messageService.getUnreadCount(discussionId, userId);
+        
+        return ResponseEntity.ok(Map.of(
+            "success", true,
+            "unreadCount", unreadCount
+        ));
+    } catch (Exception e) {
+        return ResponseEntity.internalServerError().body(Map.of(
+            "success", false,
+            "message", "Failed to get unread count: " + e.getMessage()
+        ));
+    }
+}
+
+@GetMapping("/group/{groupId}/unread-counts")
+public ResponseEntity<?> getGroupUnreadCounts(
+        @PathVariable Long groupId,
+        @RequestParam Long userId) {
+    try {
+        List<Discussion> discussions = discussionService.getGroupDiscussions(groupId);
+        Map<Long, Integer> unreadCounts = new HashMap<>();
+        
+        for (Discussion discussion : discussions) {
+            int unreadCount = messageService.getUnreadCount(discussion.getId(), userId);
+            unreadCounts.put(discussion.getId(), unreadCount);
+        }
+        
+        return ResponseEntity.ok(Map.of(
+            "success", true,
+            "unreadCounts", unreadCounts
+        ));
+    } catch (Exception e) {
+        return ResponseEntity.internalServerError().body(Map.of(
+            "success", false,
+            "message", "Failed to get unread counts: " + e.getMessage()
+        ));
+    }
+}
 }

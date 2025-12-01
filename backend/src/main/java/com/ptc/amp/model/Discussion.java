@@ -47,6 +47,9 @@ public class Discussion {
     @Transient
     private String lastMessagePreview;
 
+    @Transient
+private Integer unreadCount; // Number of unread messages for current user
+
     public Discussion() {
         this.createdAt = LocalDateTime.now();
         this.updatedAt = LocalDateTime.now();
@@ -92,4 +95,7 @@ public class Discussion {
 
     public String getLastMessagePreview() { return lastMessagePreview; }
     public void setLastMessagePreview(String lastMessagePreview) { this.lastMessagePreview = lastMessagePreview; }
+
+    public Integer getUnreadCount() { return unreadCount; }
+public void setUnreadCount(Integer unreadCount) { this.unreadCount = unreadCount; }
 }
