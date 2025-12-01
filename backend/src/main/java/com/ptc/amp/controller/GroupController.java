@@ -229,4 +229,82 @@ public ResponseEntity<?> deleteGroup(@PathVariable Long id) {
             ));
         }
     }
+
+    // Add this new endpoint after the existing endpoints
+
+@PutMapping("/{groupId}/members/{userId}/role")
+public ResponseEntity<?> changeMemberRole(
+        @PathVariable Long groupId,
+        @PathVariable Long userId,
+        @RequestBody Map<String, Object> data,
+        @RequestHeader("Session-Id") String sessionId) {
+    try {
+        // Get the requesting user from session
+        Optional<Long> requestingUserIdOpt = authService.validateSession(sessionId);
+        if (requestingUserIdOpt.isEmpty()) {
+            return ResponseEntity.status(403).body(Map.of(
+                "success", false,
+                "message", "Invalid session"
+            ));
+        }
+        
+        Long requestingUserId = requestingUserIdOpt.get();
+        String newRole = (String) data.get("role");
+        
+        // Get the group
+        Optional<Group> groupOpt = groupService.getGroupById(groupId);
+        if (groupOpt.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+        
+        Group group = groupOpt.get();
+        
+        // Check if requesting user is a leader
+        boolean isLeader = group.getMembers().stream()
+            .anyMatch(m -> m.getUserId().equals(requestingUserId) && "Leader".equals(m.getRole()));
+        
+        if (!isLeader) {
+            return ResponseEntity.status(403).body(Map.of(
+                "success", false,
+                "message", "Only leaders can change member roles"
+            ));
+        }
+        
+        // Check if trying to demote the last leader
+        long leaderCount = group.getMembers().stream()
+            .filter(m -> "Leader".equals(m.getRole()))
+            .count();
+        
+        boolean isDemotingLeader = group.getMembers().stream()
+            .anyMatch(m -> m.getUserId().equals(userId) && "Leader".equals(m.getRole()));
+        
+        if (isDemotingLeader && leaderCount == 1 && "Member".equals(newRole)) {
+            return ResponseEntity.badRequest().body(Map.of(
+                "success", false,
+                "message", "Cannot demote the last leader. Promote someone else first."
+            ));
+        }
+        
+        // Update the role
+        boolean updated = groupService.updateMemberRole(groupId, userId, newRole);
+        
+        if (updated) {
+            return ResponseEntity.ok(Map.of(
+                "success", true,
+                "message", "Role updated successfully"
+            ));
+        } else {
+            return ResponseEntity.badRequest().body(Map.of(
+                "success", false,
+                "message", "Failed to update role"
+            ));
+        }
+        
+    } catch (Exception e) {
+        return ResponseEntity.status(500).body(Map.of(
+            "success", false,
+            "message", "Failed to update role: " + e.getMessage()
+        ));
+    }
+}
 }

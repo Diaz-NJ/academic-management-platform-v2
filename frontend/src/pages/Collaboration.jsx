@@ -104,22 +104,26 @@ const Collaboration = () => {
     setShowGroupModal(true);
   };
 
-  const handleSaveGroup = async (groupData) => {
-    try {
-      if (selectedGroup) {
-        await groupAPI.updateGroup(selectedGroup.id, groupData);
-        showToast('Group updated successfully!', 'success');
-      } else {
-        await groupAPI.createGroup(groupData);
-        showToast('Group created successfully!', 'success');
-      }
-      setShowGroupModal(false);
-      loadGroups();
-    } catch (error) {
-      console.error('Error saving group:', error);
-      showToast('Failed to save group', 'error');
+const handleSaveGroup = async (groupData) => {
+  try {
+    if (selectedGroup) {
+      await groupAPI.updateGroup(selectedGroup.id, groupData);
+      showToast('Group updated successfully!', 'success');
+    } else {
+      await groupAPI.createGroup(groupData);
+      showToast('Group created successfully!', 'success');
     }
-  };
+    setShowGroupModal(false);
+    
+    // ✅ Force a complete refresh
+    setLoading(true);
+    await loadGroups();
+    setLoading(false);
+  } catch (error) {
+    console.error('Error saving group:', error);
+    showToast('Failed to save group', 'error');
+  }
+};
 
   const handleDeleteClick = (group) => {
     setGroupToDelete(group);
@@ -188,6 +192,32 @@ const Collaboration = () => {
             <span className="btn-text">Create Group</span>
           </button>
         </div>
+
+        {/* Add this refresh button next to "Create Group" */}
+<div className="flex items-center space-x-2">
+  <button
+    onClick={async () => {
+      setLoading(true);
+      await loadGroups();
+      setLoading(false);
+      showToast('Groups refreshed', 'success');
+    }}
+    className="btn-hover flex items-center space-x-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg font-medium shadow-sm hover:bg-gray-200"
+  >
+    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+    </svg>
+    <span className="btn-text">Refresh</span>
+  </button>
+  
+  <button
+    onClick={handleCreateGroup}
+    className="btn-hover flex items-center space-x-2 px-4 py-2 bg-primary text-white rounded-lg font-medium shadow-sm"
+  >
+    <Plus className="w-5 h-5" />
+    <span className="btn-text">Create Group</span>
+  </button>
+</div>
       </div>
 
       {/* ✅ NEW: Invitations Panel */}

@@ -43,87 +43,64 @@ const GroupModal = ({ onClose, onSave, group, currentUser }) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-const handleToggleMemberRole = (memberId) => {
-  setFormData(prevData => ({
-    ...prevData,
-    members: prevData.members.map(m => 
-      m.userId === memberId 
-        ? { ...m, role: m.role === 'Leader' ? 'Member' : 'Leader' }
-        : m
-    )
-  }));
-};
-
-  const handleRemoveMember = (userId) => {
-    setFormData(prevData => ({
-      ...prevData,
-      members: prevData.members.filter(m => m.userId !== userId)
-    }));
-    showToast('Member removed', 'info');
-  };
-
   const handleSubmit = async (e) => {
-  e.preventDefault();
-  
-  if (!formData.groupName.trim()) {
-    showToast('Group name is required', 'error');
-    return;
-  }
-
-  if (!formData.subject.trim()) {
-    showToast('Subject is required', 'error');
-    return;
-  }
-
-  if (!formData.taskDescription.trim()) {
-    showToast('Task description is required', 'error');
-    return;
-  }
-
-  // ✅ For EDITING: We keep existing members
-  // ✅ For CREATING: We'll add the current user as leader in the backend
-  if (group && formData.members.length === 0) {
-    showToast('Group must have at least one member', 'error');
-    return;
-  }
-
-  // Check if there's at least one leader (for editing)
-  if (group) {
-    const hasLeader = formData.members.some(m => m.role === 'Leader');
-    if (!hasLeader) {
-      showToast('Group must have at least one leader', 'error');
+    e.preventDefault();
+    
+    if (!formData.groupName.trim()) {
+      showToast('Group name is required', 'error');
       return;
     }
-  }
 
-  setLoading(true);
+    if (!formData.subject.trim()) {
+      showToast('Subject is required', 'error');
+      return;
+    }
 
-  try {
-    const groupData = {
-      groupName: formData.groupName,
-      groupNumber: formData.groupNumber,
-      subject: formData.subject,
-      taskDescription: formData.taskDescription,
-      createdBy: currentUser.id,
-      // ✅ For editing: send existing members
-      // ✅ For creating: members array will be added by backend
-      ...(group && {
-        members: formData.members.map(m => ({
-          userId: Number(m.userId),
-          name: m.name,
-          role: m.role
-        }))
-      })
-    };
+    if (!formData.taskDescription.trim()) {
+      showToast('Task description is required', 'error');
+      return;
+    }
 
-    await onSave(groupData);
-  } catch (error) {
-    console.error('Error in GroupModal handleSubmit:', error);
-    throw error; // Let parent handle the error
-  } finally {
-    setLoading(false);
-  }
-};
+    if (group && formData.members.length === 0) {
+      showToast('Group must have at least one member', 'error');
+      return;
+    }
+
+    // Check if there's at least one leader (for editing)
+    if (group) {
+      const hasLeader = formData.members.some(m => m.role === 'Leader');
+      if (!hasLeader) {
+        showToast('Group must have at least one leader', 'error');
+        return;
+      }
+    }
+
+    setLoading(true);
+
+    try {
+      const groupData = {
+        groupName: formData.groupName,
+        groupNumber: formData.groupNumber,
+        subject: formData.subject,
+        taskDescription: formData.taskDescription,
+        createdBy: currentUser.id,
+        ...(group && {
+          members: formData.members.map(m => ({
+            userId: Number(m.userId),
+            name: m.name,
+            role: m.role
+          }))
+        })
+      };
+
+      await onSave(groupData);
+    } catch (error) {
+      console.error('Error in GroupModal handleSubmit:', error);
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const getRoleBadgeColor = (role) => {
     return role === 'Leader' 
@@ -210,93 +187,134 @@ const handleToggleMemberRole = (memberId) => {
             />
           </div>
 
-          {/* ✅ NEW: Members Section - Display Only (No Adding) */}
-<div>
-  <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center space-x-2">
-    <Users className="w-4 h-4" />
-    <span>Current Members ({formData.members.length})</span>
-  </label>
-  
-  {/* Info Box */}
-  <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-3">
-    <p className="text-xs text-blue-800">
-      ℹ️ <strong>To add new members:</strong> Save the group first, then use the "Invite" button to send invitations by email.
-    </p>
-  </div>
-  
-  {/* Members List */}
-  <div className="border border-gray-200 rounded-lg divide-y max-h-64 overflow-y-auto">
-    {formData.members.length === 0 ? (
-      <div className="p-4 text-center text-gray-500 text-sm">
-        {group ? 'No members in this group' : 'You will be added as the leader'}
-      </div>
-    ) : (
-      formData.members.map((member) => (
-        <div
-          key={member.userId}
-          className="p-3 hover:bg-gray-50 flex items-center justify-between"
-        >
-          <div className="flex items-center space-x-3">
-            <div className="w-8 h-8 bg-gradient-to-br from-indigo-400 to-cyan-400 rounded-full border-2 border-white flex items-center justify-center text-xs font-medium text-white shadow-md">
-              {member.name.charAt(0).toUpperCase()}
+          {/* Members Section */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center space-x-2">
+              <Users className="w-4 h-4" />
+              <span>Current Members ({formData.members.length})</span>
+            </label>
+            
+            {/* Info Box */}
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-3">
+              <p className="text-xs text-blue-800">
+                ℹ️ <strong>To add new members:</strong> Save the group first, then use the "Invite" button to send invitations by email.
+              </p>
             </div>
-            <div>
-              <p className="font-medium text-gray-800">{member.name}</p>
-              <span className={`inline-block px-2 py-0.5 text-xs rounded-full ${
-                member.role === 'Leader' 
-                  ? 'bg-purple-100 text-purple-800 border border-purple-300' 
-                  : 'bg-blue-100 text-blue-800 border border-blue-300'
-              }`}>
-                {member.role}
-              </span>
-            </div>
-          </div>
-          
-          {/* Role Toggle (only for existing groups) */}
-          {group && (
-            <div className="flex items-center space-x-2">
-              <button
-                type="button"
-                onClick={() => handleToggleMemberRole(member.userId)}
-                className="text-xs px-3 py-1 bg-gray-100 hover:bg-gray-200 rounded transition"
-                title={member.role === 'Leader' ? 'Demote to Member' : 'Promote to Leader'}
-              >
-                {member.role === 'Leader' ? '👤 Make Member' : '⭐ Make Leader'}
-              </button>
-              
-              {/* Only allow removing if not the current user and not the last leader */}
-              {member.userId !== currentUser.id && (
-                formData.members.filter(m => m.role === 'Leader').length > 1 || member.role !== 'Leader'
-              ) && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setFormData(prevData => ({
-                      ...prevData,
-                      members: prevData.members.filter(m => m.userId !== member.userId)
-                    }));
-                    showToast('Member removed', 'info');
-                  }}
-                  className="p-2 text-red-500 hover:bg-red-50 rounded transition"
-                  title="Remove member"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
+            
+            {/* ✅ UPDATED MEMBERS LIST */}
+            <div className="border border-gray-200 rounded-lg divide-y max-h-64 overflow-y-auto">
+              {formData.members.length === 0 ? (
+                <div className="p-4 text-center text-gray-500 text-sm">
+                  {group ? 'No members in this group' : 'You will be added as the leader'}
+                </div>
+              ) : (
+                formData.members.map((member) => {
+                  // ✅ Check if current user is a leader
+                  const currentMember = group?.members?.find(m => m.userId === currentUser.id);
+                  const isCurrentUserLeader = currentMember?.role === 'Leader';
+                  const isMemberLeader = member.role === 'Leader';
+                  const leaderCount = formData.members.filter(m => m.role === 'Leader').length;
+                  
+                  return (
+                    <div
+                      key={member.userId}
+                      className="p-3 hover:bg-gray-50 flex items-center justify-between"
+                    >
+                      <div className="flex items-center space-x-3">
+                        <div className="w-8 h-8 bg-gradient-to-br from-indigo-400 to-cyan-400 rounded-full border-2 border-white flex items-center justify-center text-xs font-medium text-white shadow-md">
+                          {member.name.charAt(0).toUpperCase()}
+                        </div>
+                        <div>
+                          <p className="font-medium text-gray-800">{member.name}</p>
+                          <span className={`inline-block px-2 py-0.5 text-xs rounded-full ${
+                            member.role === 'Leader' 
+                              ? 'bg-purple-100 text-purple-800 border border-purple-300' 
+                              : 'bg-blue-100 text-blue-800 border border-blue-300'
+                          }`}>
+                            {member.role}
+                          </span>
+                        </div>
+                      </div>
+                      
+                      {/* ✅ NEW: Role Management - Only for Leaders */}
+                      {group && (
+                        <div className="flex items-center space-x-2">
+                          {/* Show role toggle ONLY if current user is a leader AND not editing themselves */}
+                          {isCurrentUserLeader && member.userId !== currentUser.id && (
+                            <button
+                              type="button"
+                              onClick={async () => {
+                                // Prevent demoting last leader
+                                if (isMemberLeader && leaderCount === 1) {
+                                  showToast('Cannot demote the last leader', 'error');
+                                  return;
+                                }
+                                
+                                const newRole = isMemberLeader ? 'Member' : 'Leader';
+                                
+                                try {
+                                  const { groupAPI } = await import('../services/api');
+                                  await groupAPI.changeMemberRole(group.id, member.userId, newRole);
+                                  showToast(`Role changed to ${newRole}`, 'success');
+                                  
+                                  // Update local state
+                                  setFormData(prevData => ({
+                                    ...prevData,
+                                    members: prevData.members.map(m =>
+                                      m.userId === member.userId
+                                        ? { ...m, role: newRole }
+                                        : m
+                                    )
+                                  }));
+                                } catch (error) {
+                                  console.error('Error changing role:', error);
+                                  const errorMessage = error.response?.data?.message || 'Failed to change role';
+                                  showToast(errorMessage, 'error');
+                                }
+                              }}
+                              className="text-xs px-3 py-1 bg-gray-100 hover:bg-gray-200 rounded transition"
+                              title={isMemberLeader ? 'Demote to Member' : 'Promote to Leader'}
+                            >
+                              {isMemberLeader ? '👤 Make Member' : '⭐ Make Leader'}
+                            </button>
+                          )}
+                          
+                          {/* Only show remove button if: 
+                              1. Not removing yourself
+                              2. Either there are multiple leaders OR this person is not a leader
+                          */}
+                          {member.userId !== currentUser.id && 
+                           (leaderCount > 1 || !isMemberLeader) && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setFormData(prevData => ({
+                                  ...prevData,
+                                  members: prevData.members.filter(m => m.userId !== member.userId)
+                                }));
+                                showToast('Member removed', 'info');
+                              }}
+                              className="p-2 text-red-500 hover:bg-red-50 rounded transition"
+                              title="Remove member"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })
               )}
             </div>
-          )}
-        </div>
-      ))
-    )}
-  </div>
-  
-  {/* ✅ Explanation for new groups */}
-  {!group && (
-    <p className="text-xs text-gray-500 mt-2">
-      💡 You'll be added as the group leader. Invite others after creating the group.
-    </p>
-  )}
-</div>
+            
+            {/* Explanation for new groups */}
+            {!group && (
+              <p className="text-xs text-gray-500 mt-2">
+                💡 You'll be added as the group leader. Invite others after creating the group.
+              </p>
+            )}
+          </div>
 
           {/* Action Buttons */}
           <div className="flex space-x-3 pt-4">

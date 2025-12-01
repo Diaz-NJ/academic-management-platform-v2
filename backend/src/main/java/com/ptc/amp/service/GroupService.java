@@ -137,4 +137,22 @@ public class GroupService {
         }
         return false;
     }
+
+    public boolean updateMemberRole(Long groupId, Long userId, String newRole) {
+    Optional<Group> groupOpt = groupRepository.findById(groupId);
+    if (groupOpt.isPresent()) {
+        Group group = groupOpt.get();
+        
+        // Find and update the member's role
+        for (Group.GroupMember member : group.getMembers()) {
+            if (member.getUserId().equals(userId)) {
+                member.setRole(newRole);
+                group.setUpdatedAt(java.time.LocalDateTime.now());
+                groupRepository.save(group);
+                return true;
+            }
+        }
+    }
+    return false;
+}
 }
