@@ -36,34 +36,62 @@ const Collaboration = () => {
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
   const [groupToLeave, setGroupToLeave] = useState(null);
 
-  // ✅ NEW: Load and poll for unread counts
-useEffect(() => {
-  if (groups.length > 0) {
-    loadAllGroupUnreadCounts();
-    
-    // Poll for unread counts every 10 seconds
-    const interval = setInterval(() => {
-      loadAllGroupUnreadCounts();
-    }, 10000);
-    
-    return () => clearInterval(interval);
-  }
-}, [groups, loadAllGroupUnreadCounts]);
-
-// ✅ NEW: Quiet group loading (no loading state)
-const loadGroupsQuietly = useCallback(async () => {
-  try {
-    const response = await groupAPI.getGroups(user.id);
-    
-    // Only update if there are changes
-    const hasChanges = JSON.stringify(response.data) !== JSON.stringify(groups);
-    if (hasChanges) {
-      setGroups(response.data);
+  // ✅ NEW: Load unread counts for all groups - DEFINE THIS FIRST
+  const loadAllGroupUnreadCounts = useCallback(async () => {
+    try {
+      const counts = {};
+      
+      // Load unread counts for each group
+      await Promise.all(
+        groups.map(async (group) => {
+          try {
+            const response = await discussionAPI.getGroupUnreadCounts(group.id, user.id);
+            if (response.data.success) {
+              const unreadCounts = response.data.unreadCounts;
+              // Sum up all unread messages in this group
+              const totalUnread = Object.values(unreadCounts).reduce((sum, count) => sum + count, 0);
+              counts[group.id] = totalUnread;
+            }
+          } catch (error) {
+            console.error(`Error loading unread for group ${group.id}:`, error);
+          }
+        })
+      );
+      
+      setGroupUnreadCounts(counts);
+    } catch (error) {
+      console.error('Error loading group unread counts:', error);
     }
-  } catch (error) {
-    console.error('Error polling groups:', error);
-  }
-}, [user.id, groups]);
+  }, [groups, user.id]);
+
+  // ✅ NEW: Load and poll for unread counts - USE IT HERE
+  useEffect(() => {
+    if (groups.length > 0) {
+      loadAllGroupUnreadCounts();
+      
+      // Poll for unread counts every 10 seconds
+      const interval = setInterval(() => {
+        loadAllGroupUnreadCounts();
+      }, 10000);
+      
+      return () => clearInterval(interval);
+    }
+  }, [groups, loadAllGroupUnreadCounts]);
+
+  // ✅ NEW: Quiet group loading (no loading state)
+  const loadGroupsQuietly = useCallback(async () => {
+    try {
+      const response = await groupAPI.getGroups(user.id);
+      
+      // Only update if there are changes
+      const hasChanges = JSON.stringify(response.data) !== JSON.stringify(groups);
+      if (hasChanges) {
+        setGroups(response.data);
+      }
+    } catch (error) {
+      console.error('Error polling groups:', error);
+    }
+  }, [user.id, groups]);
 
   useEffect(() => {
     if (searchQuery.trim()) {
@@ -80,32 +108,6 @@ const loadGroupsQuietly = useCallback(async () => {
   }, [groups, searchQuery]);
 
   // ✅ NEW: Load unread counts for all groups
-const loadAllGroupUnreadCounts = useCallback(async () => {
-  try {
-    const counts = {};
-    
-    // Load unread counts for each group
-    await Promise.all(
-      groups.map(async (group) => {
-        try {
-          const response = await discussionAPI.getGroupUnreadCounts(group.id, user.id);
-          if (response.data.success) {
-            const unreadCounts = response.data.unreadCounts;
-            // Sum up all unread messages in this group
-            const totalUnread = Object.values(unreadCounts).reduce((sum, count) => sum + count, 0);
-            counts[group.id] = totalUnread;
-          }
-        } catch (error) {
-          console.error(`Error loading unread for group ${group.id}:`, error);
-        }
-      })
-    );
-    
-    setGroupUnreadCounts(counts);
-  } catch (error) {
-    console.error('Error loading group unread counts:', error);
-  }
-}, [groups, user.id]);
 
   const loadGroups = useCallback(async() => {
     try {
