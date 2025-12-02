@@ -46,7 +46,6 @@ public class AuthController {
                 .orElse(ResponseEntity.status(401).body(Map.of("valid", false)));
     }
 
-    // ✅ NEW: Update user endpoint
     @PutMapping("/users/{id}")
     public ResponseEntity<?> updateUser(@PathVariable Long id, @RequestBody User updatedUser) {
         Optional<User> userOpt = authService.getUserById(id);
@@ -57,7 +56,6 @@ public class AuthController {
         
         User user = userOpt.get();
         
-        // Check if email is being changed to one that already exists
         if (!user.getEmail().equals(updatedUser.getEmail())) {
             if (authService.emailExists(updatedUser.getEmail())) {
                 return ResponseEntity.badRequest()
@@ -65,7 +63,6 @@ public class AuthController {
             }
         }
         
-        // Check if student ID is being changed to one that already exists
         if (!user.getStudentId().equals(updatedUser.getStudentId())) {
             if (authService.studentIdExists(updatedUser.getStudentId())) {
                 return ResponseEntity.badRequest()
@@ -107,7 +104,6 @@ public ResponseEntity<?> deleteUser(
         @RequestHeader("Session-Id") String sessionId,
         @RequestBody Map<String, String> requestData) {
     
-    // ✅ Verify session
     Optional<Long> sessionUserIdOpt = authService.validateSession(sessionId);
     if (sessionUserIdOpt.isEmpty()) {
         return ResponseEntity.status(403).body(Map.of(
@@ -116,7 +112,6 @@ public ResponseEntity<?> deleteUser(
         ));
     }
     
-    // ✅ Verify user is deleting their own account
     if (!sessionUserIdOpt.get().equals(id)) {
         return ResponseEntity.status(403).body(Map.of(
             "success", false, 
@@ -124,7 +119,6 @@ public ResponseEntity<?> deleteUser(
         ));
     }
     
-    // ✅ Get password from request body
     String password = requestData.get("password");
     if (password == null || password.isEmpty()) {
         return ResponseEntity.badRequest().body(Map.of(
@@ -133,7 +127,6 @@ public ResponseEntity<?> deleteUser(
         ));
     }
     
-    // ✅ Verify password and delete
     Map<String, Object> result = authService.deleteUserWithPasswordConfirmation(id, password);
     boolean success = (boolean) result.get("success");
     

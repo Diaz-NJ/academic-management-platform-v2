@@ -14,6 +14,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
+import java.util.HashMap;
+import java.util.Map;
 
 @Service
 @Transactional
@@ -133,4 +135,36 @@ public int getUnreadCount(Long discussionId, Long userId) {
     
     return unreadCount;
 }
+
+// ✅ NEW: Optimized - Get all unread counts for a group at once
+public Map<Long, Integer> getGroupUnreadCounts(Long groupId, Long userId) {
+    // Get all discussions for this group
+    List<Discussion> discussions = discussionRepository.findByGroupIdOrderByIsPinnedDescLastMessageAtDesc(groupId);
+    
+    Map<Long, Integer> unreadCounts = new HashMap<>();
+    String userIdStr = String.valueOf(userId);
+    
+    for (Discussion discussion : discussions) {
+        // Get messages for this discussion
+        List<DiscussionMessage> messages = messageRepository.findByDiscussionIdOrderByCreatedAtAsc(discussion.getId());
+        
+        int unreadCount = 0;
+        for (DiscussionMessage message : messages) {
+            // Skip messages sent by the user themselves
+            if (message.getUserId().equals(userId)) {
+                continue;
+            }
+            
+            String readBy = message.getReadBy();
+            if (readBy == null || readBy.isEmpty() || !Arrays.asList(readBy.split(",")).contains(userIdStr)) {
+                unreadCount++;
+            }
+        }
+        
+        unreadCounts.put(discussion.getId(), unreadCount);
+    }
+    
+    return unreadCounts;
+}
+
 }

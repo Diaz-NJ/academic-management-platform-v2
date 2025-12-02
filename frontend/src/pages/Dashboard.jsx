@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { taskAPI, eventAPI } from '../services/api';
+import { taskAPI, eventAPI, groupAPI, discussionAPI } from '../services/api';
 import { 
   LogOut, 
   Plus, 
@@ -32,6 +32,7 @@ const Dashboard = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [pendingInvitations, setPendingInvitations] = useState(0);
+    const [totalUnreadMessages, setTotalUnreadMessages] = useState(0); 
 
   const loadTasks = async () => {
     try {
@@ -115,20 +116,51 @@ const Dashboard = () => {
   };
 
   // ✅ NEW: Poll for pending invitations
+// ✅ ENHANCED: Poll for pending invitations AND unread messages
 useEffect(() => {
-  const checkInvitations = async () => {
+  const checkNotifications = async () => {
     try {
-      const response = await invitationAPI.getReceivedInvitations(user.id);
-      setPendingInvitations(response.data.length);
+      // Check invitations
+      const invitationsResponse = await invitationAPI.getReceivedInvitations(user.id);
+      setPendingInvitations(invitationsResponse.data.length);
+      
+      // ✅ NEW: Check total unread messages across all groups
+      try {
+        const groupsResponse = await groupAPI.getGroups(user.id);
+        const groups = groupsResponse.data;
+        
+        let totalUnread = 0;
+        
+        // Get unread counts for each group
+        await Promise.all(
+          groups.map(async (group) => {
+            try {
+              const unreadResponse = await discussionAPI.getGroupUnreadCounts(group.id, user.id);
+              if (unreadResponse.data.success) {
+                const unreadCounts = unreadResponse.data.unreadCounts;
+                const groupTotal = Object.values(unreadCounts).reduce((sum, count) => sum + count, 0);
+                totalUnread += groupTotal;
+              }
+            } catch (error) {
+              console.error(`Error loading unread for group ${group.id}:`, error);
+            }
+          })
+        );
+        
+        setTotalUnreadMessages(totalUnread);
+      } catch (error) {
+        console.error('Error checking unread messages:', error);
+      }
+      
     } catch (error) {
-      console.error('Error checking invitations:', error);
+      console.error('Error checking notifications:', error);
     }
   };
 
-  checkInvitations();
+  checkNotifications();
   
   // Poll every 10 seconds
-  const interval = setInterval(checkInvitations, 10000);
+  const interval = setInterval(checkNotifications, 10000);
   
   return () => clearInterval(interval);
 }, [user.id]);
@@ -248,10 +280,10 @@ useEffect(() => {
                   >
                     <Users className={`w-5 h-5 ${activeTab === 'collaboration' ? '' : 'icon-hover-blue'}`} />
                     <span>Collaborate</span>
-                    {/* ✅ NEW: Notification Badge */}
-                    {pendingInvitations > 0 && (
-                      <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center animate-pulse">
-                        {pendingInvitations}
+                    {/* ✅ ENHANCED: Combined Notification Badge */}
+                    {(pendingInvitations > 0 || totalUnreadMessages > 0) && (
+                      <span className="absolute -top-1 -right-1 min-w-[20px] h-5 px-1.5 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center animate-pulse">
+                        {pendingInvitations + totalUnreadMessages}
                       </span>
                     )}
                   </button>
@@ -368,7 +400,7 @@ useEffect(() => {
                 <CalendarIcon className="w-5 h-5 inline mr-2" />
                 Calendar
               </button>
-              <button
+             <button
                 onClick={() => {
                   setActiveTab('collaboration');
                   setMobileMenuOpen(false);
@@ -381,10 +413,10 @@ useEffect(() => {
               >
                 <Users className="w-5 h-5 inline mr-2" />
                 Collaborate
-                {/* ✅ Badge for mobile */}
-                {pendingInvitations > 0 && (
-                  <span className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center">
-                    {pendingInvitations}
+                {/* ✅ ENHANCED: Combined Badge for mobile */}
+                {(pendingInvitations > 0 || totalUnreadMessages > 0) && (
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 min-w-[20px] h-5 px-1.5 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center">
+                    {pendingInvitations + totalUnreadMessages}
                   </span>
                 )}
               </button>
@@ -585,7 +617,11 @@ useEffect(() => {
 
         {activeTab === 'tasks' && <Tasks />}
         {activeTab === 'calendar' && <Calendar />}
-        {activeTab === 'collaboration' && <Collaboration />}
+        {activeTab === 'collaboration' && (
+          <Collaboration 
+            onUnreadCountChange={setTotalUnreadMessages}
+          />
+        )}
         {activeTab === 'analytics' && <Analytics />}
         {activeTab === 'settings' && <Settings />}
       </div>

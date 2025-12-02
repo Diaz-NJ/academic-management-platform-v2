@@ -12,7 +12,7 @@ import DiscussionBoard from '../components/DiscussionBoard';
 import InvitationsPanel from '../components/InvitationsPanel';
 import UnreadBadge from '../components/UnreadBadge'; 
 
-const Collaboration = () => {
+const Collaboration = ({ onUnreadCountChange }) => {
   const { user } = useAuth();
   const { showToast } = useToast();
   const [groups, setGroups] = useState([]);
@@ -23,32 +23,26 @@ const Collaboration = () => {
   const [groupToDelete, setGroupToDelete] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [filteredGroups, setFilteredGroups] = useState([]);
-  
-  // Bulk Actions State
   const [selectedGroups, setSelectedGroups] = useState([]);
   const [showBulkDeleteDialog, setShowBulkDeleteDialog] = useState(false);
-
-  // ✅ NEW: Invitation & Discussion States
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [showDiscussionBoard, setShowDiscussionBoard] = useState(false);
   const [groupUnreadCounts, setGroupUnreadCounts] = useState({});
-  // ✅ NEW: Leave group state
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
   const [groupToLeave, setGroupToLeave] = useState(null);
 
-  // ✅ NEW: Load unread counts for all groups - DEFINE THIS FIRST
-  const loadAllGroupUnreadCounts = useCallback(async () => {
+  const loadAllGroupUnreadCounts = useCallback(async (groupsList) => {
+    if (!groupsList || groupsList.length === 0) return;
+    
     try {
       const counts = {};
       
-      // Load unread counts for each group
       await Promise.all(
-        groups.map(async (group) => {
+        groupsList.map(async (group) => {
           try {
             const response = await discussionAPI.getGroupUnreadCounts(group.id, user.id);
             if (response.data.success) {
               const unreadCounts = response.data.unreadCounts;
-              // Sum up all unread messages in this group
               const totalUnread = Object.values(unreadCounts).reduce((sum, count) => sum + count, 0);
               counts[group.id] = totalUnread;
             }
@@ -62,44 +56,55 @@ const Collaboration = () => {
     } catch (error) {
       console.error('Error loading group unread counts:', error);
     }
-  }, [groups, user.id]);
+  }, [user.id]);
 
-  // ✅ NEW: Load and poll for unread counts - USE IT HERE
+// ✅ ENHANCED: Load, poll, and notify parent of unread counts
   useEffect(() => {
     if (groups.length > 0) {
-      loadAllGroupUnreadCounts();
+      // Load immediately
+      loadAllGroupUnreadCounts(groups);
       
-      // Poll for unread counts every 10 seconds
+      // Poll every 10 seconds
       const interval = setInterval(() => {
-        loadAllGroupUnreadCounts();
+        loadAllGroupUnreadCounts(groups);
       }, 10000);
       
       return () => clearInterval(interval);
     }
-  }, [groups, loadAllGroupUnreadCounts]);
+  }, [groups.length]);
 
-  // ✅ NEW: Quiet group loading (no loading state)
-  const loadGroupsQuietly = useCallback(async () => {
-    try {
-      const response = await groupAPI.getGroups(user.id);
-      
-      // Only update if there are changes
-      const hasChanges = JSON.stringify(response.data) !== JSON.stringify(groups);
-      if (hasChanges) {
-        setGroups(response.data);
-      }
-    } catch (error) {
-      console.error('Error polling groups:', error);
+  // ✅ NEW: Notify parent when unread count changes
+  useEffect(() => {
+    if (onUnreadCountChange) {
+      const totalUnread = Object.values(groupUnreadCounts).reduce((sum, count) => sum + count, 0);
+      onUnreadCountChange(totalUnread);
     }
-  }, [user.id, groups]);
+  }, [groupUnreadCounts, onUnreadCountChange]);
+
+// ✅ FIXED: Search filtering with better performance
+  useEffect(() => {
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      const filtered = groups.filter(group =>
+        group.groupName.toLowerCase().includes(query) ||
+        group.subject.toLowerCase().includes(query) ||
+        (group.groupNumber && group.groupNumber.toLowerCase().includes(query)) ||
+        group.taskDescription.toLowerCase().includes(query)
+      );
+      setFilteredGroups(filtered);
+    } else {
+      setFilteredGroups(groups);
+    }
+  }, [groups, searchQuery]);// ✅ FIXED: Search filtering with better performance
 
   useEffect(() => {
     if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
       const filtered = groups.filter(group =>
-        group.groupName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        group.subject.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (group.groupNumber && group.groupNumber.toLowerCase().includes(searchQuery.toLowerCase())) ||
-        group.taskDescription.toLowerCase().includes(searchQuery.toLowerCase())
+        group.groupName.toLowerCase().includes(query) ||
+        group.subject.toLowerCase().includes(query) ||
+        (group.groupNumber && group.groupNumber.toLowerCase().includes(query)) ||
+        group.taskDescription.toLowerCase().includes(query)
       );
       setFilteredGroups(filtered);
     } else {
@@ -109,10 +114,19 @@ const Collaboration = () => {
 
   // ✅ NEW: Load unread counts for all groups
 
-  const loadGroups = useCallback(async() => {
+const loadGroups = useCallback(async() => {
     try {
       const response = await groupAPI.getGroups(user.id);
-      setGroups(response.data);
+      const newGroups = response.data;
+      
+      // ✅ Only update if there are actual changes
+      setGroups(prevGroups => {
+        if (JSON.stringify(prevGroups) === JSON.stringify(newGroups)) {
+          return prevGroups; // No change, don't trigger re-render
+        }
+        return newGroups;
+      });
+      
       setSelectedGroups([]);
     } catch (error) {
       console.error('Error loading groups:', error);
@@ -121,6 +135,11 @@ const Collaboration = () => {
       setLoading(false);
     }
   }, [user.id, showToast]);
+
+  // ✅ NEW: Initial load only
+  useEffect(() => {
+    loadGroups();
+  }, []); // Empty array = run once on mount
 
   const toggleGroupSelection = (groupId) => {
     setSelectedGroups(prev => 
@@ -172,10 +191,8 @@ const handleSaveGroup = async (groupData) => {
     }
     setShowGroupModal(false);
     
-    // ✅ Force a complete refresh
-    setLoading(true);
+    // ✅ Optimized refresh - no loading state
     await loadGroups();
-    setLoading(false);
   } catch (error) {
     console.error('Error saving group:', error);
     showToast('Failed to save group', 'error');
@@ -245,9 +262,9 @@ const handleSaveGroup = async (groupData) => {
           <div className="flex items-center space-x-2">
             <button
               onClick={async () => {
-                setLoading(true);
+                // ✅ Don't show full loading state for refresh
                 await loadGroups();
-                setLoading(false);
+                await loadAllGroupUnreadCounts(groups);
                 showToast('Groups refreshed', 'success');
               }}
               className="btn-hover flex items-center space-x-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg font-medium shadow-sm hover:bg-gray-200"

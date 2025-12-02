@@ -28,8 +28,6 @@ public class DiscussionController {
         this.messageService = messageService;
         this.authService = authService;
     }
-
-    // ===== DISCUSSION ENDPOINTS =====
     
     @GetMapping("/group/{groupId}")
     public ResponseEntity<List<Discussion>> getGroupDiscussions(@PathVariable Long groupId) {
@@ -119,8 +117,6 @@ public class DiscussionController {
             ));
         }
     }
-
-    // ===== MESSAGE ENDPOINTS =====
     
     @GetMapping("/{discussionId}/messages")
     public ResponseEntity<List<DiscussionMessage>> getDiscussionMessages(@PathVariable Long discussionId) {
@@ -149,8 +145,6 @@ public class DiscussionController {
             ));
         }
     }
-
-    // ===== MESSAGE READ STATUS ENDPOINTS =====
 
 @PostMapping("/{discussionId}/mark-read")
 public ResponseEntity<?> markDiscussionAsRead(
@@ -197,13 +191,8 @@ public ResponseEntity<?> getGroupUnreadCounts(
         @PathVariable Long groupId,
         @RequestParam Long userId) {
     try {
-        List<Discussion> discussions = discussionService.getGroupDiscussions(groupId);
-        Map<Long, Integer> unreadCounts = new HashMap<>();
-        
-        for (Discussion discussion : discussions) {
-            int unreadCount = messageService.getUnreadCount(discussion.getId(), userId);
-            unreadCounts.put(discussion.getId(), unreadCount);
-        }
+        // ✅ Get unread counts in a single optimized query
+        Map<Long, Integer> unreadCounts = messageService.getGroupUnreadCounts(groupId, userId);
         
         return ResponseEntity.ok(Map.of(
             "success", true,
