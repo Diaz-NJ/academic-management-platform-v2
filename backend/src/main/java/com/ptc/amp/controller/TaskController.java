@@ -1,4 +1,3 @@
-// backend/src/main/java/com/ptc/amp/controller/TaskController.java - COMPLETE VERSION
 package com.ptc.amp.controller;
 
 import com.ptc.amp.model.Task;
@@ -7,7 +6,6 @@ import com.ptc.amp.service.TaskService;
 import com.ptc.amp.service.EventService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import java.time.LocalDateTime;
 import java.util.*;
 
 @RestController
@@ -24,8 +22,7 @@ public class TaskController {
     @PostMapping
     public ResponseEntity<Task> createTask(@RequestBody Task task) {
         Task created = taskService.createTask(task);
-        
-        // ✅ AUTOMATIC: If task has a due date, link it to calendar
+
         if (created.getDueDate() != null) {
             autoLinkToCalendar(created);
         }
@@ -57,16 +54,12 @@ public class TaskController {
         
         Task existingTask = existingTaskOpt.get();
         Task updated = taskService.updateTask(task);
-        
-        // ✅ AUTOMATIC: Handle calendar linking based on due date changes
+
         if (updated.getDueDate() != null && !updated.getShowOnCalendar()) {
-            // Due date added - create calendar event
             autoLinkToCalendar(updated);
         } else if (updated.getDueDate() != null && updated.getShowOnCalendar()) {
-            // Due date changed - update existing calendar event
             updateCalendarEvent(updated);
         } else if (updated.getDueDate() == null && updated.getShowOnCalendar()) {
-            // Due date removed - delete calendar event
             removeFromCalendar(updated);
         }
         
@@ -82,7 +75,6 @@ public class TaskController {
         
         Task task = taskOpt.get();
         
-        // If linked to calendar, delete the calendar event first
         if (task.getShowOnCalendar() && task.getEventId() != null) {
             try {
                 eventService.deleteEvent(task.getEventId());
@@ -97,7 +89,6 @@ public class TaskController {
                 ResponseEntity.notFound().build();
     }
 
-    // ✅ NEW: Add task to calendar (creates event)
     @PostMapping("/{id}/add-to-calendar")
     public ResponseEntity<?> addTaskToCalendar(@PathVariable Long id) {
         try {
@@ -108,7 +99,6 @@ public class TaskController {
 
             Task task = taskOpt.get();
             
-            // Check if already on calendar
             if (task.getEventId() != null) {
                 return ResponseEntity.badRequest().body(Map.of(
                     "success", false,
@@ -116,7 +106,6 @@ public class TaskController {
                 ));
             }
 
-            // Create calendar event from task
             Event event = new Event();
             event.setUserId(task.getUserId());
             event.setTitle(task.getTitle());
@@ -127,8 +116,7 @@ public class TaskController {
             event.setColorCode(getPriorityColor(task.getPriority()));
             
             Event createdEvent = eventService.createEvent(event);
-            
-            // Link task to event
+
             task.setEventId(createdEvent.getId());
             task.setShowOnCalendar(true);
             taskService.updateTask(task);
@@ -146,7 +134,6 @@ public class TaskController {
         }
     }
 
-    // ✅ NEW: Remove task from calendar (deletes linked event)
     @DeleteMapping("/{id}/remove-from-calendar")
     public ResponseEntity<?> removeTaskFromCalendar(@PathVariable Long id) {
         try {
@@ -164,10 +151,8 @@ public class TaskController {
                 ));
             }
 
-            // Delete the linked event
             eventService.deleteEvent(task.getEventId());
-            
-            // Unlink task from event
+
             task.setEventId(null);
             task.setShowOnCalendar(false);
             taskService.updateTask(task);
@@ -184,7 +169,6 @@ public class TaskController {
         }
     }
 
-    // ✅ NEW: Link task to group
     @PostMapping("/{id}/link-to-group/{groupId}")
     public ResponseEntity<?> linkTaskToGroup(
             @PathVariable Long id, 
@@ -211,7 +195,6 @@ public class TaskController {
         }
     }
 
-    // ✅ NEW: Unlink task from group
     @DeleteMapping("/{id}/unlink-from-group")
     public ResponseEntity<?> unlinkTaskFromGroup(@PathVariable Long id) {
         try {
@@ -236,14 +219,11 @@ public class TaskController {
         }
     }
 
-    // ✅ NEW: Get tasks for a specific group
     @GetMapping("/group/{groupId}")
     public ResponseEntity<List<Task>> getGroupTasks(@PathVariable Long groupId) {
         List<Task> tasks = taskService.getTasksByGroupId(groupId);
         return ResponseEntity.ok(tasks);
     }
-
-    // ========== HELPER METHODS ==========
     
     private void autoLinkToCalendar(Task task) {
         try {

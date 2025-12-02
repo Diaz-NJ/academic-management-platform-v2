@@ -20,12 +20,10 @@ public class GroupService {
 
     public Group createGroup(Group group) {
     System.out.println("=== GROUP SERVICE: createGroup ===");
-    
-    // Ensure bidirectional relationship is set
+
     if (group.getMembers() != null && !group.getMembers().isEmpty()) {
         System.out.println("Setting up " + group.getMembers().size() + " members");
-        
-        // ✅ Clear and re-add to ensure proper relationships
+
         List<Group.GroupMember> membersCopy = new ArrayList<>(group.getMembers());
         group.getMembers().clear();
         
@@ -62,28 +60,21 @@ public class GroupService {
         Group existingGroup = existingGroupOpt.get();
         
         System.out.println("Existing group found with " + existingGroup.getMembers().size() + " members");
-        
-        // Update basic fields
+
         existingGroup.setGroupNumber(updatedGroup.getGroupNumber());
         existingGroup.setGroupName(updatedGroup.getGroupName());
         existingGroup.setSubject(updatedGroup.getSubject());
         existingGroup.setTaskDescription(updatedGroup.getTaskDescription());
-        
-        // ✅ FIX: Properly handle member updates
-        // 1. Clear existing members
         existingGroup.getMembers().clear();
-        
-        // ✅ 2. Flush to database to ensure orphan removal
+
         groupRepository.flush();
-        
-        // ✅ 3. Add new members with proper bidirectional relationship
+
         if (updatedGroup.getMembers() != null && !updatedGroup.getMembers().isEmpty()) {
             System.out.println("Adding " + updatedGroup.getMembers().size() + " new members");
             
             for (Group.GroupMember member : updatedGroup.getMembers()) {
                 System.out.println("  - Adding: " + member.getName() + " (Role: " + member.getRole() + ")");
-                
-                // ✅ Create new member instance to avoid detached entity issues
+
                 Group.GroupMember newMember = new Group.GroupMember(
                     member.getUserId(),
                     member.getName(),
@@ -142,8 +133,7 @@ public class GroupService {
     Optional<Group> groupOpt = groupRepository.findById(groupId);
     if (groupOpt.isPresent()) {
         Group group = groupOpt.get();
-        
-        // Find and update the member's role
+
         for (Group.GroupMember member : group.getMembers()) {
             if (member.getUserId().equals(userId)) {
                 member.setRole(newRole);

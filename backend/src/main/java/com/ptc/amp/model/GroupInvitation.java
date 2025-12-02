@@ -20,14 +20,13 @@ public class GroupInvitation {
     private Long invitedBy;
 
     @Column(nullable = false, length = 20)
-    private String status = "PENDING"; // PENDING, ACCEPTED, REJECTED
+    private String status = "PENDING";
 
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
     private LocalDateTime respondedAt;
 
-    // Transient fields for UI (not stored in DB)
     @Transient
     private String groupName;
 
@@ -45,7 +44,6 @@ public class GroupInvitation {
         this.status = "PENDING";
     }
 
-    // Getters and Setters
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 
@@ -67,7 +65,6 @@ public class GroupInvitation {
     public LocalDateTime getRespondedAt() { return respondedAt; }
     public void setRespondedAt(LocalDateTime respondedAt) { this.respondedAt = respondedAt; }
 
-    // Transient getters and setters
     public String getGroupName() { return groupName; }
     public void setGroupName(String groupName) { this.groupName = groupName; }
 

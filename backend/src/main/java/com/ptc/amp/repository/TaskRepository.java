@@ -8,7 +8,5 @@ import java.util.List;
 @Repository
 public interface TaskRepository extends JpaRepository<Task, Long> {
     List<Task> findByUserIdOrderByDueDateAsc(Long userId);
-    
-    // ✅ NEW: Find tasks by group ID
     List<Task> findByGroupIdOrderByDueDateAsc(Long groupId);
 }

@@ -19,7 +19,7 @@ public class GroupController {
     private final TaskService taskService;
     private final AuthService authService;
 
-    public GroupController(GroupService groupService, TaskService taskService, AuthService authService) { // ✅ ADD authService
+    public GroupController(GroupService groupService, TaskService taskService, AuthService authService) {
     this.groupService = groupService;
     this.taskService = taskService;
     this.authService = authService; 
@@ -32,7 +32,6 @@ public ResponseEntity<?> createGroup(@RequestBody Group group) {
         System.out.println("Group Name: " + group.getGroupName());
         System.out.println("Created By: " + group.getCreatedBy());
         
-        // ✅ Validate required fields
         if (group.getGroupName() == null || group.getGroupName().trim().isEmpty()) {
             return ResponseEntity.badRequest().body(Map.of(
                 "success", false,
@@ -46,12 +45,10 @@ public ResponseEntity<?> createGroup(@RequestBody Group group) {
                 "message", "Creator ID is required"
             ));
         }
-        
-        // ✅ NEW: Auto-add creator as leader if no members provided
+
         if (group.getMembers() == null || group.getMembers().isEmpty()) {
             System.out.println("No members provided - adding creator as leader");
-            
-            // Get creator's info from database
+
             Optional<User> creator = authService.getUserById(group.getCreatedBy());
             if (creator.isEmpty()) {
                 return ResponseEntity.badRequest().body(Map.of(
@@ -59,8 +56,7 @@ public ResponseEntity<?> createGroup(@RequestBody Group group) {
                     "message", "Creator user not found"
                 ));
             }
-            
-            // Add creator as leader
+
             Group.GroupMember leaderMember = new Group.GroupMember(
                 creator.get().getId(),
                 creator.get().getFullName(),
@@ -112,7 +108,6 @@ public ResponseEntity<?> createGroup(@RequestBody Group group) {
     @DeleteMapping("/{id}")
 public ResponseEntity<?> deleteGroup(@PathVariable Long id) {
     try {
-        // ✅ FIXED: Unlink all tasks from this group before deleting
         List<Task> linkedTasks = taskService.getTasksByGroupId(id);
         for (Task task : linkedTasks) {
             task.setGroupId(null);
@@ -161,8 +156,7 @@ public ResponseEntity<?> deleteGroup(@PathVariable Long id) {
             @RequestBody Map<String, Object> data) {
         try {
             Long userId = ((Number) data.get("userId")).longValue();
-            
-            // Get the group
+
             Optional<Group> groupOpt = groupService.getGroupById(groupId);
             if (groupOpt.isEmpty()) {
                 return ResponseEntity.notFound().build();
@@ -170,7 +164,6 @@ public ResponseEntity<?> deleteGroup(@PathVariable Long id) {
             
             Group group = groupOpt.get();
             
-            // Check if user is a member
             boolean isMember = group.getMembers().stream()
                 .anyMatch(m -> m.getUserId().equals(userId));
             
@@ -180,8 +173,7 @@ public ResponseEntity<?> deleteGroup(@PathVariable Long id) {
                     "message", "You are not a member of this group"
                 ));
             }
-            
-            // Check if user is the only leader
+
             long leaderCount = group.getMembers().stream()
                 .filter(m -> "Leader".equals(m.getRole()))
                 .count();
@@ -195,14 +187,11 @@ public ResponseEntity<?> deleteGroup(@PathVariable Long id) {
                     "message", "You cannot leave as you are the only leader. Transfer leadership or delete the group."
                 ));
             }
-            
-            // Remove the member
+
             groupService.removeMemberFromGroup(groupId, userId);
-            
-            // If no members left, delete the group
+
             groupOpt = groupService.getGroupById(groupId);
             if (groupOpt.isPresent() && groupOpt.get().getMembers().isEmpty()) {
-                // ✅ Unlink all tasks from this group before deleting
                 List<Task> linkedTasks = taskService.getTasksByGroupId(groupId);
                 for (Task task : linkedTasks) {
                     task.setGroupId(null);
@@ -230,8 +219,6 @@ public ResponseEntity<?> deleteGroup(@PathVariable Long id) {
         }
     }
 
-    // Add this new endpoint after the existing endpoints
-
 @PutMapping("/{groupId}/members/{userId}/role")
 public ResponseEntity<?> changeMemberRole(
         @PathVariable Long groupId,
@@ -239,7 +226,6 @@ public ResponseEntity<?> changeMemberRole(
         @RequestBody Map<String, Object> data,
         @RequestHeader("Session-Id") String sessionId) {
     try {
-        // Get the requesting user from session
         Optional<Long> requestingUserIdOpt = authService.validateSession(sessionId);
         if (requestingUserIdOpt.isEmpty()) {
             return ResponseEntity.status(403).body(Map.of(
@@ -250,16 +236,14 @@ public ResponseEntity<?> changeMemberRole(
         
         Long requestingUserId = requestingUserIdOpt.get();
         String newRole = (String) data.get("role");
-        
-        // Get the group
+
         Optional<Group> groupOpt = groupService.getGroupById(groupId);
         if (groupOpt.isEmpty()) {
             return ResponseEntity.notFound().build();
         }
         
         Group group = groupOpt.get();
-        
-        // Check if requesting user is a leader
+
         boolean isLeader = group.getMembers().stream()
             .anyMatch(m -> m.getUserId().equals(requestingUserId) && "Leader".equals(m.getRole()));
         
@@ -269,8 +253,7 @@ public ResponseEntity<?> changeMemberRole(
                 "message", "Only leaders can change member roles"
             ));
         }
-        
-        // Check if trying to demote the last leader
+
         long leaderCount = group.getMembers().stream()
             .filter(m -> "Leader".equals(m.getRole()))
             .count();
@@ -284,8 +267,7 @@ public ResponseEntity<?> changeMemberRole(
                 "message", "Cannot demote the last leader. Promote someone else first."
             ));
         }
-        
-        // Update the role
+
         boolean updated = groupService.updateMemberRole(groupId, userId, newRole);
         
         if (updated) {

@@ -40,7 +40,6 @@ public class Discussion {
     @Column(nullable = false)
     private LocalDateTime updatedAt;
 
-    // Transient fields for UI
     @Transient
     private String creatorName;
 
@@ -48,7 +47,7 @@ public class Discussion {
     private String lastMessagePreview;
 
     @Transient
-private Integer unreadCount; // Number of unread messages for current user
+    private Integer unreadCount;
 
     public Discussion() {
         this.createdAt = LocalDateTime.now();
@@ -58,7 +57,6 @@ private Integer unreadCount; // Number of unread messages for current user
         this.messageCount = 0;
     }
 
-    // Getters and Setters
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 

@@ -33,7 +33,6 @@ public class Event {
     @Column(length = 7)
     private String colorCode;
 
-    // Recurring event fields
     @Column(name = "is_recurring")
     private Boolean isRecurring = false;
 
@@ -52,7 +51,6 @@ public class Event {
     @Column(name = "recurrence_count")
     private Integer recurrenceCount;
 
-    // For single instance exceptions
     @Column(name = "parent_event_id")
     private Long parentEventId;
 
@@ -65,11 +63,9 @@ public class Event {
     @Column(name = "is_canceled")
     private Boolean isCanceled = false;
 
-    // Canceled dates (comma-separated ISO dates)
     @Column(name = "canceled_dates", columnDefinition = "TEXT")
     private String canceledDates;
 
-    // ✅ NEW: Permanently deleted dates (comma-separated ISO dates)
     @Column(name = "deleted_dates", columnDefinition = "TEXT")
     private String deletedDates;
 
@@ -84,7 +80,6 @@ public class Event {
         this.isCanceled = false;
     }
 
-    // Existing getters and setters
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 
@@ -147,7 +142,6 @@ public class Event {
     public String getCanceledDates() { return canceledDates; }
     public void setCanceledDates(String canceledDates) { this.canceledDates = canceledDates; }
 
-    // ✅ NEW: Getter and setter for deletedDates
     public String getDeletedDates() { return deletedDates; }
     public void setDeletedDates(String deletedDates) { this.deletedDates = deletedDates; }
 }

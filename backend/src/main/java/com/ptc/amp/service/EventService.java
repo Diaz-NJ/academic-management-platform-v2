@@ -32,15 +32,13 @@ public class EventService {
     }
 
     public List<Event> getEventsByUserId(Long userId) {
-    // ✅ Use the new method that filters out deleted events
-    return eventRepository.findActiveEventsByUserId(userId);
-}
+        return eventRepository.findActiveEventsByUserId(userId);
+    }
 
     public List<Event> getExceptionsByParentId(Long parentId) {
         return eventRepository.findByParentEventId(parentId);
     }
 
-    // Cancel a single instance of a recurring event
     public Event cancelInstance(Long eventId, String dateStr) {
         Optional<Event> eventOpt = eventRepository.findById(eventId);
         if (eventOpt.isEmpty()) {
@@ -48,8 +46,7 @@ public class EventService {
         }
 
         Event event = eventOpt.get();
-        
-        // ✅ Extract just the date part (YYYY-MM-DD) from ISO string
+
         String datePart = dateStr.substring(0, 10);
         
         String currentCanceled = event.getCanceledDates();
@@ -67,7 +64,6 @@ public class EventService {
         return eventRepository.save(event);
     }
 
-    // ✅ Un-cancel an instance (restore it to normal)
     public Event removeCanceledInstance(Long eventId, String dateStr) {
         Optional<Event> eventOpt = eventRepository.findById(eventId);
         if (eventOpt.isEmpty()) {
@@ -93,7 +89,6 @@ public class EventService {
         return eventRepository.save(event);
     }
 
-    // ✅ NEW: Permanently delete an instance
     public Event deleteInstance(Long eventId, String dateStr) {
         Optional<Event> eventOpt = eventRepository.findById(eventId);
         if (eventOpt.isEmpty()) {
@@ -102,7 +97,6 @@ public class EventService {
 
         Event event = eventOpt.get();
         
-        // Add date to deletedDates list
         String currentDeleted = event.getDeletedDates();
         List<String> deletedList = new ArrayList<>();
         
@@ -115,8 +109,7 @@ public class EventService {
         }
         
         event.setDeletedDates(String.join(",", deletedList));
-        
-        // Also remove from canceledDates if it was there
+
         String currentCanceled = event.getCanceledDates();
         if (currentCanceled != null && !currentCanceled.isEmpty()) {
             List<String> canceledList = new ArrayList<>(Arrays.asList(currentCanceled.split(",")));
@@ -174,36 +167,30 @@ public class EventService {
             }
             
             Event event = eventOpt.get();
-            
-            // ✅ FIX: Delete all exceptions first (including canceled ones)
+
             List<Event> exceptions = getExceptionsByParentId(id);
             for (Event exception : exceptions) {
                 eventRepository.deleteById(exception.getId());
             }
-            
-            // Then delete the parent event
+
             eventRepository.deleteById(id);
             return true;
         }
         return false;
     }
 
-        public void cleanupOrphanedExceptions(Long userId) {
-        // Get all events for the user
+    public void cleanupOrphanedExceptions(Long userId) {
         List<Event> allEvents = eventRepository.findByUserIdOrderByStartDateTimeAsc(userId);
-        
-        // Find exceptions whose parent no longer exists
+
         List<Event> orphanedExceptions = allEvents.stream()
             .filter(event -> event.getIsException() != null && event.getIsException())
             .filter(event -> {
                 Long parentId = event.getParentEventId();
                 if (parentId == null) return false;
-                // Check if parent still exists
                 return !eventRepository.existsById(parentId);
             })
             .collect(java.util.stream.Collectors.toList());
-        
-        // Delete orphaned exceptions
+
         for (Event orphan : orphanedExceptions) {
             eventRepository.deleteById(orphan.getId());
         }

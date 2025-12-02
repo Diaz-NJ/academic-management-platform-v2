@@ -20,15 +20,13 @@ public class GroupInvitationController {
         this.authService = authService;
     }
 
-    // Send invitation by email
     @PostMapping("/send")
     public ResponseEntity<?> sendInvitation(@RequestBody Map<String, Object> inviteData) {
         try {
             Long groupId = ((Number) inviteData.get("groupId")).longValue();
             String invitedEmail = (String) inviteData.get("invitedEmail");
             Long invitedById = ((Number) inviteData.get("invitedBy")).longValue();
-            
-            // Check if user exists by email
+
             User invitedUser = authService.getUserByEmail(invitedEmail);
             if (invitedUser == null) {
                 return ResponseEntity.badRequest().body(Map.of(
@@ -36,8 +34,7 @@ public class GroupInvitationController {
                     "message", "No user found with email: " + invitedEmail
                 ));
             }
-            
-            // Check if already invited or member
+
             if (invitationService.isAlreadyInvited(groupId, invitedUser.getId())) {
                 return ResponseEntity.badRequest().body(Map.of(
                     "success", false,
@@ -71,21 +68,18 @@ public class GroupInvitationController {
         }
     }
 
-    // Get invitations for a user (received)
     @GetMapping("/received/{userId}")
     public ResponseEntity<List<GroupInvitation>> getReceivedInvitations(@PathVariable Long userId) {
         List<GroupInvitation> invitations = invitationService.getReceivedInvitations(userId);
         return ResponseEntity.ok(invitations);
     }
 
-    // Get invitations sent by a user
     @GetMapping("/sent/{userId}")
     public ResponseEntity<List<GroupInvitation>> getSentInvitations(@PathVariable Long userId) {
         List<GroupInvitation> invitations = invitationService.getSentInvitations(userId);
         return ResponseEntity.ok(invitations);
     }
 
-    // Accept invitation
     @PostMapping("/{invitationId}/accept")
     public ResponseEntity<?> acceptInvitation(@PathVariable Long invitationId) {
         try {
@@ -103,7 +97,6 @@ public class GroupInvitationController {
         }
     }
 
-    // Reject invitation
     @PostMapping("/{invitationId}/reject")
     public ResponseEntity<?> rejectInvitation(@PathVariable Long invitationId) {
         try {
@@ -121,7 +114,6 @@ public class GroupInvitationController {
         }
     }
 
-    // Cancel invitation (by sender)
     @DeleteMapping("/{invitationId}")
     public ResponseEntity<?> cancelInvitation(@PathVariable Long invitationId) {
         try {

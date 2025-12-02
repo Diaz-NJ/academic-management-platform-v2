@@ -38,8 +38,7 @@ public class GroupInvitationService {
         invitation.setInvitedUserId(invitedUserId);
         invitation.setInvitedBy(invitedBy);
         invitation.setStatus("PENDING");
-        
-        // Enrich with names
+
         enrichInvitation(invitation);
         
         return invitationRepository.save(invitation);
@@ -67,11 +66,9 @@ public class GroupInvitationService {
         throw new RuntimeException("Invitation already processed");
     }
 
-    // Get the group with all members - FORCE EAGER FETCH
     Group group = groupRepository.findById(invitation.getGroupId())
         .orElseThrow(() -> new RuntimeException("Group not found"));
-    
-    // ✅ Force load members
+
     int existingMemberCount = group.getMembers().size();
     System.out.println("Current group has " + existingMemberCount + " members:");
     group.getMembers().forEach(m -> 
@@ -83,7 +80,6 @@ public class GroupInvitationService {
 
     System.out.println("Adding user: " + user.getFullName() + " (ID: " + user.getId() + ")");
 
-    // ✅ Check if user is already a member
     boolean isAlreadyMember = group.getMembers().stream()
         .anyMatch(m -> m.getUserId().equals(user.getId()));
     
@@ -97,12 +93,10 @@ public class GroupInvitationService {
             user.getFullName(),
             "Member"
         );
-        
-        // ✅ Set bidirectional relationship explicitly
+
         member.setGroup(group);
         group.getMembers().add(member);
-        
-        // ✅ Save and flush immediately
+
         Group savedGroup = groupRepository.saveAndFlush(group);
         
         System.out.println("✅ Member added! New total: " + savedGroup.getMembers().size());

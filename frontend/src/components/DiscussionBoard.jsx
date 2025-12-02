@@ -518,41 +518,47 @@ const DiscussionThread = ({
   const [loading, setLoading] = useState(true);
   const [showMenu, setShowMenu] = useState(false);
   
-  // ✅ NEW: Auto-scroll reference
   const messagesEndRef = React.useRef(null);
   const messageContainerRef = React.useRef(null);
-  
-  // ✅ NEW: Track if user is near bottom
   const [isNearBottom, setIsNearBottom] = useState(true);
 
-  // ✅ NEW: Load messages with auto-refresh
-  // ✅ NEW: Mark as read when thread is opened
-useEffect(() => {
-  if (discussion.id && currentUser.id) {
-    // Mark as read after a short delay (user has seen the thread)
-    const timer = setTimeout(() => {
-      markAsRead(discussion.id);
-    }, 1000);
+  // ✅ FIXED: Load messages on mount and set up polling
+  useEffect(() => {
+    loadMessages();
     
-    return () => clearTimeout(timer);
-  }
-}, [discussion.id, currentUser.id, markAsRead]);
+    // Poll every 3 seconds for new messages
+    const interval = setInterval(() => {
+      loadMessagesQuietly();
+    }, 3000);
+    
+    return () => clearInterval(interval);
+  }, [discussion.id]);
 
-  // ✅ NEW: Scroll to bottom when new messages arrive (only if user was near bottom)
+  // ✅ Mark as read when thread is opened
+  useEffect(() => {
+    if (discussion.id && currentUser.id) {
+      const timer = setTimeout(() => {
+        markAsRead(discussion.id);
+      }, 1000);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [discussion.id, currentUser.id, markAsRead]);
+
+  // ✅ Scroll to bottom when new messages arrive
   useEffect(() => {
     if (isNearBottom && messages.length > 0) {
       scrollToBottom();
     }
-  }, [messages.length]);
+  }, [messages.length, isNearBottom]);
 
-  // ✅ NEW: Track scroll position
+  // ✅ Track scroll position
   const handleScroll = () => {
     if (!messageContainerRef.current) return;
     
     const { scrollTop, scrollHeight, clientHeight } = messageContainerRef.current;
     const distanceFromBottom = scrollHeight - scrollTop - clientHeight;
     
-    // Consider "near bottom" if within 100px of bottom
     setIsNearBottom(distanceFromBottom < 100);
   };
 
@@ -562,26 +568,28 @@ useEffect(() => {
 
   const loadMessages = async () => {
     try {
+      console.log('📥 Loading messages for discussion:', discussion.id);
       const response = await discussionAPI.getMessages(discussion.id);
+      console.log('✅ Messages loaded:', response.data.length);
       setMessages(response.data);
     } catch (error) {
+      console.error('❌ Error loading messages:', error);
       showToast('Failed to load messages', 'error');
     } finally {
       setLoading(false);
     }
   };
 
-  // ✅ NEW: Load messages quietly (no loading state)
   const loadMessagesQuietly = async () => {
     try {
       const response = await discussionAPI.getMessages(discussion.id);
       
       // Only update if there are new messages
       if (response.data.length !== messages.length) {
+        console.log('🔄 New messages detected:', response.data.length - messages.length);
         setMessages(response.data);
       }
     } catch (error) {
-      // Silently fail - don't show error toast for background polling
       console.error('Error polling messages:', error);
     }
   };
@@ -591,6 +599,7 @@ useEffect(() => {
     if (!newMessage.trim()) return;
 
     try {
+      console.log('📤 Sending message...');
       await discussionAPI.createMessage({
         discussionId: discussion.id,
         userId: currentUser.id,
@@ -598,13 +607,16 @@ useEffect(() => {
       });
       setNewMessage('');
       
-      // ✅ Load messages immediately after sending
-      loadMessages();
+      // Load messages immediately after sending
+      await loadMessages();
       
-      // ✅ Force scroll to bottom when you send a message
+      // Force scroll to bottom
       setIsNearBottom(true);
       setTimeout(scrollToBottom, 100);
+      
+      console.log('✅ Message sent successfully');
     } catch (error) {
+      console.error('❌ Error sending message:', error);
       showToast('Failed to send message', 'error');
     }
   };

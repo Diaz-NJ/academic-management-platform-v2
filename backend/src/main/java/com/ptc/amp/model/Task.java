@@ -26,20 +26,17 @@ public class Task {
     private LocalDateTime dueDate;
 
     @Column(length = 20)
-    private String priority; // Low, Medium, High, Urgent
+    private String priority;
 
     @Column(length = 20)
-    private String status; // Pending, In Progress, Completed
+    private String status;
 
-    // ✅ NEW: Link to calendar event
     @Column(name = "event_id")
     private Long eventId;
 
-    // ✅ NEW: Link to group
     @Column(name = "group_id")
     private Long groupId;
 
-    // ✅ NEW: Flag to show on calendar
     @Column(name = "show_on_calendar")
     private Boolean showOnCalendar = false;
 
@@ -55,7 +52,6 @@ public class Task {
         this.showOnCalendar = false;
     }
 
-    // Existing Getters and Setters
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 
@@ -86,7 +82,6 @@ public class Task {
     public LocalDateTime getCreatedAt() { return createdAt; }
     public LocalDateTime getUpdatedAt() { return updatedAt; }
 
-    // ✅ NEW: Getters and Setters
     public Long getEventId() { return eventId; }
     public void setEventId(Long eventId) { this.eventId = eventId; }
 

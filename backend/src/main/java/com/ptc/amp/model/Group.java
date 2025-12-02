@@ -44,7 +44,6 @@ public class Group {
         this.updatedAt = LocalDateTime.now();
     }
 
-    // Inner class for members
     @Entity
     @Table(name = "group_members")
     public static class GroupMember {
@@ -64,7 +63,7 @@ public class Group {
         private String name;
 
         @Column(length = 20)
-        private String role; // "Leader" or "Member"
+        private String role;
 
         public GroupMember() {}
 
@@ -74,7 +73,6 @@ public class Group {
             this.role = role;
         }
 
-        // Getters and Setters
         public Long getId() { return id; }
         public void setId(Long id) { this.id = id; }
 
@@ -91,7 +89,6 @@ public class Group {
         public void setRole(String role) { this.role = role; }
     }
 
-    // Getters and Setters
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 
@@ -124,7 +121,6 @@ public class Group {
     public LocalDateTime getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
 
-    // Helper methods
     public void addMember(GroupMember member) {
         member.setGroup(this);
         this.members.add(member);

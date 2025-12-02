@@ -35,8 +35,7 @@ public class DiscussionMessageService {
 
     public List<DiscussionMessage> getDiscussionMessages(Long discussionId) {
         List<DiscussionMessage> messages = messageRepository.findByDiscussionIdOrderByCreatedAtAsc(discussionId);
-        
-        // Enrich with user names
+
         for (DiscussionMessage message : messages) {
             Optional<User> user = userRepository.findById(message.getUserId());
             user.ifPresent(u -> message.setUserName(u.getFullName()));
@@ -46,57 +45,30 @@ public class DiscussionMessageService {
     }
 
     public DiscussionMessage createMessage(DiscussionMessage message) {
-    // ✅ Mark the sender as having read the message automatically
-    message.setReadBy(String.valueOf(message.getUserId()));
-    
-    // Save the message
-    DiscussionMessage created = messageRepository.save(message);
-    
-    // Update discussion's message count and last message time
-    Optional<Discussion> discussionOpt = discussionRepository.findById(message.getDiscussionId());
-    discussionOpt.ifPresent(discussion -> {
-        discussion.setMessageCount(discussion.getMessageCount() + 1);
-        discussion.setLastMessageAt(LocalDateTime.now());
-        discussionRepository.save(discussion);
-    });
-    
-    // Enrich with user name
-    Optional<User> user = userRepository.findById(created.getUserId());
-    user.ifPresent(u -> created.setUserName(u.getFullName()));
-    
-    return created;
-}
+        message.setReadBy(String.valueOf(message.getUserId()));
 
-    // ✅ NEW: Mark message as read by a user
-public DiscussionMessage markMessageAsRead(Long messageId, Long userId) {
-    Optional<DiscussionMessage> messageOpt = messageRepository.findById(messageId);
-    if (messageOpt.isEmpty()) {
-        throw new RuntimeException("Message not found");
-    }
-    
-    DiscussionMessage message = messageOpt.get();
-    String readBy = message.getReadBy();
-    
-    if (readBy == null || readBy.isEmpty()) {
-        message.setReadBy(String.valueOf(userId));
-    } else {
-        List<String> readers = new ArrayList<>(Arrays.asList(readBy.split(",")));
-        String userIdStr = String.valueOf(userId);
+        DiscussionMessage created = messageRepository.save(message);
+
+        Optional<Discussion> discussionOpt = discussionRepository.findById(message.getDiscussionId());
+        discussionOpt.ifPresent(discussion -> {
+            discussion.setMessageCount(discussion.getMessageCount() + 1);
+            discussion.setLastMessageAt(LocalDateTime.now());
+            discussionRepository.save(discussion);
+        });
+
+        Optional<User> user = userRepository.findById(created.getUserId());
+        user.ifPresent(u -> created.setUserName(u.getFullName()));
         
-        if (!readers.contains(userIdStr)) {
-            readers.add(userIdStr);
-            message.setReadBy(String.join(",", readers));
-        }
+        return created;
     }
-    
-    return messageRepository.save(message);
-}
 
-// ✅ NEW: Mark all messages in a discussion as read
-public void markAllMessagesAsRead(Long discussionId, Long userId) {
-    List<DiscussionMessage> messages = messageRepository.findByDiscussionIdOrderByCreatedAtAsc(discussionId);
-    
-    for (DiscussionMessage message : messages) {
+    public DiscussionMessage markMessageAsRead(Long messageId, Long userId) {
+        Optional<DiscussionMessage> messageOpt = messageRepository.findById(messageId);
+        if (messageOpt.isEmpty()) {
+            throw new RuntimeException("Message not found");
+        }
+        
+        DiscussionMessage message = messageOpt.get();
         String readBy = message.getReadBy();
         
         if (readBy == null || readBy.isEmpty()) {
@@ -111,60 +83,77 @@ public void markAllMessagesAsRead(Long discussionId, Long userId) {
             }
         }
         
-        messageRepository.save(message);
+        return messageRepository.save(message);
     }
-}
 
-// ✅ NEW: Get unread count for a discussion
-public int getUnreadCount(Long discussionId, Long userId) {
-    List<DiscussionMessage> messages = messageRepository.findByDiscussionIdOrderByCreatedAtAsc(discussionId);
-    String userIdStr = String.valueOf(userId);
-    
-    int unreadCount = 0;
-    for (DiscussionMessage message : messages) {
-        // Skip messages sent by the user themselves
-        if (message.getUserId().equals(userId)) {
-            continue;
-        }
+    public void markAllMessagesAsRead(Long discussionId, Long userId) {
+        List<DiscussionMessage> messages = messageRepository.findByDiscussionIdOrderByCreatedAtAsc(discussionId);
         
-        String readBy = message.getReadBy();
-        if (readBy == null || readBy.isEmpty() || !Arrays.asList(readBy.split(",")).contains(userIdStr)) {
-            unreadCount++;
-        }
-    }
-    
-    return unreadCount;
-}
-
-// ✅ NEW: Optimized - Get all unread counts for a group at once
-public Map<Long, Integer> getGroupUnreadCounts(Long groupId, Long userId) {
-    // Get all discussions for this group
-    List<Discussion> discussions = discussionRepository.findByGroupIdOrderByIsPinnedDescLastMessageAtDesc(groupId);
-    
-    Map<Long, Integer> unreadCounts = new HashMap<>();
-    String userIdStr = String.valueOf(userId);
-    
-    for (Discussion discussion : discussions) {
-        // Get messages for this discussion
-        List<DiscussionMessage> messages = messageRepository.findByDiscussionIdOrderByCreatedAtAsc(discussion.getId());
-        
-        int unreadCount = 0;
         for (DiscussionMessage message : messages) {
-            // Skip messages sent by the user themselves
-            if (message.getUserId().equals(userId)) {
-                continue;
+            String readBy = message.getReadBy();
+            
+            if (readBy == null || readBy.isEmpty()) {
+                message.setReadBy(String.valueOf(userId));
+            } else {
+                List<String> readers = new ArrayList<>(Arrays.asList(readBy.split(",")));
+                String userIdStr = String.valueOf(userId);
+                
+                if (!readers.contains(userIdStr)) {
+                    readers.add(userIdStr);
+                    message.setReadBy(String.join(",", readers));
+                }
             }
             
-            String readBy = message.getReadBy();
-            if (readBy == null || readBy.isEmpty() || !Arrays.asList(readBy.split(",")).contains(userIdStr)) {
-                unreadCount++;
+            messageRepository.save(message);
+        }
+    }
+
+        public int getUnreadCount(Long discussionId, Long userId) {
+            List<DiscussionMessage> messages = messageRepository.findByDiscussionIdOrderByCreatedAtAsc(discussionId);
+            String userIdStr = String.valueOf(userId);
+            
+            int unreadCount = 0;
+            for (DiscussionMessage message : messages) {
+                if (message.getUserId().equals(userId)) {
+                    continue;
+                }
+                
+                String readBy = message.getReadBy();
+                if (readBy == null || readBy.isEmpty() || !Arrays.asList(readBy.split(",")).contains(userIdStr)) {
+                    unreadCount++;
+                }
             }
+            
+            return unreadCount;
+        }
+
+
+    public Map<Long, Integer> getGroupUnreadCounts(Long groupId, Long userId) {
+
+        List<Discussion> discussions = discussionRepository.findByGroupIdOrderByIsPinnedDescLastMessageAtDesc(groupId);
+        
+        Map<Long, Integer> unreadCounts = new HashMap<>();
+        String userIdStr = String.valueOf(userId);
+        
+        for (Discussion discussion : discussions) {
+            List<DiscussionMessage> messages = messageRepository.findByDiscussionIdOrderByCreatedAtAsc(discussion.getId());
+            
+            int unreadCount = 0;
+            for (DiscussionMessage message : messages) {
+                if (message.getUserId().equals(userId)) {
+                    continue;
+                }
+                
+                String readBy = message.getReadBy();
+                if (readBy == null || readBy.isEmpty() || !Arrays.asList(readBy.split(",")).contains(userIdStr)) {
+                    unreadCount++;
+                }
+            }
+            
+            unreadCounts.put(discussion.getId(), unreadCount);
         }
         
-        unreadCounts.put(discussion.getId(), unreadCount);
+        return unreadCounts;
     }
-    
-    return unreadCounts;
-}
 
 }

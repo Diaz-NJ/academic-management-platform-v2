@@ -2,14 +2,11 @@ package com.ptc.amp.controller;
 
 import com.ptc.amp.model.Discussion;
 import com.ptc.amp.model.DiscussionMessage;
-import com.ptc.amp.model.User;
 import com.ptc.amp.service.DiscussionService;
 import com.ptc.amp.service.DiscussionMessageService;
 import com.ptc.amp.service.AuthService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -191,7 +188,6 @@ public ResponseEntity<?> getGroupUnreadCounts(
         @PathVariable Long groupId,
         @RequestParam Long userId) {
     try {
-        // ✅ Get unread counts in a single optimized query
         Map<Long, Integer> unreadCounts = messageService.getGroupUnreadCounts(groupId, userId);
         
         return ResponseEntity.ok(Map.of(

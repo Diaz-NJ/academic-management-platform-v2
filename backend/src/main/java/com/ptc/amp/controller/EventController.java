@@ -6,7 +6,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
-import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.stream.Collectors;
 import java.util.*;
@@ -19,7 +18,7 @@ public class EventController {
     private final EventService eventService;
     private final TaskService taskService;
 
-    public EventController(EventService eventService, TaskService taskService) { // ADD taskService
+    public EventController(EventService eventService, TaskService taskService) {
     this.eventService = eventService;
     this.taskService = taskService;
     }
@@ -179,14 +178,12 @@ public class EventController {
                 return ResponseEntity.badRequest().build();
             }
             
-            // ✅ LOG for debugging
             System.out.println("Canceling instance - Event ID: " + id + ", Date: " + dateStr);
             
             Event updated = eventService.cancelInstance(id, dateStr);
             return ResponseEntity.ok(updated);
         }
 
-    // ✅ NEW: Un-cancel an instance
     @DeleteMapping("/{id}/cancel-instance")
     public ResponseEntity<?> uncancelInstance(
             @PathVariable Long id,
@@ -213,21 +210,17 @@ public class EventController {
     @DeleteMapping("/cleanup-orphans/{userId}")
 public ResponseEntity<?> cleanupOrphanedEvents(@PathVariable Long userId) {
     try {
-        // Get all events for the user
         List<Event> allEvents = eventService.getEventsByUserId(userId);
-        
-        // Create a set of all valid event IDs
+
         Set<Long> validEventIds = allEvents.stream()
             .map(Event::getId)
             .collect(Collectors.toSet());
-        
-        // Find orphaned events (events with parentEventId that doesn't exist)
+
         List<Event> orphanedEvents = allEvents.stream()
             .filter(event -> event.getParentEventId() != null)
             .filter(event -> !validEventIds.contains(event.getParentEventId()))
             .collect(Collectors.toList());
-        
-        // Delete orphaned events
+
         for (Event orphan : orphanedEvents) {
             eventService.deleteEvent(orphan.getId());
         }
@@ -248,7 +241,6 @@ public ResponseEntity<?> cleanupOrphanedEvents(@PathVariable Long userId) {
     }
 }
 
-    // ✅ NEW: Permanently delete an instance
     @PostMapping("/{id}/delete-instance")
     public ResponseEntity<Event> deleteInstance(
             @PathVariable Long id,
@@ -342,15 +334,13 @@ public ResponseEntity<?> cleanupOrphanedEvents(@PathVariable Long userId) {
     @DeleteMapping("/{id}")
 public ResponseEntity<?> deleteEvent(@PathVariable Long id) {
     try {
-        // ✅ FIXED: Find and unlink any tasks linked to this event
         Optional<Event> eventOpt = eventService.getEventById(id);
         if (eventOpt.isEmpty()) {
             return ResponseEntity.notFound().build();
         }
         
         Event event = eventOpt.get();
-        
-        // Find tasks with this eventId
+
         List<Task> allTasks = taskService.getTasksByUserId(event.getUserId());
         for (Task task : allTasks) {
             if (task.getEventId() != null && task.getEventId().equals(id)) {
@@ -377,10 +367,8 @@ public ResponseEntity<?> deleteEvent(@PathVariable Long id) {
 
     private LocalDateTime parseDateTime(String dateTimeStr) {
     try {
-        // Try parsing ISO 8601 format
         return LocalDateTime.parse(dateTimeStr, DateTimeFormatter.ISO_DATE_TIME);
     } catch (Exception e) {
-        // Fallback to custom format if needed
         return LocalDateTime.parse(dateTimeStr);
     }
 }

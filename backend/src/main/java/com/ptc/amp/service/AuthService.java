@@ -23,7 +23,6 @@ public class AuthService {
             return Map.of("success", false, "message", "Student ID already registered");
         }
 
-        // Hash password before saving
         String hashedPassword = PasswordUtil.hashPassword(user.getPassword());
         user.setPassword(hashedPassword);
 
@@ -43,8 +42,7 @@ public class AuthService {
         }
 
         User user = userOpt.get();
-        
-        // Check hashed password
+
         if (!PasswordUtil.checkPassword(password, user.getPassword())) {
             return Map.of("success", false, "message", "Invalid credentials");
         }
@@ -65,10 +63,9 @@ public class AuthService {
         );
     }
 
-    // Add this method to find users by email
-        public User getUserByEmail(String email) {
-            return userRepository.findByEmail(email).orElse(null);
-        }
+    public User getUserByEmail(String email) {
+        return userRepository.findByEmail(email).orElse(null);
+    }
 
     public Optional<Long> validateSession(String sessionId) {
         return Optional.ofNullable(sessions.get(sessionId));
@@ -78,22 +75,18 @@ public class AuthService {
         sessions.remove(sessionId);
     }
 
-    // ✅ NEW: Get user by ID
     public Optional<User> getUserById(Long id) {
         return userRepository.findById(id);
     }
 
-    // ✅ NEW: Check if email exists
     public boolean emailExists(String email) {
         return userRepository.findByEmail(email).isPresent();
     }
 
-    // ✅ NEW: Check if student ID exists
     public boolean studentIdExists(String studentId) {
         return userRepository.findByStudentId(studentId).isPresent();
     }
 
-    // ✅ NEW: Update user
     public Map<String, Object> updateUser(Long id, User updatedUser) {
         Optional<User> userOpt = userRepository.findById(id);
         
@@ -102,8 +95,7 @@ public class AuthService {
         }
         
         User user = userOpt.get();
-        
-        // Update fields (don't update password here - that should be separate)
+
         user.setFirstName(updatedUser.getFirstName());
         user.setLastName(updatedUser.getLastName());
         user.setEmail(updatedUser.getEmail());
@@ -124,7 +116,7 @@ public class AuthService {
             )
         );
     }
-    // ✅ NEW: Change password
+
     public Map<String, Object> changePassword(Long userId, String currentPassword, String newPassword) {
         Optional<User> userOpt = userRepository.findById(userId);
         
@@ -133,13 +125,11 @@ public class AuthService {
         }
         
         User user = userOpt.get();
-        
-        // Verify current password
+
         if (!PasswordUtil.checkPassword(currentPassword, user.getPassword())) {
             return Map.of("success", false, "message", "Current password is incorrect");
         }
-        
-        // Hash and save new password
+
         String hashedNewPassword = PasswordUtil.hashPassword(newPassword);
         user.setPassword(hashedNewPassword);
         userRepository.save(user);
@@ -152,20 +142,17 @@ public class AuthService {
 
     public Map<String, Object> deleteUserWithPasswordConfirmation(Long userId, String password) {
     try {
-        // Get the user
         Optional<User> userOpt = userRepository.findById(userId);
         if (userOpt.isEmpty()) {
             return Map.of("success", false, "message", "User not found");
         }
         
         User user = userOpt.get();
-        
-        // ✅ CRITICAL: Verify password before deletion
+
         if (!PasswordUtil.checkPassword(password, user.getPassword())) {
             return Map.of("success", false, "message", "Incorrect password");
         }
-        
-        // Password verified - proceed with deletion
+
         userRepository.deleteById(userId);
         
         return Map.of(

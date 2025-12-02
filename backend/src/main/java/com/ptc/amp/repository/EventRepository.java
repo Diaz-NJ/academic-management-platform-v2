@@ -11,8 +11,7 @@ import java.util.List;
 public interface EventRepository extends JpaRepository<Event, Long> {
     List<Event> findByUserIdOrderByStartDateTimeAsc(Long userId);
     List<Event> findByParentEventId(Long parentEventId);
-    
-    // ✅ NEW: Get only non-deleted events
+
     @Query("SELECT e FROM Event e WHERE e.userId = :userId AND (e.deletedDates IS NULL OR e.deletedDates = '') ORDER BY e.startDateTime ASC")
     List<Event> findActiveEventsByUserId(@Param("userId") Long userId);
 }

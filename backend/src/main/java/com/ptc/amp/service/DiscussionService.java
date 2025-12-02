@@ -22,28 +22,24 @@ public class DiscussionService {
     }
 
     public List<Discussion> getGroupDiscussions(Long groupId) {
-    List<Discussion> discussions = discussionRepository.findByGroupIdOrderByIsPinnedDescLastMessageAtDesc(groupId);
-    
-    // Enrich with creator names
-    for (Discussion discussion : discussions) {
-        Optional<User> creator = userRepository.findById(discussion.getCreatedBy());
-        creator.ifPresent(user -> discussion.setCreatorName(user.getFullName()));
+        List<Discussion> discussions = discussionRepository.findByGroupIdOrderByIsPinnedDescLastMessageAtDesc(groupId);
+        
+        for (Discussion discussion : discussions) {
+            Optional<User> creator = userRepository.findById(discussion.getCreatedBy());
+            creator.ifPresent(user -> discussion.setCreatorName(user.getFullName()));
+        }
+        
+        return discussions;
     }
-    
-    return discussions;
-}
 
-// ✅ NEW: Get discussions with unread counts for a specific user
-public List<Discussion> getGroupDiscussionsWithUnreadCounts(Long groupId, Long userId) {
-    List<Discussion> discussions = getGroupDiscussions(groupId);
-    // Note: unread counts will be fetched separately on frontend for efficiency
-    return discussions;
-}
+    public List<Discussion> getGroupDiscussionsWithUnreadCounts(Long groupId, Long userId) {
+        List<Discussion> discussions = getGroupDiscussions(groupId);
+        return discussions;
+    }
 
     public Discussion createDiscussion(Discussion discussion) {
         Discussion created = discussionRepository.save(discussion);
-        
-        // Enrich with creator name
+
         Optional<User> creator = userRepository.findById(created.getCreatedBy());
         creator.ifPresent(user -> created.setCreatorName(user.getFullName()));
         
