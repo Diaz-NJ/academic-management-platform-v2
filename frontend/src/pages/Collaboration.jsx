@@ -10,6 +10,7 @@ import EmptyState from '../components/EmptyState';
 import InviteUserModal from '../components/InviteUserModal';
 import DiscussionBoard from '../components/DiscussionBoard';
 import InvitationsPanel from '../components/InvitationsPanel';
+import UnreadBadge from '../components/UnreadBadge'; 
 
 const Collaboration = () => {
   const { user } = useAuth();
@@ -30,20 +31,24 @@ const Collaboration = () => {
   // ✅ NEW: Invitation & Discussion States
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [showDiscussionBoard, setShowDiscussionBoard] = useState(false);
+  const [groupUnreadCounts, setGroupUnreadCounts] = useState({});
   // ✅ NEW: Leave group state
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
   const [groupToLeave, setGroupToLeave] = useState(null);
 
-  useEffect(() => {
-  loadGroups();
-  
-  // ✅ Poll for group updates every 5 seconds
-  const interval = setInterval(() => {
-    loadGroupsQuietly();
-  }, 5000);
-  
-  return () => clearInterval(interval);
-}, [user]);
+  // ✅ NEW: Load and poll for unread counts
+useEffect(() => {
+  if (groups.length > 0) {
+    loadAllGroupUnreadCounts();
+    
+    // Poll for unread counts every 10 seconds
+    const interval = setInterval(() => {
+      loadAllGroupUnreadCounts();
+    }, 10000);
+    
+    return () => clearInterval(interval);
+  }
+}, [groups, loadAllGroupUnreadCounts]);
 
 // ✅ NEW: Quiet group loading (no loading state)
 const loadGroupsQuietly = useCallback(async () => {
@@ -73,6 +78,34 @@ const loadGroupsQuietly = useCallback(async () => {
       setFilteredGroups(groups);
     }
   }, [groups, searchQuery]);
+
+  // ✅ NEW: Load unread counts for all groups
+const loadAllGroupUnreadCounts = useCallback(async () => {
+  try {
+    const counts = {};
+    
+    // Load unread counts for each group
+    await Promise.all(
+      groups.map(async (group) => {
+        try {
+          const response = await discussionAPI.getGroupUnreadCounts(group.id, user.id);
+          if (response.data.success) {
+            const unreadCounts = response.data.unreadCounts;
+            // Sum up all unread messages in this group
+            const totalUnread = Object.values(unreadCounts).reduce((sum, count) => sum + count, 0);
+            counts[group.id] = totalUnread;
+          }
+        } catch (error) {
+          console.error(`Error loading unread for group ${group.id}:`, error);
+        }
+      })
+    );
+    
+    setGroupUnreadCounts(counts);
+  } catch (error) {
+    console.error('Error loading group unread counts:', error);
+  }
+}, [groups, user.id]);
 
   const loadGroups = useCallback(async() => {
     try {
@@ -489,7 +522,12 @@ const handleSaveGroup = async (groupData) => {
                   >
                     <MessageSquare className="w-4 h-4" />
                     <span>Discuss</span>
-                    {/* ✅ NEW: Show badge if there are unread messages (you can enhance this with actual counts later) */}
+                    {/* ✅ NEW: Show unread badge */}
+                    {groupUnreadCounts[group.id] > 0 && (
+                      <span className="absolute -top-1 -right-1">
+                        <UnreadBadge count={groupUnreadCounts[group.id]} size="small" />
+                      </span>
+                    )}
                   </button>
                 </div>
 
@@ -559,6 +597,8 @@ const handleSaveGroup = async (groupData) => {
           onClose={() => {
             setShowDiscussionBoard(false);
             setSelectedGroup(null);
+            // ✅ Refresh unread counts when closing
+            loadAllGroupUnreadCounts();
           }}
           currentUser={user}
           discussionAPI={discussionAPI}
