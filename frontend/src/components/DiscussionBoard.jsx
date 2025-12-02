@@ -4,6 +4,8 @@ import { X, Plus, MessageSquare, Pin, Lock, Send, ArrowLeft, Edit, Trash2, MoreV
 import { useToast } from '../context/ToastContext';
 import { formatRelativeDate } from '../utils/dateUtils';
 import ConfirmDialog from './ConfirmDialog';
+import useUnreadMessages from '../hooks/useUnreadMessages'; // ✅ NEW
+import UnreadBadge from './UnreadBadge'
 
 const DiscussionBoard = ({ group, onClose, currentUser, discussionAPI }) => {
   const { showToast } = useToast();
@@ -16,6 +18,14 @@ const DiscussionBoard = ({ group, onClose, currentUser, discussionAPI }) => {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [discussionToDelete, setDiscussionToDelete] = useState(null);
 
+  const { 
+    unreadCounts, 
+    totalUnread, 
+    getUnreadCount, 
+    markAsRead,
+    refresh: refreshUnreadCounts 
+  } = useUnreadMessages(group.id, currentUser.id);
+
   // ✅ Check if current user is a leader
   const isLeader = group.members?.some(
     m => m.userId === currentUser.id && m.role === 'Leader'
@@ -25,10 +35,21 @@ const DiscussionBoard = ({ group, onClose, currentUser, discussionAPI }) => {
     loadDiscussions();
   }, [group.id]);
 
+  // ✅ NEW: Poll for unread counts every 5 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      refreshUnreadCounts();
+    }, 5000);
+    
+    return () => clearInterval(interval);
+  }, [refreshUnreadCounts]);
+
   const loadDiscussions = async () => {
     try {
       const response = await discussionAPI.getDiscussions(group.id);
       setDiscussions(response.data);
+      // ✅ Refresh unread counts when discussions load
+      refreshUnreadCounts();
     } catch (error) {
       console.error('Error loading discussions:', error);
       showToast('Failed to load discussions', 'error');
@@ -112,6 +133,16 @@ const DiscussionBoard = ({ group, onClose, currentUser, discussionAPI }) => {
     }
   };
 
+  // ✅ NEW: Handle selecting a discussion and marking as read
+  const handleSelectDiscussion = async (discussion) => {
+    setSelectedDiscussion(discussion);
+    
+    // Mark as read when opening
+    if (getUnreadCount(discussion.id) > 0) {
+      await markAsRead(discussion.id);
+    }
+  };
+
   return (
     <>
       <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
@@ -120,8 +151,14 @@ const DiscussionBoard = ({ group, onClose, currentUser, discussionAPI }) => {
           <div className="p-6 border-b border-gray-200 bg-gradient-to-r from-purple-50 to-blue-50 flex-shrink-0">
             <div className="flex justify-between items-start">
               <div className="flex items-center space-x-3">
-                <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-blue-500 rounded-full flex items-center justify-center">
+                <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-blue-500 rounded-full flex items-center justify-center relative">
                   <MessageSquare className="w-6 h-6 text-white" />
+                  {/* ✅ NEW: Total unread badge on icon */}
+                  {totalUnread > 0 && (
+                    <span className="absolute -top-1 -right-1">
+                      <UnreadBadge count={totalUnread} size="small" />
+                    </span>
+                  )}
                 </div>
                 <div>
                   <h2 className="text-2xl font-bold text-gray-800">
@@ -129,6 +166,12 @@ const DiscussionBoard = ({ group, onClose, currentUser, discussionAPI }) => {
                   </h2>
                   <p className="text-sm text-gray-600">
                     {group.groupName} • {discussions.length} threads
+                    {/* ✅ NEW: Show unread count in header */}
+                    {totalUnread > 0 && (
+                      <span className="ml-2 text-red-600 font-semibold">
+                        • {totalUnread} unread
+                      </span>
+                    )}
                   </p>
                 </div>
               </div>
@@ -162,6 +205,7 @@ const DiscussionBoard = ({ group, onClose, currentUser, discussionAPI }) => {
                 onBack={() => {
                   setSelectedDiscussion(null);
                   loadDiscussions();
+                  refreshUnreadCounts(); // ✅ Refresh counts when going back
                 }}
                 onEdit={(disc) => {
                   setEditingDiscussion(disc);
@@ -175,6 +219,7 @@ const DiscussionBoard = ({ group, onClose, currentUser, discussionAPI }) => {
                 onToggleLock={handleToggleLock}
                 discussionAPI={discussionAPI}
                 showToast={showToast}
+                markAsRead={markAsRead} // ✅ Pass markAsRead function
               />
             ) : (
               <DiscussionList
@@ -182,7 +227,7 @@ const DiscussionBoard = ({ group, onClose, currentUser, discussionAPI }) => {
                 loading={loading}
                 currentUser={currentUser}
                 isLeader={isLeader}
-                onSelectDiscussion={setSelectedDiscussion}
+                onSelectDiscussion={handleSelectDiscussion} // ✅ Use new handler
                 onEdit={(disc) => {
                   setEditingDiscussion(disc);
                   setShowEditThread(true);
@@ -196,6 +241,7 @@ const DiscussionBoard = ({ group, onClose, currentUser, discussionAPI }) => {
                 showNewThread={showNewThread}
                 onCreateThread={handleCreateThread}
                 onCancelNew={() => setShowNewThread(false)}
+                getUnreadCount={getUnreadCount} // ✅ NEW: Pass unread count getter
               />
             )}
           </div>
@@ -245,7 +291,8 @@ const DiscussionList = ({
   onToggleLock,
   showNewThread, 
   onCreateThread, 
-  onCancelNew 
+  onCancelNew,
+    getUnreadCount
 }) => {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -316,10 +363,14 @@ const DiscussionList = ({
           ) : (
             discussions.map(discussion => (
               <div
-                key={discussion.id}
-                className="bg-white border-2 border-gray-200 rounded-lg p-4 hover:border-primary hover:shadow-md transition relative z-0"
-                style={{ zIndex: openMenuId === discussion.id ? 10 : 0 }}
-              >
+                    key={discussion.id}
+                    className={`bg-white border-2 rounded-lg p-4 hover:border-primary hover:shadow-md transition relative z-0 ${
+                        getUnreadCount(discussion.id) > 0 
+                        ? 'border-blue-300 bg-blue-50' // ✅ Highlight unread threads
+                        : 'border-gray-200'
+                    }`}
+                    style={{ zIndex: openMenuId === discussion.id ? 10 : 0 }}
+                    >
                 <div className="flex items-start justify-between mb-2">
                   <div 
                     className="flex-1 cursor-pointer"
@@ -410,9 +461,15 @@ const DiscussionList = ({
                     </div>
                   )}
                   
-                  <span className="text-xs bg-gray-100 px-2 py-1 rounded-full ml-2">
-                    {discussion.messageCount || 0} replies
-                  </span>
+                  <div className="flex items-center space-x-2 ml-2">
+                    <span className="text-xs bg-gray-100 px-2 py-1 rounded-full">
+                        {discussion.messageCount || 0} replies
+                    </span>
+                    {/* ✅ NEW: Unread badge */}
+                    {getUnreadCount(discussion.id) > 0 && (
+                        <UnreadBadge count={getUnreadCount(discussion.id)} size="small" />
+                    )}
+                    </div>
                 </div>
                 <div className="flex items-center justify-between text-xs text-gray-500">
                   <span>By {discussion.creatorName || 'Unknown'}</span>
@@ -453,7 +510,8 @@ const DiscussionThread = ({
   onTogglePin,
   onToggleLock,
   discussionAPI, 
-  showToast 
+  showToast,
+  markAsRead
 }) => {
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
@@ -468,16 +526,17 @@ const DiscussionThread = ({
   const [isNearBottom, setIsNearBottom] = useState(true);
 
   // ✅ NEW: Load messages with auto-refresh
-  useEffect(() => {
-    loadMessages();
+  // ✅ NEW: Mark as read when thread is opened
+useEffect(() => {
+  if (discussion.id && currentUser.id) {
+    // Mark as read after a short delay (user has seen the thread)
+    const timer = setTimeout(() => {
+      markAsRead(discussion.id);
+    }, 1000);
     
-    // ✅ Poll for new messages every 3 seconds
-    const interval = setInterval(() => {
-      loadMessagesQuietly();
-    }, 3000);
-    
-    return () => clearInterval(interval);
-  }, [discussion.id]);
+    return () => clearTimeout(timer);
+  }
+}, [discussion.id, currentUser.id, markAsRead]);
 
   // ✅ NEW: Scroll to bottom when new messages arrive (only if user was near bottom)
   useEffect(() => {

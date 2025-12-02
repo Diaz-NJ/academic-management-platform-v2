@@ -485,10 +485,11 @@ const handleSaveGroup = async (groupData) => {
                       setSelectedGroup(group);
                       setShowDiscussionBoard(true);
                     }}
-                    className="flex-1 flex items-center justify-center space-x-1 px-3 py-2 bg-purple-100 text-purple-700 rounded-lg hover:bg-purple-200 transition text-sm font-medium"
+                    className="flex-1 flex items-center justify-center space-x-1 px-3 py-2 bg-purple-100 text-purple-700 rounded-lg hover:bg-purple-200 transition text-sm font-medium relative"
                   >
                     <MessageSquare className="w-4 h-4" />
                     <span>Discuss</span>
+                    {/* ✅ NEW: Show badge if there are unread messages (you can enhance this with actual counts later) */}
                   </button>
                 </div>
 

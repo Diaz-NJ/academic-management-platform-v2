@@ -95,6 +95,14 @@ export const discussionAPI = {
   toggleLock: (id) => api.post(`/discussions/${id}/lock`),
   getMessages: (discussionId) => api.get(`/discussions/${discussionId}/messages`),
   createMessage: (data) => api.post('/discussions/messages', data),
+  
+  // ✅ NEW: Message read status endpoints
+  markDiscussionAsRead: (discussionId, userId) => 
+    api.post(`/discussions/${discussionId}/mark-read`, { userId }),
+  getUnreadCount: (discussionId, userId) => 
+    api.get(`/discussions/${discussionId}/unread-count`, { params: { userId } }),
+  getGroupUnreadCounts: (groupId, userId) => 
+    api.get(`/discussions/group/${groupId}/unread-counts`, { params: { userId } }),
 };
 
 export default api;
