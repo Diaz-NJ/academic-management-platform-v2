@@ -10,47 +10,72 @@ const Analytics = () => {
   const [stats, setStats] = useState({});
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    loadTasks();
-  }, [user]);
-
-  const loadTasks = async () => {
+  // ✅ Load once on mount only
+useEffect(() => {
+  let mounted = true;
+  
+  const loadTasksOnce = async () => {
     try {
       setLoading(true);
       const response = await taskAPI.getTasks(user.id);
-      const taskData = response.data;
-      setTasks(taskData);
-      calculateStats(taskData);
+      if (mounted) {
+        const taskData = response.data;
+        setTasks(taskData);
+        // Calculate stats immediately after loading
+        const calculatedStats = calculateStats(taskData);
+        setStats(calculatedStats);
+      }
     } catch (error) {
       console.error('Error loading tasks:', error);
     } finally {
-      setLoading(false);
+      if (mounted) {
+        setLoading(false);
+      }
     }
   };
-
-  const calculateStats = (taskData) => {
-  console.log('📊 Calculating stats for tasks:', taskData.length); // Debug log
   
+  loadTasksOnce();
+  
+  return () => {
+    mounted = false;
+  };
+}, []); // Empty array - load ONCE only
+
+  // ✅ Memoized calculation - returns data instead of setting state
+const calculateStats = (taskData) => {
+  if (!taskData || taskData.length === 0) {
+    return {
+      total: 0,
+      completed: 0,
+      pending: 0,
+      inProgress: 0,
+      overdue: 0,
+      thisWeek: 0,
+      completionRate: 0,
+      subjectBreakdown: {},
+      priorityBreakdown: {}
+    };
+  }
+
   const total = taskData.length;
   const completed = taskData.filter(t => t.status === 'Completed').length;
-  const pending = taskData.filter(t => t.status === 'Pending').length;
   const inProgress = taskData.filter(t => t.status === 'In Progress').length;
+  const pending = taskData.filter(t => t.status === 'Pending').length;
   
-  console.log('📊 Status counts:', { completed, pending, inProgress }); // Debug log
-  
+  const now = new Date();
   const overdue = taskData.filter(t => 
-    new Date(t.dueDate) < new Date() && t.status !== 'Completed'
+    new Date(t.dueDate) < now && t.status !== 'Completed'
   ).length;
+
+  const startOfWeek = new Date(now);
+  startOfWeek.setDate(now.getDate() - now.getDay());
+  startOfWeek.setHours(0, 0, 0, 0);
+  const endOfWeek = new Date(startOfWeek);
+  endOfWeek.setDate(startOfWeek.getDate() + 6);
+  endOfWeek.setHours(23, 59, 59, 999);
 
   const thisWeek = taskData.filter(t => {
     const taskDate = new Date(t.dueDate);
-    const now = new Date();
-    const startOfWeek = new Date(now);
-    startOfWeek.setDate(now.getDate() - now.getDay());
-    startOfWeek.setHours(0, 0, 0, 0);
-    const endOfWeek = new Date(startOfWeek);
-    endOfWeek.setDate(startOfWeek.getDate() + 6);
-    endOfWeek.setHours(23, 59, 59, 999);
     return taskDate >= startOfWeek && taskDate <= endOfWeek;
   }).length;
 
@@ -66,7 +91,7 @@ const Analytics = () => {
     return acc;
   }, {});
 
-  const statsData = {
+  return {
     total,
     completed,
     pending,
@@ -77,9 +102,6 @@ const Analytics = () => {
     subjectBreakdown,
     priorityBreakdown
   };
-  
-  console.log('📊 Final stats:', statsData); // Debug log
-  setStats(statsData);
 };
 
   if (loading) {
