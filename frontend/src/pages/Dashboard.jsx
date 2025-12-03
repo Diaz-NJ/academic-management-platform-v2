@@ -154,7 +154,7 @@ const Dashboard = () => {
     checkNotifications();
     
     // ✅ OPTIMIZED: Poll every 30 seconds instead of 10 (less aggressive)
-    const interval = setInterval(checkNotifications, 30000);
+    const interval = setInterval(checkNotifications, 60000);
     
     return () => clearInterval(interval);
   }, [user.id, activeTab]); // Re-run when tab changes

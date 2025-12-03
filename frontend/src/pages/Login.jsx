@@ -25,7 +25,7 @@ const Login = () => {
     clearTimeout(timeoutId);
     
     showToast('Login successful! Welcome back.', 'success');
-    navigate('/dashboard');
+    setTimeout(() => navigate('/dashboard'), 500);
   } catch (err) {
     if (err.name === 'AbortError') {
       showToast('Login timeout. Please check your connection.', 'error');
@@ -104,6 +104,8 @@ const Login = () => {
               <>
                 <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white"></div>
                 <span>Logging in...</span>
+                {/* ✅ NEW: Progress hint */}
+                <span className="text-xs opacity-75">(This may take a few seconds)</span>
               </>
             ) : (
               <span>Sign In</span>

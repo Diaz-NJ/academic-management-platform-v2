@@ -39,7 +39,7 @@ const DiscussionBoard = ({ group, onClose, currentUser, discussionAPI }) => {
   useEffect(() => {
     const interval = setInterval(() => {
       refreshUnreadCounts();
-    }, 5000);
+    }, 15000);
     
     return () => clearInterval(interval);
   }, [refreshUnreadCounts]);
@@ -529,7 +529,7 @@ const DiscussionThread = ({
     // Poll every 3 seconds for new messages
     const interval = setInterval(() => {
       loadMessagesQuietly();
-    }, 3000);
+    }, 10000);
     
     return () => clearInterval(interval);
   }, [discussion.id]);

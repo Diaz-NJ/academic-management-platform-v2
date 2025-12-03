@@ -8,11 +8,21 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.Map;
 
 @Service
 @Transactional
 public class GroupService {
     private final GroupRepository groupRepository;
+    private final Map<Long, List<Group>> userGroupsCache = new ConcurrentHashMap<>();
+    private final Map<Long, Long> cacheTimestamps = new ConcurrentHashMap<>();
+    private static final long CACHE_DURATION = 30000;
+
+    private void clearUserCache(Long userId) {
+        userGroupsCache.remove(userId);
+        cacheTimestamps.remove(userId);
+    }
 
     public GroupService(GroupRepository groupRepository) {
         this.groupRepository = groupRepository;
@@ -37,6 +47,7 @@ public class GroupService {
     }
     
     Group saved = groupRepository.save(group);
+    clearUserCache(group.getCreatedBy());
     System.out.println("✅ Group saved with ID: " + saved.getId() + ", Members: " + saved.getMembers().size());
     
     return saved;
@@ -47,7 +58,25 @@ public class GroupService {
     }
 
     public List<Group> getGroupsByUserId(Long userId) {
-        return groupRepository.findByUserId(userId);
+        Long now = System.currentTimeMillis();
+        Long cachedTime = cacheTimestamps.get(userId);
+        
+        // Return cached data if less than 30 seconds old
+        if (cachedTime != null && (now - cachedTime) < CACHE_DURATION) {
+            List<Group> cached = userGroupsCache.get(userId);
+            if (cached != null) {
+                return cached;
+            }
+        }
+        
+        // Fetch fresh data
+        List<Group> groups = groupRepository.findByUserId(userId);
+        
+        // Update cache
+        userGroupsCache.put(userId, groups);
+        cacheTimestamps.put(userId, now);
+        
+        return groups;
     }
 
     public Group updateGroup(Group updatedGroup) {
@@ -88,6 +117,7 @@ public class GroupService {
         System.out.println("Saving updated group with " + existingGroup.getMembers().size() + " members");
         
         Group saved = groupRepository.saveAndFlush(existingGroup);
+        clearUserCache(saved.getCreatedBy());
         
         System.out.println("✅ Group updated successfully! Final member count: " + saved.getMembers().size());
         
@@ -130,19 +160,19 @@ public class GroupService {
     }
 
     public boolean updateMemberRole(Long groupId, Long userId, String newRole) {
-    Optional<Group> groupOpt = groupRepository.findById(groupId);
-    if (groupOpt.isPresent()) {
-        Group group = groupOpt.get();
+        Optional<Group> groupOpt = groupRepository.findById(groupId);
+        if (groupOpt.isPresent()) {
+            Group group = groupOpt.get();
 
-        for (Group.GroupMember member : group.getMembers()) {
-            if (member.getUserId().equals(userId)) {
-                member.setRole(newRole);
-                group.setUpdatedAt(java.time.LocalDateTime.now());
-                groupRepository.save(group);
-                return true;
+            for (Group.GroupMember member : group.getMembers()) {
+                if (member.getUserId().equals(userId)) {
+                    member.setRole(newRole);
+                    group.setUpdatedAt(java.time.LocalDateTime.now());
+                    groupRepository.save(group);
+                    return true;
+                }
             }
         }
+        return false;
     }
-    return false;
-}
 }
