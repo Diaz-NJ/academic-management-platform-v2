@@ -248,7 +248,7 @@ const handleSaveGroup = async (groupData) => {
   }
 
   return (
-    <div className="space-y-3 md:space-y-4">
+    <div className="max-w-7xl mx-auto space-y-3 md:space-y-4 px-4 sm:px-6 lg:px-8">
       {/* Page Header */}
       <div className="mb-8">
         <div className="flex justify-between items-start">

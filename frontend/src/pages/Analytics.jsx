@@ -109,7 +109,7 @@ const calculateStats = (taskData) => {
   }
 
   return (
-    <div className="space-y-3 md:space-y-4">
+    <div className="max-w-7xl mx-auto space-y-3 md:space-y-4 px-4 sm:px-6 lg:px-8">
       {/* Enhanced Page Header */}
       <div className="mb-8">
         <h1 className="text-page-title mb-2">Progress & Analytics</h1>

@@ -176,7 +176,7 @@ const Settings = () => {
 };
 
   return (
-    <div className="space-y-6">
+    <div className="max-w-4xl mx-auto space-y-6 px-4 sm:px-6 lg:px-8">
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold text-gray-800">Account Settings</h2>
       </div>
