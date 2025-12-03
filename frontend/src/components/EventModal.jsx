@@ -545,27 +545,37 @@ const handleConflictCancel = () => {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Every
-                    </label>
-                    <div className="flex items-center space-x-2">
-                      <input
-                        type="number"
-                        name="recurrenceInterval"
-                        value={formData.recurrenceInterval}
-                        onChange={handleChange}
-                        min="1"
-                        max="30"
-                        className="w-20 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
-                      />
-                      <span className="text-sm text-gray-600">
-                        {formData.recurrencePattern === 'DAILY' && 'day(s)'}
-                        {formData.recurrencePattern === 'WEEKLY' && 'week(s)'}
-                        {formData.recurrencePattern === 'MONTHLY' && 'month(s)'}
-                        {formData.recurrencePattern === 'YEARLY' && 'year(s)'}
-                      </span>
-                    </div>
-                  </div>
+  <label className="block text-sm font-medium text-gray-700 mb-1">
+    Every
+  </label>
+  <div className="flex items-center space-x-2">
+    <input
+      type="number"
+      name="recurrenceInterval"
+      value={formData.recurrenceInterval}
+      onChange={handleChange}
+      min="1"
+      max="30"
+      disabled={formData.recurrencePattern === 'WEEKLY' && formData.recurrenceDaysOfWeek}
+      className={`w-20 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent ${
+        formData.recurrencePattern === 'WEEKLY' && formData.recurrenceDaysOfWeek
+          ? 'bg-gray-100 text-gray-500 cursor-not-allowed'
+          : ''
+      }`}
+    />
+    <span className="text-sm text-gray-600">
+      {formData.recurrencePattern === 'DAILY' && 'day(s)'}
+      {formData.recurrencePattern === 'WEEKLY' && 'week(s)'}
+      {formData.recurrencePattern === 'MONTHLY' && 'month(s)'}
+      {formData.recurrencePattern === 'YEARLY' && 'year(s)'}
+    </span>
+  </div>
+  {formData.recurrencePattern === 'WEEKLY' && formData.recurrenceDaysOfWeek && (
+    <p className="text-xs text-gray-500 mt-1">
+      ℹ️ Interval is disabled when specific days are selected
+    </p>
+  )}
+</div>
                 </div>
 
                 {formData.recurrencePattern === 'WEEKLY' && (

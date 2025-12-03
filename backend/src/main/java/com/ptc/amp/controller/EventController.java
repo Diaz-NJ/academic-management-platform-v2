@@ -242,17 +242,22 @@ public ResponseEntity<?> cleanupOrphanedEvents(@PathVariable Long userId) {
 }
 
     @PostMapping("/{id}/delete-instance")
-    public ResponseEntity<Event> deleteInstance(
-            @PathVariable Long id,
-            @RequestBody Map<String, String> data) {
-        String dateStr = data.get("date");
-        if (dateStr == null || dateStr.isEmpty()) {
-            return ResponseEntity.badRequest().build();
-        }
-        
-        Event updated = eventService.deleteInstance(id, dateStr);
-        return ResponseEntity.ok(updated);
+public ResponseEntity<Event> deleteInstance(
+        @PathVariable Long id,
+        @RequestBody Map<String, String> data) {
+    String dateStr = data.get("date");
+    if (dateStr == null || dateStr.isEmpty()) {
+        return ResponseEntity.badRequest().build();
     }
+    
+    // ✅ Extract just the date part (first 10 characters)
+    String datePart = dateStr.substring(0, 10);
+    
+    System.out.println("🗑️ Backend: Deleting instance for event ID: " + id + ", date: " + datePart);
+    
+    Event updated = eventService.deleteInstance(id, datePart);
+    return ResponseEntity.ok(updated);
+}
 
     @GetMapping("/{id}/exceptions")
     public ResponseEntity<List<Event>> getExceptions(@PathVariable Long id) {

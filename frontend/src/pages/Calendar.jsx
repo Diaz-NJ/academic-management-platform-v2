@@ -351,15 +351,35 @@ const handleDeleteConfirm = async () => {
     if (eventToDelete.isCanceled && eventToDelete.isRecurringInstance) {
       const instanceDate = new Date(eventToDelete.startDateTime);
       const dateStr = instanceDate.toISOString().substring(0, 10); // Just date part
-       console.log('Deleting instance date:', dateStr);
-      const originalId = eventToDelete.originalId;
+      const originalId = eventToDelete.originalId || eventToDelete.id;
+      
+      console.log('🗑️ Deleting canceled instance:', {
+        dateStr,
+        originalId,
+        title: eventToDelete.title
+      });
       
       await eventAPI.deleteInstance(originalId, dateStr);
-       console.log('Delete successful');
       showToast('Canceled event permanently deleted', 'success');
     } 
-    // Handle regular event deletion
+    // ✅ Handle regular recurring instance (not canceled)
+    else if (eventToDelete.isRecurringInstance && !eventToDelete.isCanceled) {
+      const instanceDate = new Date(eventToDelete.startDateTime);
+      const dateStr = instanceDate.toISOString().substring(0, 10);
+      const originalId = eventToDelete.originalId || eventToDelete.id;
+      
+      console.log('🗑️ Deleting non-canceled instance:', {
+        dateStr,
+        originalId,
+        title: eventToDelete.title
+      });
+      
+      await eventAPI.deleteInstance(originalId, dateStr);
+      showToast('Event instance permanently deleted', 'success');
+    }
+    // Handle regular event deletion (non-recurring)
     else {
+      console.log('🗑️ Deleting regular event:', eventToDelete.id);
       await eventAPI.deleteEvent(eventToDelete.id);
       showToast('Event deleted successfully', 'success');
     }
@@ -367,7 +387,7 @@ const handleDeleteConfirm = async () => {
     await loadEvents();
     closeModal();
   } catch (error) {
-    console.error('Error deleting event:', error);
+    console.error('❌ Error deleting event:', error);
     showToast('Failed to delete event', 'error');
   }
 };

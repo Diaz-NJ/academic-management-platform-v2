@@ -23,18 +23,21 @@ const InvitationsPanel = ({ userId, onUpdate }) => {
 const loadInvitationsQuietly = async () => {
   try {
     const response = await invitationAPI.getReceivedInvitations(userId);
+    const newData = response.data;
     
-    if (JSON.stringify(response.data) !== JSON.stringify(invitations)) {
-      const newInvitationCount = response.data.length - invitations.length;
+    // ✅ FIXED: Only trigger sound for TRULY NEW invitations
+    if (invitations.length > 0) { // Only check if we have previous data
+      const newInvitationCount = newData.length - invitations.length;
       
-      setInvitations(response.data);
-      
-      // ✅ Show notification and play sound for NEW invitations
       if (newInvitationCount > 0) {
+        // ✅ Only play sound if there are MORE invitations than before
         showToast(`🔔 You have ${newInvitationCount} new group invitation(s)!`, 'info');
         playNotificationSoundEnhanced();
       }
     }
+    
+    // Update state regardless
+    setInvitations(newData);
   } catch (error) {
     console.error('Error polling invitations:', error);
   }
