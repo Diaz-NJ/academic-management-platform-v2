@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { taskAPI, eventAPI, groupAPI, discussionAPI } from '../services/api';
@@ -34,33 +34,28 @@ const Dashboard = () => {
   const [pendingInvitations, setPendingInvitations] = useState(0);
     const [totalUnreadMessages, setTotalUnreadMessages] = useState(0); 
 
-  const loadTasks = async () => {
+  // ✅ FIXED: Wrapped in useCallback with proper dependencies
+  const loadTasks = useCallback(async () => {
     try {
       const response = await taskAPI.getTasks(user.id);
       setTasks(response.data);
     } catch (error) {
       console.error('Error loading tasks:', error);
-    } finally {
-      setLoading(false);
     }
-  };
+  }, [user.id]);
 
-  const loadEvents = async () => {
+  // ✅ FIXED: Also wrapped in useCallback
+  const loadEvents = useCallback(async () => {
     try {
       const response = await eventAPI.getEvents(user.id);
       const allEvents = response.data;
       
-      // ✅ OPTIMIZED: Removed all console.logs for production performance
-      // Only keep them for debugging if needed
-      
-      // ✅ OPTIMIZED: Simplified orphan detection (backend should handle this)
       const allEventIds = new Set(allEvents.map(e => e.id));
       
       const filteredEvents = allEvents.filter(event => 
         !event.parentEventId || allEventIds.has(event.parentEventId)
       );
       
-      // ✅ Expand recurring events for the current week only
       const now = new Date();
       const startOfWeek = new Date(now);
       startOfWeek.setDate(now.getDate() - now.getDay());
@@ -71,26 +66,32 @@ const Dashboard = () => {
       endOfWeek.setHours(23, 59, 59, 999);
       
       const expandedEvents = expandRecurringEvents(filteredEvents, startOfWeek, endOfWeek);
-      
-      // ✅ Filter out canceled events
       const visibleEvents = expandedEvents.filter(e => !e.isCanceled);
       
       setEvents(visibleEvents);
     } catch (error) {
       console.error('Error loading events:', error);
     }
-  };
+  }, [user.id]);
 
-// ✅ OPTIMIZED: Load data only once on mount
+  // ✅ FIXED: Load data only once on mount with proper dependencies
   useEffect(() => {
     let mounted = true;
     
     const initialLoad = async () => {
       if (mounted) {
-        await Promise.all([
-          loadTasks(),
-          loadEvents()
-        ]);
+        try {
+          await Promise.all([
+            loadTasks(),
+            loadEvents()
+          ]);
+        } catch (error) {
+          console.error('Error loading dashboard:', error);
+        } finally {
+          if (mounted) {
+            setLoading(false);
+          }
+        }
       }
     };
     
@@ -99,8 +100,7 @@ const Dashboard = () => {
     return () => {
       mounted = false;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user.id]); // Only reload if user changes
+  }, [loadTasks, loadEvents]); // ✅ Proper dependencies
 
   // ✅ REMOVED: Duplicate loading on tab change
   // The data is already loaded, no need to reload when switching tabs
@@ -212,8 +212,10 @@ const Dashboard = () => {
                 <button
                   onClick={() => {
                     setActiveTab('dashboard');
-                    loadTasks();
-                    loadEvents();
+                    if (activeTab !== 'dashboard') {
+                      loadTasks();
+                      loadEvents();
+                    }
                   }}
                   className={`px-4 lg:px-5 py-2.5 lg:py-3 rounded-lg text-sm lg:text-base font-semibold transition-all duration-200 ${
                     activeTab === 'dashboard'
@@ -341,6 +343,10 @@ const Dashboard = () => {
                 onClick={() => {
                   setActiveTab('dashboard');
                   setMobileMenuOpen(false);
+                  if (activeTab !== 'dashboard') {
+                    loadTasks();
+                    loadEvents();
+                  }
                 }}
                 className={`block w-full text-left px-4 py-3 rounded-lg text-base font-semibold ${
                   activeTab === 'dashboard'
@@ -353,7 +359,10 @@ const Dashboard = () => {
               <button
                 onClick={() => {
                   setActiveTab('tasks');
-                  setMobileMenuOpen(false);
+                  // Only reload if we're switching FROM another tab
+                  if (activeTab !== 'tasks') {
+                    loadTasks();
+                  }
                 }}
                 className={`block w-full text-left px-4 py-3 rounded-lg text-base font-semibold ${
                   activeTab === 'tasks'

@@ -43,28 +43,202 @@ public class TaskController {
         return ResponseEntity.ok(tasks);
     }
 
-    @PutMapping("/{id}")
-    public ResponseEntity<Task> updateTask(@PathVariable Long id, @RequestBody Task task) {
-        task.setId(id);
-        
-        Optional<Task> existingTaskOpt = taskService.getTaskById(id);
-        if (existingTaskOpt.isEmpty()) {
-            return ResponseEntity.notFound().build();
-        }
-        
-        Task existingTask = existingTaskOpt.get();
-        Task updated = taskService.updateTask(task);
-
-        if (updated.getDueDate() != null && !updated.getShowOnCalendar()) {
-            autoLinkToCalendar(updated);
-        } else if (updated.getDueDate() != null && updated.getShowOnCalendar()) {
-            updateCalendarEvent(updated);
-        } else if (updated.getDueDate() == null && updated.getShowOnCalendar()) {
-            removeFromCalendar(updated);
-        }
-        
-        return ResponseEntity.ok(updated);
+   @PutMapping("/{id}")
+public ResponseEntity<Task> updateTask(@PathVariable Long id, @RequestBody Task task) {
+    task.setId(id);
+    
+    Optional<Task> existingTaskOpt = taskService.getTaskById(id);
+    if (existingTaskOpt.isEmpty()) {
+        return ResponseEntity.notFound().build();
     }
+    
+    Task existingTask = existingTaskOpt.get();
+    Long oldEventId = existingTask.getEventId();
+    
+    // Check if due date changed
+    boolean dueDateChanged = false;
+    if (existingTask.getDueDate() != null && task.getDueDate() != null) {
+        dueDateChanged = !existingTask.getDueDate().equals(task.getDueDate());
+    } else if (existingTask.getDueDate() != null || task.getDueDate() != null) {
+        dueDateChanged = true;
+    }
+    
+    System.out.println("=== UPDATE TASK DEBUG ===");
+    System.out.println("Task ID: " + id);
+    System.out.println("Old Event ID: " + oldEventId);
+    System.out.println("Old Due Date: " + existingTask.getDueDate());
+    System.out.println("New Due Date: " + task.getDueDate());
+    System.out.println("Due Date Changed: " + dueDateChanged);
+    
+    // Step 1: Handle old event deletion if due date changed
+    if (oldEventId != null && dueDateChanged) {
+    try {
+        System.out.println("🗑️ DELETING old event ID: " + oldEventId);
+        boolean deleted = eventService.deleteEvent(oldEventId);
+        
+        if (deleted) {
+            System.out.println("✅ Old event deleted successfully");
+        } else {
+            System.err.println("❌ Failed to delete old event!");
+        }
+        
+        task.setEventId(null);
+        task.setShowOnCalendar(false);
+    } catch (Exception e) {
+        System.err.println("❌ Error deleting old event: " + e.getMessage());
+        e.printStackTrace();
+    }
+}
+    
+    // Step 2: Update task in database FIRST
+    Task updated = taskService.updateTask(task);
+    System.out.println("📝 Task updated in database");
+    
+    // Step 3: Handle calendar event creation/update
+    if (updated.getDueDate() != null) {
+        if (dueDateChanged || updated.getEventId() == null) {
+            // Due date changed or no event - create new one
+            System.out.println("📅 Creating new calendar event");
+            Long newEventId = createCalendarEventOnly(updated);
+            
+            if (newEventId != null) {
+                // Update task with new event ID (direct DB update, no recursion)
+                updated.setEventId(newEventId);
+                updated.setShowOnCalendar(true);
+                taskService.updateTask(updated);
+                System.out.println("✅ Task linked to new event ID: " + newEventId);
+            }
+        } else {
+            // Just update existing event properties
+            System.out.println("🔄 Updating existing event properties");
+            updateCalendarEventOnly(updated);
+        }
+    } else if (updated.getEventId() != null) {
+        // No due date but event exists - remove it
+        System.out.println("🗑️ Removing event (no due date)");
+        try {
+            eventService.deleteEvent(updated.getEventId());
+            updated.setEventId(null);
+            updated.setShowOnCalendar(false);
+            taskService.updateTask(updated);
+        } catch (Exception e) {
+            System.err.println("Error removing event: " + e.getMessage());
+        }
+    }
+    
+    System.out.println("=== UPDATE COMPLETE ===");
+    System.out.println("Final Event ID: " + updated.getEventId());
+    System.out.println();
+    
+    return ResponseEntity.ok(updated);
+}
+
+// ✅ NEW: Only creates event, returns event ID - NO task update
+private Long createCalendarEventOnly(Task task) {
+    try {
+        Event event = new Event();
+        event.setUserId(task.getUserId());
+        event.setTitle(task.getTitle() + " (Deadline)");
+        event.setDescription(task.getDescription());
+        event.setEventType("Deadline");
+        event.setStartDateTime(task.getDueDate());
+        event.setEndDateTime(task.getDueDate().plusHours(1));
+        event.setColorCode(getPriorityColor(task.getPriority()));
+        
+        Event createdEvent = eventService.createEvent(event);
+        System.out.println("✅ Event created with ID: " + createdEvent.getId());
+        
+        return createdEvent.getId();
+    } catch (Exception e) {
+        System.err.println("❌ Error creating calendar event: " + e.getMessage());
+        e.printStackTrace();
+        return null;
+    }
+}
+
+// ✅ NEW: Only updates event - NO task update
+private void updateCalendarEventOnly(Task task) {
+    if (task.getEventId() == null) return;
+    
+    try {
+        Optional<Event> eventOpt = eventService.getEventById(task.getEventId());
+        if (eventOpt.isPresent()) {
+            Event event = eventOpt.get();
+            event.setTitle(task.getTitle() + " (Deadline)");
+            event.setDescription(task.getDescription());
+            event.setStartDateTime(task.getDueDate());
+            event.setEndDateTime(task.getDueDate().plusHours(1));
+            event.setColorCode(getPriorityColor(task.getPriority()));
+            
+            eventService.updateEvent(event);
+            System.out.println("✅ Event updated successfully");
+        } else {
+            System.err.println("⚠️ Event not found, creating new one");
+            Long newEventId = createCalendarEventOnly(task);
+            if (newEventId != null) {
+                task.setEventId(newEventId);
+                task.setShowOnCalendar(true);
+                taskService.updateTask(task);
+            }
+        }
+    } catch (Exception e) {
+        System.err.println("❌ Error updating event: " + e.getMessage());
+        e.printStackTrace();
+    }
+}
+
+// New helper method that doesn't call updateTask again
+private void createNewCalendarEvent(Task task) {
+    try {
+        Event event = new Event();
+        event.setUserId(task.getUserId());
+        event.setTitle(task.getTitle() + " (Deadline)");
+        event.setDescription(task.getDescription());
+        event.setEventType("Deadline");
+        event.setStartDateTime(task.getDueDate());
+        event.setEndDateTime(task.getDueDate().plusHours(1));
+        event.setColorCode(getPriorityColor(task.getPriority()));
+        
+        Event createdEvent = eventService.createEvent(event);
+        System.out.println("✅ Created new event with ID: " + createdEvent.getId());
+        
+        // Update task with new event ID
+        task.setEventId(createdEvent.getId());
+        task.setShowOnCalendar(true);
+        taskService.updateTask(task);
+        
+        System.out.println("✅ Task linked to new calendar event");
+    } catch (Exception e) {
+        System.err.println("❌ Error creating calendar event: " + e.getMessage());
+        e.printStackTrace();
+    }
+}
+
+// Separate method for updating existing events
+private void updateExistingCalendarEvent(Task task) {
+    if (task.getEventId() == null) return;
+    
+    try {
+        Optional<Event> eventOpt = eventService.getEventById(task.getEventId());
+        if (eventOpt.isPresent()) {
+            Event event = eventOpt.get();
+            event.setTitle(task.getTitle() + " (Deadline)");
+            event.setDescription(task.getDescription());
+            event.setStartDateTime(task.getDueDate());
+            event.setEndDateTime(task.getDueDate().plusHours(1));
+            event.setColorCode(getPriorityColor(task.getPriority()));
+            
+            eventService.updateEvent(event);
+            System.out.println("✅ Calendar event updated");
+        } else {
+            System.err.println("⚠️ Event not found, creating new one");
+            createNewCalendarEvent(task);
+        }
+    } catch (Exception e) {
+        System.err.println("❌ Error updating calendar event: " + e.getMessage());
+        e.printStackTrace();
+    }
+}
 
     @DeleteMapping("/{id}")
     public ResponseEntity<?> deleteTask(@PathVariable Long id) {
@@ -249,25 +423,36 @@ public class TaskController {
     }
     
     private void updateCalendarEvent(Task task) {
-        if (task.getEventId() == null) return;
-        
-        try {
-            Optional<Event> eventOpt = eventService.getEventById(task.getEventId());
-            if (eventOpt.isPresent()) {
-                Event event = eventOpt.get();
-                event.setTitle(task.getTitle() + " (Deadline)");
-                event.setDescription(task.getDescription());
-                event.setStartDateTime(task.getDueDate());
-                event.setEndDateTime(task.getDueDate().plusHours(1));
-                event.setColorCode(getPriorityColor(task.getPriority()));
-                eventService.updateEvent(event);
-                
-                System.out.println("✅ Calendar event updated: " + task.getTitle());
-            }
-        } catch (Exception e) {
-            System.err.println("Error updating calendar event: " + e.getMessage());
+    if (task.getEventId() == null) return;
+    
+    try {
+        Optional<Event> eventOpt = eventService.getEventById(task.getEventId());
+        if (eventOpt.isPresent()) {
+            Event event = eventOpt.get();
+            
+            // ✅ FIXED: Update all event properties including date/time
+            event.setTitle(task.getTitle());
+            event.setDescription(task.getDescription());
+            event.setStartDateTime(task.getDueDate());
+            event.setEndDateTime(task.getDueDate().plusHours(1));
+            event.setColorCode(getPriorityColor(task.getPriority()));
+            event.setEventType("Deadline"); // Ensure it stays as deadline
+            
+            eventService.updateEvent(event);
+            
+            System.out.println("✅ Calendar event updated successfully: " + task.getTitle());
+        } else {
+            System.err.println("⚠️ Calendar event not found, creating new one");
+            // Event doesn't exist - create a new one
+            task.setEventId(null);
+            task.setShowOnCalendar(false);
+            autoLinkToCalendar(task);
         }
+    } catch (Exception e) {
+        System.err.println("❌ Error updating calendar event: " + e.getMessage());
+        e.printStackTrace();
     }
+}
     
     private void removeFromCalendar(Task task) {
         if (task.getEventId() == null) return;

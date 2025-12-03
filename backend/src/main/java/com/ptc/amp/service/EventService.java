@@ -160,24 +160,42 @@ public class EventService {
     }
 
     public boolean deleteEvent(Long id) {
-        if (eventRepository.existsById(id)) {
-            Optional<Event> eventOpt = eventRepository.findById(id);
-            if (eventOpt.isEmpty()) {
-                return false;
-            }
-            
-            Event event = eventOpt.get();
-
-            List<Event> exceptions = getExceptionsByParentId(id);
-            for (Event exception : exceptions) {
-                eventRepository.deleteById(exception.getId());
-            }
-
-            eventRepository.deleteById(id);
-            return true;
-        }
+    System.out.println("🔍 EventService.deleteEvent called for ID: " + id);
+    
+    // ✅ FIXED: Fetch once and check
+    Optional<Event> eventOpt = eventRepository.findById(id);
+    
+    if (eventOpt.isEmpty()) {
+        System.err.println("❌ Event not found: " + id);
         return false;
     }
+    
+    Event event = eventOpt.get();
+    System.out.println("✅ Event found: " + event.getTitle() + " (ID: " + id + ")");
+
+    // Delete child exceptions first
+    List<Event> exceptions = getExceptionsByParentId(id);
+    System.out.println("🗑️ Deleting " + exceptions.size() + " child exceptions");
+    
+    for (Event exception : exceptions) {
+        eventRepository.deleteById(exception.getId());
+        System.out.println("  ✅ Deleted exception ID: " + exception.getId());
+    }
+
+    // Delete the main event
+    eventRepository.deleteById(id);
+    System.out.println("✅ Main event deleted: ID " + id);
+    
+    // ✅ VERIFY DELETION
+    boolean stillExists = eventRepository.existsById(id);
+    if (stillExists) {
+        System.err.println("❌❌❌ EVENT STILL EXISTS AFTER DELETE! ID: " + id);
+        return false;
+    }
+    
+    System.out.println("✅✅✅ Confirmed deletion: ID " + id);
+    return true;
+}
 
     public void cleanupOrphanedExceptions(Long userId) {
         List<Event> allEvents = eventRepository.findByUserIdOrderByStartDateTimeAsc(userId);

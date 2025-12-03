@@ -158,17 +158,21 @@ const loadGroups = useCallback(async() => {
   };
 
   const handleBulkDelete = async () => {
-    try {
-      await Promise.all(selectedGroups.map(id => groupAPI.deleteGroup(id)));
-      showToast(`${selectedGroups.length} group(s) deleted successfully`, 'success');
-      setSelectedGroups([]);
-      setShowBulkDeleteDialog(false);
-      loadGroups();
-    } catch (error) {
-      console.error('Error deleting groups:', error);
-      showToast('Failed to delete some groups', 'error');
-    }
-  };
+  try {
+    await Promise.all(selectedGroups.map(id => groupAPI.deleteGroup(id)));
+    showToast(`${selectedGroups.length} group(s) deleted successfully`, 'success');
+    
+    // ✅ FIXED: Immediately update state
+    setGroups(prevGroups => prevGroups.filter(g => !selectedGroups.includes(g.id)));
+    setFilteredGroups(prevFiltered => prevFiltered.filter(g => !selectedGroups.includes(g.id)));
+    
+    setSelectedGroups([]);
+    setShowBulkDeleteDialog(false);
+  } catch (error) {
+    console.error('Error deleting groups:', error);
+    showToast('Failed to delete some groups', 'error');
+  }
+};
 
   const handleCreateGroup = () => {
     setSelectedGroup(null);
@@ -205,17 +209,21 @@ const handleSaveGroup = async (groupData) => {
   };
 
   const handleDeleteConfirm = async () => {
-    try {
-      await groupAPI.deleteGroup(groupToDelete.id);
-      showToast('Group deleted successfully', 'success');
-      setShowDeleteConfirm(false);
-      setGroupToDelete(null);
-      loadGroups();
-    } catch (error) {
-      console.error('Error deleting group:', error);
-      showToast('Failed to delete group', 'error');
-    }
-  };
+  try {
+    await groupAPI.deleteGroup(groupToDelete.id);
+    showToast('Group deleted successfully', 'success');
+    
+    // ✅ FIXED: Immediately update state
+    setGroups(prevGroups => prevGroups.filter(g => g.id !== groupToDelete.id));
+    setFilteredGroups(prevFiltered => prevFiltered.filter(g => g.id !== groupToDelete.id));
+    
+    setShowDeleteConfirm(false);
+    setGroupToDelete(null);
+  } catch (error) {
+    console.error('Error deleting group:', error);
+    showToast('Failed to delete group', 'error');
+  }
+};
 
   // ✅ NEW: Leave group handler
   const handleLeaveGroup = (group) => {
