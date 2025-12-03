@@ -29,51 +29,58 @@ const Analytics = () => {
   };
 
   const calculateStats = (taskData) => {
-    const total = taskData.length;
-    const completed = taskData.filter(t => t.status === 'Completed').length;
-    const pending = taskData.filter(t => t.status === 'Pending').length;
-    const inProgress = taskData.filter(t => t.status === 'In Progress').length;
-    
-    const overdue = taskData.filter(t => 
-      new Date(t.dueDate) < new Date() && t.status !== 'Completed'
-    ).length;
+  console.log('📊 Calculating stats for tasks:', taskData.length); // Debug log
+  
+  const total = taskData.length;
+  const completed = taskData.filter(t => t.status === 'Completed').length;
+  const pending = taskData.filter(t => t.status === 'Pending').length;
+  const inProgress = taskData.filter(t => t.status === 'In Progress').length;
+  
+  console.log('📊 Status counts:', { completed, pending, inProgress }); // Debug log
+  
+  const overdue = taskData.filter(t => 
+    new Date(t.dueDate) < new Date() && t.status !== 'Completed'
+  ).length;
 
-    const thisWeek = taskData.filter(t => {
-      const taskDate = new Date(t.dueDate);
-      const now = new Date();
-      const startOfWeek = new Date(now);
-      startOfWeek.setDate(now.getDate() - now.getDay());
-      startOfWeek.setHours(0, 0, 0, 0);
-      const endOfWeek = new Date(startOfWeek);
-      endOfWeek.setDate(startOfWeek.getDate() + 6);
-      endOfWeek.setHours(23, 59, 59, 999);
-      return taskDate >= startOfWeek && taskDate <= endOfWeek;
-    }).length;
+  const thisWeek = taskData.filter(t => {
+    const taskDate = new Date(t.dueDate);
+    const now = new Date();
+    const startOfWeek = new Date(now);
+    startOfWeek.setDate(now.getDate() - now.getDay());
+    startOfWeek.setHours(0, 0, 0, 0);
+    const endOfWeek = new Date(startOfWeek);
+    endOfWeek.setDate(startOfWeek.getDate() + 6);
+    endOfWeek.setHours(23, 59, 59, 999);
+    return taskDate >= startOfWeek && taskDate <= endOfWeek;
+  }).length;
 
-    const subjectBreakdown = taskData.reduce((acc, task) => {
-      if (task.subject) {
-        acc[task.subject] = (acc[task.subject] || 0) + 1;
-      }
-      return acc;
-    }, {});
+  const subjectBreakdown = taskData.reduce((acc, task) => {
+    if (task.subject) {
+      acc[task.subject] = (acc[task.subject] || 0) + 1;
+    }
+    return acc;
+  }, {});
 
-    const priorityBreakdown = taskData.reduce((acc, task) => {
-      acc[task.priority] = (acc[task.priority] || 0) + 1;
-      return acc;
-    }, {});
+  const priorityBreakdown = taskData.reduce((acc, task) => {
+    acc[task.priority] = (acc[task.priority] || 0) + 1;
+    return acc;
+  }, {});
 
-    setStats({
-      total,
-      completed,
-      pending,
-      inProgress,
-      overdue,
-      thisWeek,
-      completionRate: total > 0 ? Math.round((completed / total) * 100) : 0,
-      subjectBreakdown,
-      priorityBreakdown
-    });
+  const statsData = {
+    total,
+    completed,
+    pending,
+    inProgress,
+    overdue,
+    thisWeek,
+    completionRate: total > 0 ? Math.round((completed / total) * 100) : 0,
+    subjectBreakdown,
+    priorityBreakdown
   };
+  
+  console.log('📊 Final stats:', statsData); // Debug log
+  setStats(statsData);
+};
 
   if (loading) {
     return <LoadingSpinner message="Analyzing your progress..." />;
@@ -146,21 +153,34 @@ const Analytics = () => {
 
       {/* Main Charts Section */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 md:gap-4 mb-4 md:mb-6">
-        {/* 📊 Pie Chart - Task Status Distribution */}
-        <div className="lg:col-span-1 bg-white rounded-lg shadow p-6">
-          <div className="mb-6">
-            <h2 className="text-section-title mb-1">Task Status</h2>
-            <p className="text-body-sm text-gray-600">Distribution overview</p>
-          </div>
-          
-          <PieChart 
-            data={[
-              { label: 'Pending', value: stats.pending || 0, color: '#64748b' },
-              { label: 'In Progress', value: stats.inProgress || 0, color: '#3b82f6' },
-              { label: 'Completed', value: stats.completed || 0, color: '#10b981' }
-            ]}
-          />  
-        </div>
+{/* 📊 Pie Chart - Task Status Distribution */}
+<div className="lg:col-span-1 bg-white rounded-lg shadow p-6">
+  <div className="mb-6">
+    <h2 className="text-section-title mb-1">Task Status</h2>
+    <p className="text-body-sm text-gray-600">Distribution overview</p>
+  </div>
+  
+  {loading ? (
+    <div className="flex items-center justify-center h-64">
+      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+    </div>
+  ) : tasks.length === 0 ? (
+    <div className="flex items-center justify-center h-64 text-gray-400">
+      <div className="text-center">
+        <p className="text-body-sm">No tasks yet</p>
+        <p className="text-xs mt-1">Create tasks to see distribution</p>
+      </div>
+    </div>
+  ) : (
+    <PieChart 
+      data={[
+        { label: 'Pending', value: stats.pending || 0, color: '#64748b' },
+        { label: 'In Progress', value: stats.inProgress || 0, color: '#3b82f6' },
+        { label: 'Completed', value: stats.completed || 0, color: '#10b981' }
+      ]}
+    />
+  )}
+</div>
 
         {/* ⭕ Progress Ring - Completion Rate */}
         <div className="lg:col-span-1 bg-white rounded-lg shadow p-6">
@@ -292,9 +312,11 @@ const Analytics = () => {
   );
 };
 
-// 🥧 Pie Chart Component
+// 🥧 Pie Chart Component - COMPLETELY FIXED VERSION
 const PieChart = ({ data }) => {
-  const total = data.reduce((sum, item) => sum + item.value, 0);
+  // ✅ Filter out items with 0 values
+  const filteredData = data.filter(item => item.value > 0);
+  const total = filteredData.reduce((sum, item) => sum + item.value, 0);
   
   if (total === 0) {
     return (
@@ -304,16 +326,64 @@ const PieChart = ({ data }) => {
     );
   }
 
+  // ✅ SPECIAL CASE: If only one item with 100%, render as a full circle
+  if (filteredData.length === 1) {
+    const item = filteredData[0];
+    return (
+      <div className="flex flex-col items-center">
+        <svg viewBox="0 0 200 200" className="w-64 h-64">
+          {/* Full circle for 100% */}
+          <circle 
+            cx="100" 
+            cy="100" 
+            r="80" 
+            fill={item.color}
+            className="transition-all duration-300"
+          />
+          
+          {/* Center circle for donut effect */}
+          <circle cx="100" cy="100" r="50" fill="white" />
+          <text x="100" y="100" textAnchor="middle" dy=".3em" className="text-2xl font-bold fill-gray-800">
+            {total}
+          </text>
+          <text x="100" y="120" textAnchor="middle" className="text-xs fill-gray-500">
+            Total
+          </text>
+        </svg>
+
+        {/* Legend - Show ALL categories including zeros */}
+        <div className="mt-4 space-y-2 w-full">
+          {data.map((dataItem, index) => (
+            <div key={index} className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <div className="w-4 h-4 rounded" style={{ backgroundColor: dataItem.color }} />
+                <span className="text-body-sm text-gray-700">{dataItem.label}</span>
+              </div>
+              <span className="text-body-sm font-semibold text-gray-900">
+                {dataItem.value} ({((dataItem.value / total) * 100).toFixed(0)}%)
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  // ✅ NORMAL CASE: Multiple slices
   let currentAngle = 0;
 
   return (
     <div className="flex flex-col items-center">
       <svg viewBox="0 0 200 200" className="w-64 h-64">
-        {data.map((item, index) => {
+        {filteredData.map((item, index) => {
           const percentage = (item.value / total) * 100;
           const angle = (percentage / 100) * 360;
+          
+          // ✅ Prevent angle from being exactly 360 (causes rendering issues)
+          const clampedAngle = Math.min(angle, 359.999);
+          
           const startAngle = currentAngle;
-          const endAngle = currentAngle + angle;
+          const endAngle = currentAngle + clampedAngle;
           currentAngle = endAngle;
 
           const startRad = (startAngle - 90) * (Math.PI / 180);
@@ -324,7 +394,7 @@ const PieChart = ({ data }) => {
           const x2 = 100 + 80 * Math.cos(endRad);
           const y2 = 100 + 80 * Math.sin(endRad);
 
-          const largeArc = angle > 180 ? 1 : 0;
+          const largeArc = clampedAngle > 180 ? 1 : 0;
 
           const pathData = [
             `M 100 100`,
@@ -354,7 +424,7 @@ const PieChart = ({ data }) => {
         </text>
       </svg>
 
-      {/* Legend */}
+      {/* Legend - Show ALL categories including zeros */}
       <div className="mt-4 space-y-2 w-full">
         {data.map((item, index) => (
           <div key={index} className="flex items-center justify-between">
@@ -363,7 +433,7 @@ const PieChart = ({ data }) => {
               <span className="text-body-sm text-gray-700">{item.label}</span>
             </div>
             <span className="text-body-sm font-semibold text-gray-900">
-              {item.value} ({((item.value / total) * 100).toFixed(0)}%)
+              {item.value} ({total > 0 ? ((item.value / total) * 100).toFixed(0) : 0}%)
             </span>
           </div>
         ))}
@@ -372,32 +442,37 @@ const PieChart = ({ data }) => {
   );
 };
 
-// ⭕ Progress Ring Component
+// ⭕ Progress Ring Component - RESIZED TO MATCH PIE CHART
 const ProgressRing = ({ percentage }) => {
-  const radius = 90;
+  // ✅ Match the pie chart dimensions (radius 80, donut hole 50)
+  const radius = 80;
+  const strokeWidth = 30; // 80 - 50 = 30 (outer radius - inner radius)
   const circumference = 2 * Math.PI * radius;
   const offset = circumference - (percentage / 100) * circumference;
+  
+  // ✅ Center point is now 100 to match pie chart viewBox
+  const center = 100;
 
   return (
     <div className="flex flex-col items-center justify-center">
       <div className="relative w-64 h-64">
-        <svg className="transform -rotate-90 w-full h-full">
+        <svg viewBox="0 0 200 200" className="transform -rotate-90 w-full h-full">
           {/* Background circle */}
           <circle
-            cx="128"
-            cy="128"
+            cx={center}
+            cy={center}
             r={radius}
             stroke="#e5e7eb"
-            strokeWidth="16"
+            strokeWidth={strokeWidth}
             fill="none"
           />
           {/* Progress circle */}
           <circle
-            cx="128"
-            cy="128"
+            cx={center}
+            cy={center}
             r={radius}
             stroke="#10b981"
-            strokeWidth="16"
+            strokeWidth={strokeWidth}
             fill="none"
             strokeDasharray={circumference}
             strokeDashoffset={offset}
