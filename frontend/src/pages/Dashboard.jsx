@@ -50,49 +50,17 @@ const Dashboard = () => {
       const response = await eventAPI.getEvents(user.id);
       const allEvents = response.data;
       
-      console.log('=== DASHBOARD ORPHAN DETECTION ===');
-      console.log('Total events from API:', allEvents.length);
+      // ✅ OPTIMIZED: Removed all console.logs for production performance
+      // Only keep them for debugging if needed
       
-      // ✅ LOG EACH EVENT
-      allEvents.forEach((event, index) => {
-        console.log(`Dashboard Event ${index + 1}:`, {
-          id: event.id,
-          title: event.title,
-          isRecurring: event.isRecurring,
-          isException: event.isException,
-          isCanceled: event.isCanceled,
-          parentEventId: event.parentEventId,
-          startDateTime: event.startDateTime
-        });
-      });
-      
-      // Create a Set of ALL event IDs
+      // ✅ OPTIMIZED: Simplified orphan detection (backend should handle this)
       const allEventIds = new Set(allEvents.map(e => e.id));
-      console.log('All valid event IDs:', Array.from(allEventIds));
       
-      // Filter out events that reference a non-existent parent
-      const filteredEvents = allEvents.filter(event => {
-        // Check if this event has a parentEventId
-        if (event.parentEventId) {
-          const parentExists = allEventIds.has(event.parentEventId);
-          
-          if (!parentExists) {
-            console.log('❌ DASHBOARD ORPHAN:', {
-              eventId: event.id,
-              title: event.title,
-              parentEventId: event.parentEventId
-            });
-            return false; // Filter it out
-          }
-        }
-        
-        return true; // Keep events without parentEventId or with valid parent
-      });
+      const filteredEvents = allEvents.filter(event => 
+        !event.parentEventId || allEventIds.has(event.parentEventId)
+      );
       
-      console.log('Dashboard after filtering:', filteredEvents.length);
-      console.log('Dashboard orphans removed:', allEvents.length - filteredEvents.length);
-      
-      // ✅ Expand recurring events for the current week
+      // ✅ Expand recurring events for the current week only
       const now = new Date();
       const startOfWeek = new Date(now);
       startOfWeek.setDate(now.getDate() - now.getDay());
@@ -103,11 +71,9 @@ const Dashboard = () => {
       endOfWeek.setHours(23, 59, 59, 999);
       
       const expandedEvents = expandRecurringEvents(filteredEvents, startOfWeek, endOfWeek);
-      console.log('Expanded events for this week:', expandedEvents.length);
       
-      // ✅ Filter out canceled events from display
+      // ✅ Filter out canceled events
       const visibleEvents = expandedEvents.filter(e => !e.isCanceled);
-      console.log('Visible events (non-canceled):', visibleEvents.length);
       
       setEvents(visibleEvents);
     } catch (error) {
@@ -115,72 +81,83 @@ const Dashboard = () => {
     }
   };
 
-  // ✅ NEW: Poll for pending invitations
-// ✅ ENHANCED: Poll for pending invitations AND unread messages
-useEffect(() => {
-  const checkNotifications = async () => {
-    try {
-      // Check invitations
-      const invitationsResponse = await invitationAPI.getReceivedInvitations(user.id);
-      setPendingInvitations(invitationsResponse.data.length);
-      
-      // ✅ NEW: Check total unread messages across all groups
-      try {
-        const groupsResponse = await groupAPI.getGroups(user.id);
-        const groups = groupsResponse.data;
-        
-        let totalUnread = 0;
-        
-        // Get unread counts for each group
-        await Promise.all(
-          groups.map(async (group) => {
-            try {
-              const unreadResponse = await discussionAPI.getGroupUnreadCounts(group.id, user.id);
-              if (unreadResponse.data.success) {
-                const unreadCounts = unreadResponse.data.unreadCounts;
-                const groupTotal = Object.values(unreadCounts).reduce((sum, count) => sum + count, 0);
-                totalUnread += groupTotal;
-              }
-            } catch (error) {
-              console.error(`Error loading unread for group ${group.id}:`, error);
-            }
-          })
-        );
-        
-        setTotalUnreadMessages(totalUnread);
-      } catch (error) {
-        console.error('Error checking unread messages:', error);
+// ✅ OPTIMIZED: Load data only once on mount
+  useEffect(() => {
+    let mounted = true;
+    
+    const initialLoad = async () => {
+      if (mounted) {
+        await Promise.all([
+          loadTasks(),
+          loadEvents()
+        ]);
       }
-      
-    } catch (error) {
-      console.error('Error checking notifications:', error);
-    }
-  };
-
-  checkNotifications();
-  
-  // Poll every 10 seconds
-  const interval = setInterval(checkNotifications, 10000);
-  
-  return () => clearInterval(interval);
-}, [user.id]);
-
-  useEffect(() => {
-    loadTasks();
-    loadEvents();
+    };
+    
+    initialLoad();
+    
+    return () => {
+      mounted = false;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user]);
+  }, [user.id]); // Only reload if user changes
 
+  // ✅ REMOVED: Duplicate loading on tab change
+  // The data is already loaded, no need to reload when switching tabs
+
+  // ✅ OPTIMIZED: Poll for notifications less frequently and only when on dashboard
   useEffect(() => {
-    if (activeTab === 'dashboard') {
-      console.log('Dashboard tab active - refreshing data');
-      loadTasks();
-      loadEvents();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeTab]);
+    const checkNotifications = async () => {
+      try {
+        // Check invitations
+        const invitationsResponse = await invitationAPI.getReceivedInvitations(user.id);
+        setPendingInvitations(invitationsResponse.data.length);
+        
+        // ✅ OPTIMIZED: Only check unread messages if on collaboration tab
+        // Dashboard doesn't need real-time unread counts
+        if (activeTab === 'collaboration') {
+          try {
+            const groupsResponse = await groupAPI.getGroups(user.id);
+            const groups = groupsResponse.data;
+            
+            let totalUnread = 0;
+            
+            // Get unread counts for each group
+            await Promise.all(
+              groups.map(async (group) => {
+                try {
+                  const unreadResponse = await discussionAPI.getGroupUnreadCounts(group.id, user.id);
+                  if (unreadResponse.data.success) {
+                    const unreadCounts = unreadResponse.data.unreadCounts;
+                    const groupTotal = Object.values(unreadCounts).reduce((sum, count) => sum + count, 0);
+                    totalUnread += groupTotal;
+                  }
+                } catch (error) {
+                  // Silently fail for individual groups
+                  console.error(`Error loading unread for group ${group.id}:`, error);
+                }
+              })
+            );
+            
+            setTotalUnreadMessages(totalUnread);
+          } catch (error) {
+            console.error('Error checking unread messages:', error);
+          }
+        }
+        
+      } catch (error) {
+        console.error('Error checking notifications:', error);
+      }
+    };
 
-
+    // ✅ Check immediately on mount
+    checkNotifications();
+    
+    // ✅ OPTIMIZED: Poll every 30 seconds instead of 10 (less aggressive)
+    const interval = setInterval(checkNotifications, 30000);
+    
+    return () => clearInterval(interval);
+  }, [user.id, activeTab]); // Re-run when tab changes
 
   const handleLogout = async () => {
     await logout();
