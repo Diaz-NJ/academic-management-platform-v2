@@ -23,30 +23,41 @@ const Register = () => {
   };
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
+  e.preventDefault();
 
-    if (formData.password !== formData.confirmPassword) {
-      showToast('Passwords do not match', 'error');
-      return;
-    }
+  if (formData.password !== formData.confirmPassword) {
+    showToast('Passwords do not match', 'error');
+    return;
+  }
 
-    if (formData.password.length < 6) {
-      showToast('Password must be at least 6 characters', 'error');
-      return;
-    }
+  if (formData.password.length < 6) {
+    showToast('Password must be at least 6 characters', 'error');
+    return;
+  }
 
-    setLoading(true);
+  setLoading(true);
 
-    try {
-      await register(formData);
-      showToast('Registration successful! Please login.', 'success');
-      navigate('/login');
-    } catch (err) {
+  try {
+    // ✅ OPTIMIZED: Add timeout
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 20000); // 20 second timeout
+
+    await register(formData);
+    
+    clearTimeout(timeoutId);
+    
+    showToast('Registration successful! Please login.', 'success');
+    navigate('/login');
+  } catch (err) {
+    if (err.name === 'AbortError') {
+      showToast('Registration timeout. Please try again.', 'error');
+    } else {
       showToast(err.response?.data?.message || 'Registration failed. Please try again.', 'error');
-    } finally {
-      setLoading(false);
     }
-  };
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
     <div 

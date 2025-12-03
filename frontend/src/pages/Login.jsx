@@ -12,19 +12,30 @@ const Login = () => {
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
+  e.preventDefault();
+  setLoading(true);
 
-    try {
-      await login({ email, password });
-      showToast('Login successful! Welcome back.', 'success');
-      navigate('/dashboard');
-    } catch (err) {
+  try {
+    // ✅ OPTIMIZED: Add timeout to prevent hanging
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
+
+    const response = await login({ email, password });
+    
+    clearTimeout(timeoutId);
+    
+    showToast('Login successful! Welcome back.', 'success');
+    navigate('/dashboard');
+  } catch (err) {
+    if (err.name === 'AbortError') {
+      showToast('Login timeout. Please check your connection.', 'error');
+    } else {
       showToast(err.response?.data?.message || 'Login failed. Please check your credentials.', 'error');
-    } finally {
-      setLoading(false);
     }
-  };
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
     <div 
