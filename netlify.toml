@@ -1,0 +1,36 @@
+# ============================================
+# NETLIFY CONFIGURATION FOR REACT SPA
+# ============================================
+
+# Build Settings
+# --------------
+# Tells Netlify where your frontend code is and how to build it
+[build]
+  # Base directory: Where to run commands from
+  base = "frontend"
+  
+  # Build command: What to run to create production files
+  command = "npm run build"
+  
+  # Publish directory: Where the built files are (relative to base)
+  publish = "build"
+
+# Redirects for Single Page Application
+# --------------------------------------
+# This is the KEY part that fixes your 404 errors
+[[redirects]]
+  # From: ANY path on your site (/* is a wildcard)
+  from = "/*"
+  
+  # To: Always serve index.html
+  to = "/index.html"
+  
+  # Status: 200 means "success, here's the file" (NOT a redirect)
+  # This lets React Router handle the URL in the browser
+  status = 200
+  
+  # Force: Apply this rule even if a file exists at that path
+  force = false
+  
+  # Conditions: Only apply for regular page requests (not API calls)
+  conditions = {Role = ["user"]}
