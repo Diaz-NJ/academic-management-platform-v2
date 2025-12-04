@@ -219,6 +219,7 @@ public ResponseEntity<?> deleteGroup(@PathVariable Long id) {
         }
     }
 
+// ✅ REPLACE: Existing changeMemberRole endpoint (around line 110)
 @PutMapping("/{groupId}/members/{userId}/role")
 public ResponseEntity<?> changeMemberRole(
         @PathVariable Long groupId,
@@ -244,36 +245,23 @@ public ResponseEntity<?> changeMemberRole(
         
         Group group = groupOpt.get();
 
-        boolean isLeader = group.getMembers().stream()
-            .anyMatch(m -> m.getUserId().equals(requestingUserId) && "Leader".equals(m.getRole()));
+        // ✅ CHANGED: Only admin (creator) can change roles
+        boolean isAdmin = group.getCreatedBy().equals(requestingUserId);
         
-        if (!isLeader) {
+        if (!isAdmin) {
             return ResponseEntity.status(403).body(Map.of(
                 "success", false,
-                "message", "Only leaders can change member roles"
+                "message", "Only the group admin can change member roles"
             ));
         }
 
-        long leaderCount = group.getMembers().stream()
-            .filter(m -> "Leader".equals(m.getRole()))
-            .count();
-        
-        boolean isDemotingLeader = group.getMembers().stream()
-            .anyMatch(m -> m.getUserId().equals(userId) && "Leader".equals(m.getRole()));
-        
-        if (isDemotingLeader && leaderCount == 1 && "Member".equals(newRole)) {
-            return ResponseEntity.badRequest().body(Map.of(
-                "success", false,
-                "message", "Cannot demote the last leader. Promote someone else first."
-            ));
-        }
-
+        // ✅ Role change is now just a title, no special permissions
         boolean updated = groupService.updateMemberRole(groupId, userId, newRole);
         
         if (updated) {
             return ResponseEntity.ok(Map.of(
                 "success", true,
-                "message", "Role updated successfully"
+                "message", "Role updated successfully (title only, no special permissions)"
             ));
         } else {
             return ResponseEntity.badRequest().body(Map.of(
@@ -286,6 +274,32 @@ public ResponseEntity<?> changeMemberRole(
         return ResponseEntity.status(500).body(Map.of(
             "success", false,
             "message", "Failed to update role: " + e.getMessage()
+        ));
+    }
+}
+
+// ✅ ADD: New endpoint to verify admin status
+@GetMapping("/{groupId}/is-admin/{userId}")
+public ResponseEntity<?> isAdmin(
+        @PathVariable Long groupId,
+        @PathVariable Long userId) {
+    try {
+        Optional<Group> groupOpt = groupService.getGroupById(groupId);
+        if (groupOpt.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+        
+        Group group = groupOpt.get();
+        boolean isAdmin = group.getCreatedBy().equals(userId);
+        
+        return ResponseEntity.ok(Map.of(
+            "success", true,
+            "isAdmin", isAdmin
+        ));
+    } catch (Exception e) {
+        return ResponseEntity.status(500).body(Map.of(
+            "success", false,
+            "message", "Failed to check admin status: " + e.getMessage()
         ));
     }
 }

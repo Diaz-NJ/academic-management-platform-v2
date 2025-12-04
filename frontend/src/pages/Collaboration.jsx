@@ -431,34 +431,22 @@ const handleSaveGroup = async (groupData) => {
                 <div className="p-6 border-b border-gray-200">
                   <div className="flex items-start justify-between mb-3">
                     <div className="flex items-center space-x-3">
-                      <div className="w-14 h-14 bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500 rounded-xl flex items-center justify-center text-white text-2xl font-bold shadow-lg">
-                        {group.groupName.charAt(0).toUpperCase()}
-                      </div>
-                      <div>
-                        {group.groupNumber && (
-                          <span className="text-caption text-gray-500 font-medium">
-                            {group.groupNumber}
-                          </span>
-                        )}
-                        <h3 className="text-card-title">
-                          {group.groupName}
-                        </h3>
-                      </div>
+                      {/* ... existing code ... */}
                     </div>
-                    {/* ✅ FIXED: Role-based action buttons */}
+                    {/* ✅ REPLACE: Role-based action buttons */}
                     <div className="flex items-center space-x-1">
                       {(() => {
                         const currentMember = group.members?.find(m => m.userId === user.id);
-                        const isLeader = currentMember?.role === 'Leader';
+                        const isAdmin = group.createdBy === user.id; // ✅ CHANGED: Only creator is admin
                         
-                        if (isLeader) {
-                          // Leaders can edit and delete
+                        if (isAdmin) {
+                          // ✅ Only admin (creator) can edit and delete
                           return (
                             <>
                               <button
                                 onClick={() => handleEditGroup(group)}
                                 className="p-2 text-gray-500 hover:text-primary hover:bg-blue-50 rounded transition"
-                                title="Edit group"
+                                title="Edit group (Admin only)"
                               >
                                 <Edit className="w-4 h-4" />
                               </button>
@@ -470,14 +458,14 @@ const handleSaveGroup = async (groupData) => {
                                   handleDeleteClick(group);
                                 }}
                                 className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded transition"
-                                title="Delete group"
+                                title="Delete group (Admin only)"
                               >
                                 <Trash2 className="w-4 h-4" />
                               </button>
                             </>
                           );
                         } else if (currentMember) {
-                          // Members can only leave
+                          // ✅ Regular members can only leave
                           return (
                             <button
                               onClick={(e) => {
@@ -488,14 +476,16 @@ const handleSaveGroup = async (groupData) => {
                               className="p-2 text-gray-500 hover:text-orange-600 hover:bg-orange-50 rounded transition"
                               title="Leave group"
                             >
-                              <Trash2 className="w-4 h-4" />
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                              </svg>
                             </button>
                           );
                         }
                         return null;
                       })()}
                     </div>
-                    </div>
+                  </div>
 
                   <div className="flex items-center space-x-2 text-sm text-gray-600">
                     <BookOpen className="w-4 h-4" />
