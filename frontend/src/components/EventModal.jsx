@@ -37,14 +37,14 @@ const EventModal = ({ onClose, onSave, userId, initialDate, event = null }) => {
   };
 
   const getInitialDateTime = () => {
-    if (event) {
-      return event.startDateTime;
-    }
-    if (initialDate) {
-      return initialDate;
-    }
-    return new Date();
-  };
+  if (event) {
+    return event.startDateTime;
+  }
+  if (initialDate) {
+    return initialDate;
+  }
+  return new Date();
+};
   
   const [formData, setFormData] = useState({
     title: '',

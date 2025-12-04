@@ -1,5 +1,4 @@
-// frontend/src/components/DiscussionBoard.jsx - FIXED VERSION
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { X, Plus, MessageSquare, Pin, Lock, Send, ArrowLeft, Edit, Trash2, MoreVertical, ArrowDown } from 'lucide-react';
 import { useToast } from '../context/ToastContext';
 import { formatRelativeDate } from '../utils/dateUtils';
@@ -43,19 +42,19 @@ const DiscussionBoard = ({ group, onClose, currentUser, discussionAPI }) => {
     return () => clearInterval(interval);
   }, [refreshUnreadCounts]);
 
-  const loadDiscussions = async () => {
-    try {
-      const response = await discussionAPI.getDiscussions(group.id);
-      setDiscussions(response.data);
-      // ✅ Refresh unread counts when discussions load
-      refreshUnreadCounts();
-    } catch (error) {
-      console.error('Error loading discussions:', error);
-      showToast('Failed to load discussions', 'error');
-    } finally {
-      setLoading(false);
-    }
-  };
+  const loadDiscussions = useCallback(async () => {
+  try {
+    const response = await discussionAPI.getDiscussions(group.id);
+    setDiscussions(response.data);
+    // ✅ Refresh unread counts when discussions load
+    refreshUnreadCounts();
+  } catch (error) {
+    console.error('Error loading discussions:', error);
+    showToast('Failed to load discussions', 'error');
+  } finally {
+    setLoading(false);
+  }
+}, [group.id, refreshUnreadCounts, showToast]);
 
   const handleCreateThread = async (threadData) => {
     try {
@@ -565,33 +564,33 @@ const DiscussionThread = ({
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  const loadMessages = async () => {
-    try {
-      console.log('📥 Loading messages for discussion:', discussion.id);
-      const response = await discussionAPI.getMessages(discussion.id);
-      console.log('✅ Messages loaded:', response.data.length);
-      setMessages(response.data);
-    } catch (error) {
-      console.error('❌ Error loading messages:', error);
-      showToast('Failed to load messages', 'error');
-    } finally {
-      setLoading(false);
-    }
-  };
+  const loadMessages = useCallback(async () => {
+  try {
+    console.log('📥 Loading messages for discussion:', discussion.id);
+    const response = await discussionAPI.getMessages(discussion.id);
+    console.log('✅ Messages loaded:', response.data.length);
+    setMessages(response.data);
+  } catch (error) {
+    console.error('❌ Error loading messages:', error);
+    showToast('Failed to load messages', 'error');
+  } finally {
+    setLoading(false);
+  }
+}, [discussion.id, discussionAPI, showToast]);
 
-  const loadMessagesQuietly = async () => {
-    try {
-      const response = await discussionAPI.getMessages(discussion.id);
-      
-      // Only update if there are new messages
-      if (response.data.length !== messages.length) {
-        console.log('🔄 New messages detected:', response.data.length - messages.length);
-        setMessages(response.data);
-      }
-    } catch (error) {
-      console.error('Error polling messages:', error);
+const loadMessagesQuietly = useCallback(async () => {
+  try {
+    const response = await discussionAPI.getMessages(discussion.id);
+    
+    // Only update if there are new messages
+    if (response.data.length !== messages.length) {
+      console.log('🔄 New messages detected:', response.data.length - messages.length);
+      setMessages(response.data);
     }
-  };
+  } catch (error) {
+    console.error('Error polling messages:', error);
+  }
+}, [discussion.id, messages.length, discussionAPI]);
 
   const handleSendMessage = async (e) => {
     e.preventDefault();
