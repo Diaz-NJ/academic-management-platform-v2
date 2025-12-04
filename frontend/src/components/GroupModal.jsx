@@ -192,111 +192,118 @@ const GroupModal = ({ onClose, onSave, group, currentUser }) => {
             </div>
             
             {/* ✅ UPDATED MEMBERS LIST */}
-            <div className="border border-gray-200 rounded-lg divide-y max-h-64 overflow-y-auto">
-              {formData.members.length === 0 ? (
-                <div className="p-4 text-center text-gray-500 text-sm">
-                  {group ? 'No members in this group' : 'You will be added as the leader'}
-                </div>
-              ) : (
-                formData.members.map((member) => {
-                  // ✅ Check if current user is a leader
-                  const currentMember = group?.members?.find(m => m.userId === currentUser.id);
-                  const isCurrentUserLeader = currentMember?.role === 'Leader';
-                  const isMemberLeader = member.role === 'Leader';
-                  const leaderCount = formData.members.filter(m => m.role === 'Leader').length;
-                  
-                  return (
-                    <div
-                      key={member.userId}
-                      className="p-3 hover:bg-gray-50 flex items-center justify-between"
-                    >
-                      <div className="flex items-center space-x-3">
-                        <div className="w-8 h-8 bg-gradient-to-br from-indigo-400 to-cyan-400 rounded-full border-2 border-white flex items-center justify-center text-xs font-medium text-white shadow-md">
-                          {member.name.charAt(0).toUpperCase()}
-                        </div>
-                        <div>
-                          <p className="font-medium text-gray-800">{member.name}</p>
-                          <span className={`inline-block px-2 py-0.5 text-xs rounded-full ${
-                            member.role === 'Leader' 
-                              ? 'bg-purple-100 text-purple-800 border border-purple-300' 
-                              : 'bg-blue-100 text-blue-800 border border-blue-300'
-                          }`}>
-                            {member.role}
-                          </span>
-                        </div>
-                      </div>
+            {/* ✅ UPDATED MEMBERS LIST */}
+<div className="border border-gray-200 rounded-lg divide-y max-h-64 overflow-y-auto">
+  {formData.members.length === 0 ? (
+    <div className="p-4 text-center text-gray-500 text-sm">
+      {group ? 'No members in this group' : 'You will be added as the leader'}
+    </div>
+  ) : (
+    formData.members.map((member) => {
+      // ✅ FIXED: Check permissions properly
+      const currentMember = group?.members?.find(m => m.userId === currentUser.id);
+      const isCurrentUserLeader = currentMember?.role === 'Leader';
+      const isMemberLeader = member.role === 'Leader';
+      const leaderCount = formData.members.filter(m => m.role === 'Leader').length;
+      const isCurrentUserItself = member.userId === currentUser.id;
+      
+      return (
+        <div
+          key={member.userId}
+          className="p-3 hover:bg-gray-50 flex items-center justify-between"
+        >
+          <div className="flex items-center space-x-3">
+            <div className="w-8 h-8 bg-gradient-to-br from-indigo-400 to-cyan-400 rounded-full border-2 border-white flex items-center justify-center text-xs font-medium text-white shadow-md">
+              {member.name.charAt(0).toUpperCase()}
+            </div>
+            <div>
+              <p className="font-medium text-gray-800">
+                {member.name}
+                {isCurrentUserItself && (
+                  <span className="ml-2 text-xs text-blue-600 font-semibold">(You)</span>
+                )}
+              </p>
+              <span className={`inline-block px-2 py-0.5 text-xs rounded-full ${
+                member.role === 'Leader' 
+                  ? 'bg-purple-100 text-purple-800 border border-purple-300' 
+                  : 'bg-blue-100 text-blue-800 border border-blue-300'
+              }`}>
+                {member.role}
+              </span>
+            </div>
+          </div>
+          
+          {/* ✅ FIXED: Only show actions for leaders, and with proper restrictions */}
+          {group && isCurrentUserLeader && (
+            <div className="flex items-center space-x-2">
+              {/* Role toggle - only show if NOT editing yourself */}
+              {!isCurrentUserItself && (
+                <button
+                  type="button"
+                  onClick={async () => {
+                    // Prevent demoting last leader
+                    if (isMemberLeader && leaderCount === 1) {
+                      showToast('Cannot demote the last leader', 'error');
+                      return;
+                    }
+                    
+                    const newRole = isMemberLeader ? 'Member' : 'Leader';
+                    
+                    try {
+                      const { groupAPI } = await import('../services/api');
+                      await groupAPI.changeMemberRole(group.id, member.userId, newRole);
+                      showToast(`Role changed to ${newRole}`, 'success');
                       
-                      {/* ✅ NEW: Role Management - Only for Leaders */}
-                      {group && (
-                        <div className="flex items-center space-x-2">
-                          {/* Show role toggle ONLY if current user is a leader AND not editing themselves */}
-                          {isCurrentUserLeader && member.userId !== currentUser.id && (
-                            <button
-                              type="button"
-                              onClick={async () => {
-                                // Prevent demoting last leader
-                                if (isMemberLeader && leaderCount === 1) {
-                                  showToast('Cannot demote the last leader', 'error');
-                                  return;
-                                }
-                                
-                                const newRole = isMemberLeader ? 'Member' : 'Leader';
-                                
-                                try {
-                                  const { groupAPI } = await import('../services/api');
-                                  await groupAPI.changeMemberRole(group.id, member.userId, newRole);
-                                  showToast(`Role changed to ${newRole}`, 'success');
-                                  
-                                  // Update local state
-                                  setFormData(prevData => ({
-                                    ...prevData,
-                                    members: prevData.members.map(m =>
-                                      m.userId === member.userId
-                                        ? { ...m, role: newRole }
-                                        : m
-                                    )
-                                  }));
-                                } catch (error) {
-                                  console.error('Error changing role:', error);
-                                  const errorMessage = error.response?.data?.message || 'Failed to change role';
-                                  showToast(errorMessage, 'error');
-                                }
-                              }}
-                              className="text-xs px-3 py-1 bg-gray-100 hover:bg-gray-200 rounded transition"
-                              title={isMemberLeader ? 'Demote to Member' : 'Promote to Leader'}
-                            >
-                              {isMemberLeader ? '👤 Make Member' : '⭐ Make Leader'}
-                            </button>
-                          )}
-                          
-                          {/* Only show remove button if: 
-                              1. Not removing yourself
-                              2. Either there are multiple leaders OR this person is not a leader
-                          */}
-                          {member.userId !== currentUser.id && 
-                           (leaderCount > 1 || !isMemberLeader) && (
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setFormData(prevData => ({
-                                  ...prevData,
-                                  members: prevData.members.filter(m => m.userId !== member.userId)
-                                }));
-                                showToast('Member removed', 'info');
-                              }}
-                              className="p-2 text-red-500 hover:bg-red-50 rounded transition"
-                              title="Remove member"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })
+                      // Update local state
+                      setFormData(prevData => ({
+                        ...prevData,
+                        members: prevData.members.map(m =>
+                          m.userId === member.userId
+                            ? { ...m, role: newRole }
+                            : m
+                        )
+                      }));
+                    } catch (error) {
+                      console.error('Error changing role:', error);
+                      const errorMessage = error.response?.data?.message || 'Failed to change role';
+                      showToast(errorMessage, 'error');
+                    }
+                  }}
+                  className="text-xs px-3 py-1 bg-gray-100 hover:bg-gray-200 rounded transition"
+                  title={isMemberLeader ? 'Demote to Member' : 'Promote to Leader'}
+                >
+                  {isMemberLeader ? '👤 Make Member' : '⭐ Make Leader'}
+                </button>
+              )}
+              
+              {/* ✅ CRITICAL FIX: Remove button logic */}
+              {/* Only show if:
+                  1. NOT removing yourself
+                  2. There are multiple leaders OR this person is not a leader
+              */}
+              {!isCurrentUserItself && (leaderCount > 1 || !isMemberLeader) && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setFormData(prevData => ({
+                      ...prevData,
+                      members: prevData.members.filter(m => m.userId !== member.userId)
+                    }));
+                    showToast('Member removed', 'info');
+                  }}
+                  className="p-2 text-red-500 hover:bg-red-50 rounded transition"
+                  title="Remove member"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
               )}
             </div>
+          )}
+        </div>
+      );
+    })
+  )}
+</div>
             
             {/* Explanation for new groups */}
             {!group && (

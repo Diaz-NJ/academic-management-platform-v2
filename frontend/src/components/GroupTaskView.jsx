@@ -38,15 +38,29 @@ const GroupTasksView = ({ group, onClose }) => {
   }, [group.id]);
 
   const loadGroupTasks = async () => {
-    try {
-      const response = await taskAPI.getGroupTasks(group.id);
-      setTasks(response.data);
-    } catch (error) {
-      console.error('Error loading group tasks:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  try {
+    console.log('🔍 Loading tasks for group:', group.id);
+    const response = await taskAPI.getGroupTasks(group.id);
+    console.log('📦 Tasks loaded:', response.data.length, 'tasks');
+    console.log('📋 Task details:', response.data);
+    
+    // ✅ Filter to only show tasks that are actually linked to this group
+    const linkedTasks = response.data.filter(task => {
+      const isLinked = task.groupId === group.id;
+      if (!isLinked) {
+        console.log('⚠️ Task not linked to group:', task.title, 'groupId:', task.groupId);
+      }
+      return isLinked;
+    });
+    
+    console.log('✅ Filtered tasks:', linkedTasks.length, 'tasks linked to this group');
+    setTasks(linkedTasks);
+  } catch (error) {
+    console.error('❌ Error loading group tasks:', error);
+  } finally {
+    setLoading(false);
+  }
+};
 
   const getStatistics = () => {
     const total = tasks.length;

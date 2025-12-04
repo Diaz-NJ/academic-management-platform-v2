@@ -348,39 +348,49 @@ const handleDeleteConfirm = async () => {
   if (!eventToDelete) return;
 
   try {
-    // ✅ FIXED: Handle canceled recurring instance deletion
+    console.log('🗑️ Delete confirm called for:', {
+      title: eventToDelete.title,
+      isCanceled: eventToDelete.isCanceled,
+      isRecurringInstance: eventToDelete.isRecurringInstance,
+      eventId: eventToDelete.id,
+      originalId: eventToDelete.originalId
+    });
+
+    // ✅ CASE 1: Canceled recurring instance (DELETE ONLY THIS INSTANCE)
     if (eventToDelete.isCanceled && eventToDelete.isRecurringInstance) {
       const instanceDate = new Date(eventToDelete.startDateTime);
-      const dateStr = instanceDate.toISOString().substring(0, 10); // Just date part
+      const dateStr = instanceDate.toISOString().substring(0, 10);
       const originalId = eventToDelete.originalId || eventToDelete.id;
       
-      console.log('🗑️ Deleting canceled instance:', {
+      console.log('🗑️ Deleting canceled instance permanently:', {
         dateStr,
         originalId,
         title: eventToDelete.title
       });
       
+      // This should ONLY remove from canceledDates, not delete the series
       await eventAPI.deleteInstance(originalId, dateStr);
-      showToast('Canceled event permanently deleted', 'success');
+      showToast('Canceled event permanently removed', 'success');
     } 
-    // ✅ Handle regular recurring instance (not canceled)
+    // ✅ CASE 2: Non-canceled recurring instance (DELETE ONLY THIS INSTANCE)
     else if (eventToDelete.isRecurringInstance && !eventToDelete.isCanceled) {
       const instanceDate = new Date(eventToDelete.startDateTime);
       const dateStr = instanceDate.toISOString().substring(0, 10);
       const originalId = eventToDelete.originalId || eventToDelete.id;
       
-      console.log('🗑️ Deleting non-canceled instance:', {
+      console.log('🗑️ Deleting non-canceled instance permanently:', {
         dateStr,
         originalId,
         title: eventToDelete.title
       });
       
+      // Add to deletedDates, don't delete the series
       await eventAPI.deleteInstance(originalId, dateStr);
       showToast('Event instance permanently deleted', 'success');
     }
-    // Handle regular event deletion (non-recurring)
+    // ✅ CASE 3: Regular event or entire recurring series
     else {
-      console.log('🗑️ Deleting regular event:', eventToDelete.id);
+      console.log('🗑️ Deleting regular event or series:', eventToDelete.id);
       await eventAPI.deleteEvent(eventToDelete.id);
       showToast('Event deleted successfully', 'success');
     }
