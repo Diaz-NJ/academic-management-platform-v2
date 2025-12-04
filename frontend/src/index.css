@@ -245,6 +245,54 @@
       min-height: 20px;
     }
   }
+
+  /* ===== MOBILE-SPECIFIC UTILITIES ===== */
+@media (max-width: 640px) {
+  /* Extra compact spacing for mobile */
+  .mobile-compact {
+    @apply p-2 space-y-1;
+  }
+  
+  /* Smaller text for mobile */
+  .mobile-text-xs {
+    font-size: 10px;
+    line-height: 14px;
+  }
+  
+  /* Better touch targets for mobile */
+  .mobile-touch-target {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  
+  /* Prevent text overflow on mobile */
+  .mobile-no-overflow {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  
+  /* Hide on mobile only */
+  .hide-mobile {
+    display: none;
+  }
+  
+  /* Stack buttons vertically on mobile */
+  .mobile-btn-stack {
+    @apply flex flex-col space-y-1 w-full;
+  }
+  
+  .mobile-btn-stack > button {
+    @apply w-full;
+  }
+}
+
+/* Show only on mobile */
+@media (min-width: 641px) {
+  .show-mobile-only {
+    display: none;
+  }
+}
   
   /* ===== DESKTOP LAYOUT ===== */
   @media (min-width: 768px) {
