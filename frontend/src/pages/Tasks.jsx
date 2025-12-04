@@ -60,12 +60,14 @@ const [selectedTaskForIntegration, setSelectedTaskForIntegration] = useState(nul
   };
 
   useEffect(() => {
-    loadTasks();
-  }, [user]);
+  loadTasks();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+}, [user]); // ✅ loadTasks intentionally excluded
 
   useEffect(() => {
-    applyFilters();
-  }, [tasks, filterStatus, filterPriority, filterSubject, searchQuery]);
+  applyFilters();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+}, [tasks, filterStatus, filterPriority, filterSubject, searchQuery]); // ✅ applyFilters intentionally excluded
 
   const loadTasks = async () => {
     try {

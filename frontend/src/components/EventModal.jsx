@@ -45,8 +45,6 @@ const EventModal = ({ onClose, onSave, userId, initialDate, event = null }) => {
     }
     return new Date();
   };
-
-  const defaultDateTime = getInitialDateTime();
   
   const [formData, setFormData] = useState({
     title: '',

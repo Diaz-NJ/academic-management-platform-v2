@@ -60,18 +60,19 @@ const Collaboration = ({ onUnreadCountChange }) => {
 
 // ✅ ENHANCED: Load, poll, and notify parent of unread counts
   useEffect(() => {
-    if (groups.length > 0) {
-      // Load immediately
+  if (groups.length > 0) {
+    // Load immediately
+    loadAllGroupUnreadCounts(groups);
+    
+    // Poll every 10 seconds
+    const interval = setInterval(() => {
       loadAllGroupUnreadCounts(groups);
-      
-      // Poll every 10 seconds
-      const interval = setInterval(() => {
-        loadAllGroupUnreadCounts(groups);
-      }, 10000);
-      
-      return () => clearInterval(interval);
-    }
-  }, [groups.length]);
+    }, 10000);
+    
+    return () => clearInterval(interval);
+  }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+}, [groups.length]); // ✅ Intentionally not including groups/loadAllGroupUnreadCounts
 
   // ✅ NEW: Notify parent when unread count changes
   useEffect(() => {
@@ -136,10 +137,10 @@ const loadGroups = useCallback(async() => {
     }
   }, [user.id, showToast]);
 
-  // ✅ NEW: Initial load only
   useEffect(() => {
-    loadGroups();
-  }, []); // Empty array = run once on mount
+  loadGroups();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+}, []); // ✅ Empty array = run once on mount, loadGroups intentionally excluded
 
   const toggleGroupSelection = (groupId) => {
     setSelectedGroups(prev => 

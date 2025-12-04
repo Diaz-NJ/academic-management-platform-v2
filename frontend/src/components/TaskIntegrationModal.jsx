@@ -16,8 +16,9 @@ const TaskIntegrationModal = ({
   const [loadingGroups, setLoadingGroups] = useState(true);
 
   useEffect(() => {
-    loadGroups();
-  }, [userId]);
+  loadGroups();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+}, [userId])
 
   const loadGroups = async () => {
     try {

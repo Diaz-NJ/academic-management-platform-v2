@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Plus, Trash2, Edit2, Check, Users } from 'lucide-react';
+import { X, Trash2, Users } from 'lucide-react';
 import { useToast } from '../context/ToastContext';
 
 const GroupModal = ({ onClose, onSave, group, currentUser }) => {
@@ -10,10 +10,6 @@ const GroupModal = ({ onClose, onSave, group, currentUser }) => {
     taskDescription: '',
     members: []
   });
-  const [newMemberName, setNewMemberName] = useState('');
-  const [editingMemberId, setEditingMemberId] = useState(null);
-  const [editMemberName, setEditMemberName] = useState('');
-  const [editMemberRole, setEditMemberRole] = useState('Member');
   const [loading, setLoading] = useState(false);
   const { showToast } = useToast();
 
@@ -100,12 +96,6 @@ const GroupModal = ({ onClose, onSave, group, currentUser }) => {
     } finally {
       setLoading(false);
     }
-  };
-
-  const getRoleBadgeColor = (role) => {
-    return role === 'Leader' 
-      ? 'bg-purple-100 text-purple-800 border border-purple-300' 
-      : 'bg-blue-100 text-blue-800 border border-blue-300';
   };
 
   return (

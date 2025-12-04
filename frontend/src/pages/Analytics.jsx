@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { taskAPI } from '../services/api';
-import { TrendingUp, CheckCircle, Clock, AlertCircle, Target, Calendar, Zap } from 'lucide-react';
+import { TrendingUp, CheckCircle, AlertCircle, Target, Calendar, Zap } from 'lucide-react';
 import LoadingSpinner from '../components/LoadingSpinner';
 
 const Analytics = () => {
@@ -21,7 +21,6 @@ useEffect(() => {
       if (mounted) {
         const taskData = response.data;
         setTasks(taskData);
-        // Calculate stats immediately after loading
         const calculatedStats = calculateStats(taskData);
         setStats(calculatedStats);
       }
@@ -39,7 +38,7 @@ useEffect(() => {
   return () => {
     mounted = false;
   };
-}, []); // Empty array - load ONCE only
+}, [user.id]); // ✅ Added user.id // Empty array - load ONCE only
 
   // ✅ Memoized calculation - returns data instead of setting state
 const calculateStats = (taskData) => {

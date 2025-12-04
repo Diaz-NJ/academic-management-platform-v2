@@ -23,10 +23,11 @@ const RecurringSeriesView = ({
   const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
 
   useEffect(() => {
-    if (event && event.isRecurring) {
-      generateInstances();
-    }
-  }, [event]);
+  if (event && event.isRecurring) {
+    generateInstances();
+  }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+}, [event])
 
   const generateInstances = () => {
     try {

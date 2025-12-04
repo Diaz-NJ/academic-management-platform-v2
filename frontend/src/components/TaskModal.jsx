@@ -33,8 +33,9 @@ const TaskModal = ({ onClose, onSave, userId, task = null }) => {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    loadGroups();
-  }, [userId]);
+  loadGroups();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+}, [userId]);
 
   useEffect(() => {
     if (task) {

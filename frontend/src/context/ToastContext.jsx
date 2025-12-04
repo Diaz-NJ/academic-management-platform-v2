@@ -13,7 +13,6 @@ export const useToast = () => {
 
 export const ToastProvider = ({ children }) => {
   const [toasts, setToasts] = useState([]);
-  const [idCounter, setIdCounter] = useState(0);
 
   const showToast = (message, type = 'success', duration = 3000) => {
     // ✅ FIX: Use counter + timestamp to ensure uniqueness

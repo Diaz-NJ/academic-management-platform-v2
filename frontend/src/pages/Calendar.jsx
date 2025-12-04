@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { eventAPI } from '../services/api';
-import { Plus, ChevronLeft, ChevronRight, RefreshCw, AlertTriangle } from 'lucide-react';
+import { Plus, ChevronLeft, ChevronRight, RefreshCw } from 'lucide-react';
 import EventModal from '../components/EventModal';
 import ConfirmDialog from '../components/ConfirmDialog';
 import EventDetailsModal from '../components/EventDetailsModal';
@@ -59,6 +59,7 @@ const Calendar = () => {
       }
     });
   }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
 }, [user, currentDate]);
 
   // Filter events
@@ -531,11 +532,6 @@ const handleViewSeriesClick = () => {
   for (let i = 1; i <= daysInMonth; i++) {
     days.push(i);
   }
-
-  const getEventTypeColor = (type) => {
-    const config = EVENT_TYPE_CONFIG[type] || EVENT_TYPE_CONFIG.Other;
-    return config.color;
-  };
 
   const getDeleteMessage = () => {
     const eventToDelete = modalState.data;

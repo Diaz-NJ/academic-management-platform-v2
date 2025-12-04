@@ -8,7 +8,7 @@ import { authAPI } from '../services/api'; // ✅ FIXED: Use centralized API
 import axios from 'axios';
 
 const Settings = () => {
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
   const { showToast } = useToast();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);

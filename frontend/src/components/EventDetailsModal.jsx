@@ -7,17 +7,6 @@ import { getRecurrenceDescription } from '../utils/recurringUtils';
 const EventDetailsModal = ({ event, onClose, onEdit, onDelete, onUncancel, onViewSeries }) => {
   if (!event) return null;
 
-  const getEventTypeColor = (type) => {
-    const colors = {
-      Class: 'bg-blue-500',
-      Exam: 'bg-red-500',
-      Deadline: 'bg-orange-500',
-      Meeting: 'bg-green-500',
-      Other: 'bg-purple-500',
-    };
-    return colors[type] || 'bg-gray-500';
-  };
-
   const formatDateTime = (dateString) => {
     const date = new Date(dateString);
     

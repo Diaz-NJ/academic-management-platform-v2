@@ -19,7 +19,6 @@ const DiscussionBoard = ({ group, onClose, currentUser, discussionAPI }) => {
   const [discussionToDelete, setDiscussionToDelete] = useState(null);
 
   const { 
-    unreadCounts, 
     totalUnread, 
     getUnreadCount, 
     markAsRead,
@@ -32,8 +31,8 @@ const DiscussionBoard = ({ group, onClose, currentUser, discussionAPI }) => {
   );
 
   useEffect(() => {
-    loadDiscussions();
-  }, [group.id]);
+  loadDiscussions();
+}, [group.id, loadDiscussions]);
 
   // ✅ NEW: Poll for unread counts every 5 seconds
   useEffect(() => {
@@ -524,15 +523,15 @@ const DiscussionThread = ({
 
   // ✅ FIXED: Load messages on mount and set up polling
   useEffect(() => {
-    loadMessages();
-    
-    // Poll every 3 seconds for new messages
-    const interval = setInterval(() => {
-      loadMessagesQuietly();
-    }, 10000);
-    
-    return () => clearInterval(interval);
-  }, [discussion.id]);
+  loadMessages();
+  
+  // Poll every 3 seconds for new messages
+  const interval = setInterval(() => {
+    loadMessagesQuietly();
+  }, 10000);
+  
+  return () => clearInterval(interval);
+}, [discussion.id, loadMessages, loadMessagesQuietly]); // ✅ Added dependencies
 
   // ✅ Mark as read when thread is opened
   useEffect(() => {

@@ -20,11 +20,11 @@ const Login = () => {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
 
-    const response = await login({ email, password });
-    
-    clearTimeout(timeoutId);
-    
-    showToast('Login successful! Welcome back.', 'success');
+    await login({ email, password });
+
+clearTimeout(timeoutId);
+
+showToast('Login successful! Welcome back.', 'success');
     setTimeout(() => navigate('/dashboard'), 500);
   } catch (err) {
     if (err.name === 'AbortError') {
