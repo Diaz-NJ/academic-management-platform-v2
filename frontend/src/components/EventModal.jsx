@@ -35,16 +35,6 @@ const EventModal = ({ onClose, onSave, userId, initialDate, event = null }) => {
     const day = String(d.getDate()).padStart(2, '0');
     return `${year}-${month}-${day}`;
   };
-
-  const getInitialDateTime = () => {
-  if (event) {
-    return event.startDateTime;
-  }
-  if (initialDate) {
-    return initialDate;
-  }
-  return new Date();
-};
   
   const [formData, setFormData] = useState({
     title: '',

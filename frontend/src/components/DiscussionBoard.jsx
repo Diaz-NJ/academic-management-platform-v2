@@ -29,11 +29,25 @@ const DiscussionBoard = ({ group, onClose, currentUser, discussionAPI }) => {
     m => m.userId === currentUser.id && m.role === 'Leader'
   );
 
-  useEffect(() => {
-  loadDiscussions();
-}, [group.id, loadDiscussions]);
+  // ✅ FIXED: Define loadDiscussions with useCallback BEFORE using it
+  const loadDiscussions = useCallback(async () => {
+    try {
+      const response = await discussionAPI.getDiscussions(group.id);
+      setDiscussions(response.data);
+      refreshUnreadCounts();
+    } catch (error) {
+      console.error('Error loading discussions:', error);
+      showToast('Failed to load discussions', 'error');
+    } finally {
+      setLoading(false);
+    }
+  }, [group.id, discussionAPI, refreshUnreadCounts, showToast]); // ✅ Added discussionAPI
 
-  // ✅ NEW: Poll for unread counts every 5 seconds
+  useEffect(() => {
+    loadDiscussions();
+  }, [loadDiscussions]);
+
+  // ✅ NEW: Poll for unread counts every 15 seconds
   useEffect(() => {
     const interval = setInterval(() => {
       refreshUnreadCounts();
@@ -41,20 +55,6 @@ const DiscussionBoard = ({ group, onClose, currentUser, discussionAPI }) => {
     
     return () => clearInterval(interval);
   }, [refreshUnreadCounts]);
-
-  const loadDiscussions = useCallback(async () => {
-  try {
-    const response = await discussionAPI.getDiscussions(group.id);
-    setDiscussions(response.data);
-    // ✅ Refresh unread counts when discussions load
-    refreshUnreadCounts();
-  } catch (error) {
-    console.error('Error loading discussions:', error);
-    showToast('Failed to load discussions', 'error');
-  } finally {
-    setLoading(false);
-  }
-}, [group.id, refreshUnreadCounts, showToast]);
 
   const handleCreateThread = async (threadData) => {
     try {
@@ -520,6 +520,34 @@ const DiscussionThread = ({
   const messageContainerRef = React.useRef(null);
   const [isNearBottom, setIsNearBottom] = useState(true);
 
+  const loadMessages = useCallback(async () => {
+  try {
+    console.log('📥 Loading messages for discussion:', discussion.id);
+    const response = await discussionAPI.getMessages(discussion.id);
+    console.log('✅ Messages loaded:', response.data.length);
+    setMessages(response.data);
+  } catch (error) {
+    console.error('❌ Error loading messages:', error);
+    showToast('Failed to load messages', 'error');
+  } finally {
+    setLoading(false);
+  }
+}, [discussion.id, discussionAPI, showToast]);
+
+const loadMessagesQuietly = useCallback(async () => {
+  try {
+    const response = await discussionAPI.getMessages(discussion.id);
+    
+    // Only update if there are new messages
+    if (response.data.length !== messages.length) {
+      console.log('🔄 New messages detected:', response.data.length - messages.length);
+      setMessages(response.data);
+    }
+  } catch (error) {
+    console.error('Error polling messages:', error);
+  }
+}, [discussion.id, messages.length, discussionAPI]);
+
   // ✅ FIXED: Load messages on mount and set up polling
   useEffect(() => {
   loadMessages();
@@ -563,34 +591,6 @@ const DiscussionThread = ({
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
-
-  const loadMessages = useCallback(async () => {
-  try {
-    console.log('📥 Loading messages for discussion:', discussion.id);
-    const response = await discussionAPI.getMessages(discussion.id);
-    console.log('✅ Messages loaded:', response.data.length);
-    setMessages(response.data);
-  } catch (error) {
-    console.error('❌ Error loading messages:', error);
-    showToast('Failed to load messages', 'error');
-  } finally {
-    setLoading(false);
-  }
-}, [discussion.id, discussionAPI, showToast]);
-
-const loadMessagesQuietly = useCallback(async () => {
-  try {
-    const response = await discussionAPI.getMessages(discussion.id);
-    
-    // Only update if there are new messages
-    if (response.data.length !== messages.length) {
-      console.log('🔄 New messages detected:', response.data.length - messages.length);
-      setMessages(response.data);
-    }
-  } catch (error) {
-    console.error('Error polling messages:', error);
-  }
-}, [discussion.id, messages.length, discussionAPI]);
 
   const handleSendMessage = async (e) => {
     e.preventDefault();
