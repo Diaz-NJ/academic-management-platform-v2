@@ -179,17 +179,95 @@
 
 /* Add to frontend/src/index.css - REPLACE the existing @layer utilities section */
 
-@layer utilities {
-  /* ===== DESKTOP LAYOUT OPTIMIZATIONS ===== */
+  @layer utilities {
+  /* ===== MOBILE LAYOUT OPTIMIZATIONS (30% SMALLER) ===== */
   
-  /* Reduce excessive padding on desktop */
-  @media (min-width: 768px) {
+  /* Mobile-specific spacing - Much smaller */
+  @media (max-width: 767px) {
     .section-spacing {
-      @apply space-y-4; /* Changed from space-y-6 */
+      @apply space-y-2; /* Mobile: very compact */
     }
     
     .card-spacing {
-      @apply space-y-3; /* Changed from space-y-4 */
+      @apply space-y-2;
+    }
+    
+    .form-spacing {
+      @apply space-y-2;
+    }
+    
+    .tight-spacing {
+      @apply space-y-1;
+    }
+    
+    /* Compact page structure */
+    .compact-page {
+      @apply py-2;
+    }
+    
+    .compact-section {
+      @apply mb-3;
+    }
+    
+    .compact-card {
+      @apply p-3;
+    }
+    
+    /* Mobile text scaling - 30% smaller */
+    .text-page-title {
+      @apply text-2xl; /* Down from 3xl/4xl */
+    }
+    
+    .text-section-title {
+      @apply text-xl; /* Down from 2xl/3xl */
+    }
+    
+    .text-card-title {
+      @apply text-base; /* Down from xl */
+    }
+    
+    .text-body-lg {
+      @apply text-base; /* Down from lg */
+    }
+    
+    /* Smaller buttons on mobile */
+    .btn-text {
+      @apply text-sm;
+    }
+    
+    /* Calendar optimizations */
+    .calendar-day-cell {
+      @apply min-h-[80px]; /* Much smaller on mobile */
+    }
+    
+    .calendar-event-bubble {
+      @apply text-xs px-1.5 py-1;
+      min-height: 20px;
+    }
+  }
+  
+  /* ===== DESKTOP LAYOUT ===== */
+  @media (min-width: 768px) {
+    .section-spacing {
+      @apply space-y-4;
+    }
+    
+    .card-spacing {
+      @apply space-y-3;
+    }
+    
+    .form-spacing {
+      @apply space-y-4;
+    }
+    
+    /* Calendar - larger on desktop */
+    .calendar-day-cell {
+      @apply min-h-[140px] lg:min-h-[160px];
+    }
+    
+    .calendar-event-bubble {
+      @apply text-sm px-2 py-2;
+      min-height: 28px;
     }
   }
 
@@ -201,34 +279,11 @@
   /* Tighter grid gaps on desktop */
   @media (min-width: 1024px) {
     .desktop-tight-grid {
-      gap: 1rem; /* Tighter than default 1.5rem */
+      gap: 1rem;
     }
   }
 
-  /* Calendar day cells - larger and more visible */
-  .calendar-day-cell {
-    @apply min-h-[120px] md:min-h-[140px] lg:min-h-[160px];
-  }
-
-  /* Event bubbles in calendar - larger touch targets */
-  .calendar-event-bubble {
-    @apply text-xs md:text-sm px-2 py-1.5 md:py-2;
-    min-height: 28px;
-  }
-
-  /* Compact stat cards */
-  @media (min-width: 1024px) {
-    .stat-card-compact {
-      @apply p-4;
-    }
-  }
-
-  /* Reduce excessive vertical spacing in forms */
-  .form-spacing {
-    @apply space-y-3; /* Changed from space-y-4 */
-  }
-
-  /* Existing animations... */
+  /* ===== ANIMATIONS & INTERACTIONS ===== */
   .animate-slide-in {
     animation: slideIn 0.3s ease-out;
   }
@@ -321,6 +376,7 @@
   }
 }
 
+/* ===== ADDITIONAL ANIMATIONS ===== */
 @keyframes pulse-soft {
   0%, 100% {
     opacity: 1;
@@ -347,20 +403,6 @@
   animation: bounce-subtle 1s ease-in-out infinite;
 }
 
-/* ===== COMPACT LAYOUT CLASSES ===== */
-.compact-page {
-  @apply py-4 md:py-6;
-}
-
-.compact-section {
-  @apply mb-4 md:mb-6;
-}
-
-.compact-card {
-  @apply p-4 md:p-5;
-}
-
-/* ✅ Notification pulse animation */
 @keyframes notification-pulse {
   0%, 100% {
     opacity: 1;
@@ -376,7 +418,6 @@
   animation: notification-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
-/* ✅ New item highlight */
 @keyframes new-item-flash {
   0% {
     background-color: rgba(59, 130, 246, 0.1);

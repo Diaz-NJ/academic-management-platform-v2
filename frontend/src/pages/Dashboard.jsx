@@ -197,246 +197,243 @@ const Dashboard = () => {
     <div className="absolute inset-0 bg-white/85 backdrop-blur-sm"></div>
     <div className="relative z-10">
       {/* Navigation Bar - ENLARGED */}
-      <nav className="bg-white/95 backdrop-blur-sm shadow-md border-b-2 border-gray-100">
-        <div className="max-w-8xl mx-auto px-6 sm:px-8 lg:px-12">
-          <div className="flex justify-between items-center h-20 md:h-24">
-            {/* Left side - Logo and Navigation */}
-            <div className="flex items-center space-x-6 md:space-x-10">
-              {/* Logo - LARGER */}
-              <h1 className="text-3xl md:text-4xl font-bold text-primary tracking-tight">
-                AMP
-              </h1>
-              
-              {/* Desktop Navigation - LARGER BUTTONS */}
-              <div className="hidden md:flex space-x-2 lg:space-x-3">
-                <button
-                  onClick={() => {
-                    setActiveTab('dashboard');
-                    if (activeTab !== 'dashboard') {
-                      loadTasks();
-                      loadEvents();
-                    }
-                  }}
-                  className={`px-4 lg:px-5 py-2.5 lg:py-3 rounded-lg text-sm lg:text-base font-semibold transition-all duration-200 ${
-                    activeTab === 'dashboard'
-                      ? 'bg-primary text-white shadow-lg transform scale-105'
-                      : 'text-gray-700 hover:bg-gray-100 hover:scale-105'
-                  }`}
-                >
-                  Dashboard
-                </button>
-                
-                <button
-                  onClick={() => setActiveTab('tasks')}
-                  className={`px-4 lg:px-5 py-2.5 lg:py-3 rounded-lg text-sm lg:text-base font-semibold transition-all duration-200 ${
-                    activeTab === 'tasks'
-                      ? 'bg-primary text-white shadow-lg transform scale-105'
-                      : 'text-gray-700 hover:bg-gray-100 hover:scale-105'
-                  }`}
-                >
-                  Tasks
-                </button>
-                
-                <button
-                  onClick={() => setActiveTab('calendar')}
-                  className={`px-4 lg:px-5 py-2.5 lg:py-3 rounded-lg text-sm lg:text-base font-semibold transition-all duration-200 flex items-center space-x-2 ${
-                    activeTab === 'calendar'
-                      ? 'bg-primary text-white shadow-lg transform scale-105'
-                      : 'text-gray-700 hover:bg-gray-100 hover:scale-105'
-                  }`}
-                >
-                  <CalendarIcon className={`w-5 h-5 ${activeTab === 'calendar' ? '' : 'icon-hover-blue'}`} />
-                  <span>Calendar</span>
-                </button>
-                
-                <button
-                    onClick={() => setActiveTab('collaboration')}
-                    className={`px-4 lg:px-5 py-2.5 lg:py-3 rounded-lg text-sm lg:text-base font-semibold transition-all duration-200 flex items-center space-x-2 relative ${
-                      activeTab === 'collaboration'
-                        ? 'bg-primary text-white shadow-lg transform scale-105'
-                        : 'text-gray-700 hover:bg-gray-100 hover:scale-105'
-                    }`}
-                  >
-                    <Users className={`w-5 h-5 ${activeTab === 'collaboration' ? '' : 'icon-hover-blue'}`} />
-                    <span>Collaborate</span>
-                    {/* ✅ ENHANCED: Combined Notification Badge */}
-                    {(pendingInvitations > 0 || totalUnreadMessages > 0) && (
-                      <span className="absolute -top-1 -right-1 min-w-[20px] h-5 px-1.5 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center animate-pulse">
-                        {pendingInvitations + totalUnreadMessages}
-                      </span>
-                    )}
-                  </button>
-                
-                <button
-                  onClick={() => setActiveTab('analytics')}
-                  className={`px-4 lg:px-5 py-2.5 lg:py-3 rounded-lg text-sm lg:text-base font-semibold transition-all duration-200 flex items-center space-x-2 ${
-                    activeTab === 'analytics'
-                      ? 'bg-primary text-white shadow-lg transform scale-105'
-                      : 'text-gray-700 hover:bg-gray-100 hover:scale-105'
-                  }`}
-                >
-                  <BarChart3 className={`w-5 h-5 ${activeTab === 'analytics' ? '' : 'icon-hover-blue'}`} />
-                  <span>Analytics</span>
-                </button>
-                
-                <button
-                  onClick={() => setActiveTab('settings')}
-                  className={`px-4 lg:px-5 py-2.5 lg:py-3 rounded-lg text-sm lg:text-base font-semibold transition-all duration-200 ${
-                    activeTab === 'settings'
-                      ? 'bg-primary text-white shadow-lg transform scale-105'
-                      : 'text-gray-700 hover:bg-gray-100 hover:scale-105'
-                  }`}
-                >
-                  ⚙️ Settings
-                </button>
-              </div>
-
-              {/* Mobile menu button - LARGER */}
-              <button
-                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                className="md:hidden p-3 rounded-lg text-gray-700 hover:bg-gray-100"
-              >
-                <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  {mobileMenuOpen ? (
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  ) : (
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-                  )}
-                </svg>
-              </button>
-            </div>
-            
-            {/* Right side - User info and Logout - LARGER */}
-            <div className="flex items-center space-x-4">
-              <div className="hidden sm:flex items-center space-x-3">
-                {/* User Avatar */}
-                <div className="w-10 h-10 md:w-12 md:h-12 bg-gradient-to-br from-primary to-blue-600 rounded-full flex items-center justify-center text-white text-lg md:text-xl font-bold shadow-md">
-                  {user.name.charAt(0).toUpperCase()}
-                </div>
-                
-                {/* User Info */}
-                <div className="hidden lg:block">
-                  <p className="text-sm font-semibold text-gray-800 leading-tight">
-                    {user.name}
-                  </p>
-                  <p className="text-xs text-gray-600">
-                    {user.section}
-                  </p>
-                </div>
-              </div>
-              
-              {/* Logout Button - LARGER */}
-              <button
-                onClick={handleLogout}
-                className="btn-hover flex items-center space-x-2 px-4 md:px-5 py-2.5 md:py-3 bg-red-500 text-white rounded-lg font-semibold shadow-md text-sm md:text-base"
-              >
-                <LogOut className="w-5 h-5 interactive-scale" />
-                <span className="hidden sm:inline">Logout</span>
-              </button>
-            </div>
-          </div>
-
-          {/* Mobile Navigation Menu - LARGER BUTTONS */}
-          {mobileMenuOpen && (
-            <div className="md:hidden pb-4 space-y-2">
-              <button
-                onClick={() => {
-                  setActiveTab('dashboard');
-                  setMobileMenuOpen(false);
-                  if (activeTab !== 'dashboard') {
-                    loadTasks();
-                    loadEvents();
-                  }
-                }}
-                className={`block w-full text-left px-4 py-3 rounded-lg text-base font-semibold ${
-                  activeTab === 'dashboard'
-                    ? 'bg-primary text-white'
-                    : 'text-gray-700 hover:bg-gray-100'
-                }`}
-              >
-                Dashboard
-              </button>
-              <button
-                onClick={() => {
-                  setActiveTab('tasks');
-                  // Only reload if we're switching FROM another tab
-                  if (activeTab !== 'tasks') {
-                    loadTasks();
-                  }
-                }}
-                className={`block w-full text-left px-4 py-3 rounded-lg text-base font-semibold ${
-                  activeTab === 'tasks'
-                    ? 'bg-primary text-white'
-                    : 'text-gray-700 hover:bg-gray-100'
-                }`}
-              >
-                Tasks
-              </button>
-              <button
-                onClick={() => {
-                  setActiveTab('calendar');
-                  setMobileMenuOpen(false);
-                }}
-                className={`block w-full text-left px-4 py-3 rounded-lg text-base font-semibold ${
-                  activeTab === 'calendar'
-                    ? 'bg-primary text-white'
-                    : 'text-gray-700 hover:bg-gray-100'
-                }`}
-              >
-                <CalendarIcon className="w-5 h-5 inline mr-2" />
-                Calendar
-              </button>
-             <button
-                onClick={() => {
-                  setActiveTab('collaboration');
-                  setMobileMenuOpen(false);
-                }}
-                className={`block w-full text-left px-4 py-3 rounded-lg text-base font-semibold relative ${
-                  activeTab === 'collaboration'
-                    ? 'bg-primary text-white'
-                    : 'text-gray-700 hover:bg-gray-100'
-                }`}
-              >
-                <Users className="w-5 h-5 inline mr-2" />
-                Collaborate
-                {/* ✅ ENHANCED: Combined Badge for mobile */}
-                {(pendingInvitations > 0 || totalUnreadMessages > 0) && (
-                  <span className="absolute right-3 top-1/2 -translate-y-1/2 min-w-[20px] h-5 px-1.5 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center">
-                    {pendingInvitations + totalUnreadMessages}
-                  </span>
-                )}
-              </button>
-              <button
-                onClick={() => {
-                  setActiveTab('analytics');
-                  setMobileMenuOpen(false);
-                }}
-                className={`block w-full text-left px-4 py-3 rounded-lg text-base font-semibold ${
-                  activeTab === 'analytics'
-                    ? 'bg-primary text-white'
-                    : 'text-gray-700 hover:bg-gray-100'
-                }`}
-              >
-                <BarChart3 className="w-5 h-5 inline mr-2" />
-                Analytics
-              </button>
-              <button
-                onClick={() => {
-                  setActiveTab('settings');
-                  setMobileMenuOpen(false);
-                }}
-                className={`block w-full text-left px-4 py-3 rounded-lg text-base font-semibold ${
-                  activeTab === 'settings'
-                    ? 'bg-primary text-white'
-                    : 'text-gray-700 hover:bg-gray-100'
-                }`}
-              >
-                ⚙️ Settings
-              </button>
-            </div>
-          )}
+        <nav className="bg-white/95 backdrop-blur-sm shadow-md border-b-2 border-gray-100">
+  <div className="max-w-8xl mx-auto px-3 sm:px-8 lg:px-12">
+    <div className="flex justify-between items-center h-14 md:h-24">
+      {/* Left side - Logo and Navigation */}
+      <div className="flex items-center space-x-2 md:space-x-10">
+        {/* Logo - MOBILE OPTIMIZED */}
+        <h1 className="text-xl md:text-4xl font-bold text-primary tracking-tight">
+          AMP
+        </h1>
+        
+        {/* Desktop Navigation */}
+        <div className="hidden md:flex space-x-2 lg:space-x-3">
+          {/* Desktop buttons stay the same */}
+          <button
+            onClick={() => {
+              setActiveTab('dashboard');
+              if (activeTab !== 'dashboard') {
+                loadTasks();
+                loadEvents();
+              }
+            }}
+            className={`px-4 lg:px-5 py-2.5 lg:py-3 rounded-lg text-sm lg:text-base font-semibold transition-all duration-200 ${
+              activeTab === 'dashboard'
+                ? 'bg-primary text-white shadow-lg transform scale-105'
+                : 'text-gray-700 hover:bg-gray-100 hover:scale-105'
+            }`}
+          >
+            Dashboard
+          </button>
+          
+          {/* Rest of desktop buttons... */}
+          <button
+            onClick={() => setActiveTab('tasks')}
+            className={`px-4 lg:px-5 py-2.5 lg:py-3 rounded-lg text-sm lg:text-base font-semibold transition-all duration-200 ${
+              activeTab === 'tasks'
+                ? 'bg-primary text-white shadow-lg transform scale-105'
+                : 'text-gray-700 hover:bg-gray-100 hover:scale-105'
+            }`}
+          >
+            Tasks
+          </button>
+          
+          <button
+            onClick={() => setActiveTab('calendar')}
+            className={`px-4 lg:px-5 py-2.5 lg:py-3 rounded-lg text-sm lg:text-base font-semibold transition-all duration-200 flex items-center space-x-2 ${
+              activeTab === 'calendar'
+                ? 'bg-primary text-white shadow-lg transform scale-105'
+                : 'text-gray-700 hover:bg-gray-100 hover:scale-105'
+            }`}
+          >
+            <CalendarIcon className={`w-5 h-5 ${activeTab === 'calendar' ? '' : 'icon-hover-blue'}`} />
+            <span>Calendar</span>
+          </button>
+          
+          <button
+            onClick={() => setActiveTab('collaboration')}
+            className={`px-4 lg:px-5 py-2.5 lg:py-3 rounded-lg text-sm lg:text-base font-semibold transition-all duration-200 flex items-center space-x-2 relative ${
+              activeTab === 'collaboration'
+                ? 'bg-primary text-white shadow-lg transform scale-105'
+                : 'text-gray-700 hover:bg-gray-100 hover:scale-105'
+            }`}
+          >
+            <Users className={`w-5 h-5 ${activeTab === 'collaboration' ? '' : 'icon-hover-blue'}`} />
+            <span>Collaborate</span>
+            {(pendingInvitations > 0 || totalUnreadMessages > 0) && (
+              <span className="absolute -top-1 -right-1 min-w-[20px] h-5 px-1.5 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center animate-pulse">
+                {pendingInvitations + totalUnreadMessages}
+              </span>
+            )}
+          </button>
+          
+          <button
+            onClick={() => setActiveTab('analytics')}
+            className={`px-4 lg:px-5 py-2.5 lg:py-3 rounded-lg text-sm lg:text-base font-semibold transition-all duration-200 flex items-center space-x-2 ${
+              activeTab === 'analytics'
+                ? 'bg-primary text-white shadow-lg transform scale-105'
+                : 'text-gray-700 hover:bg-gray-100 hover:scale-105'
+            }`}
+          >
+            <BarChart3 className={`w-5 h-5 ${activeTab === 'analytics' ? '' : 'icon-hover-blue'}`} />
+            <span>Analytics</span>
+          </button>
+          
+          <button
+            onClick={() => setActiveTab('settings')}
+            className={`px-4 lg:px-5 py-2.5 lg:py-3 rounded-lg text-sm lg:text-base font-semibold transition-all duration-200 ${
+              activeTab === 'settings'
+                ? 'bg-primary text-white shadow-lg transform scale-105'
+                : 'text-gray-700 hover:bg-gray-100 hover:scale-105'
+            }`}
+          >
+            ⚙️ Settings
+          </button>
         </div>
-      </nav>
+
+        {/* Mobile menu button - SMALLER */}
+        <button
+          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+          className="md:hidden p-2 rounded-lg text-gray-700 hover:bg-gray-100"
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            {mobileMenuOpen ? (
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            ) : (
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+            )}
+          </svg>
+        </button>
+      </div>
+      
+      {/* Right side - MOBILE OPTIMIZED */}
+      <div className="flex items-center space-x-2">
+        <div className="hidden sm:flex items-center space-x-2">
+          {/* User Avatar - SMALLER ON MOBILE */}
+          <div className="w-8 h-8 md:w-12 md:h-12 bg-gradient-to-br from-primary to-blue-600 rounded-full flex items-center justify-center text-white text-base md:text-xl font-bold shadow-md">
+            {user.name.charAt(0).toUpperCase()}
+          </div>
+          
+          {/* User Info - HIDDEN ON SMALL SCREENS */}
+          <div className="hidden lg:block">
+            <p className="text-xs md:text-sm font-semibold text-gray-800 leading-tight">
+              {user.name}
+            </p>
+            <p className="text-xs text-gray-600">
+              {user.section}
+            </p>
+          </div>
+        </div>
+        
+        {/* Logout Button - MOBILE OPTIMIZED */}
+        <button
+          onClick={handleLogout}
+          className="btn-hover flex items-center space-x-1 md:space-x-2 px-2 md:px-5 py-1.5 md:py-3 bg-red-500 text-white rounded-lg font-semibold shadow-md text-xs md:text-base"
+        >
+          <LogOut className="w-4 h-4 md:w-5 md:h-5 interactive-scale" />
+          <span className="hidden sm:inline">Logout</span>
+        </button>
+      </div>
+    </div>
+
+    {/* Mobile Navigation Menu - SMALLER */}
+    {mobileMenuOpen && (
+      <div className="md:hidden pb-3 space-y-1">
+        <button
+          onClick={() => {
+            setActiveTab('dashboard');
+            setMobileMenuOpen(false);
+            if (activeTab !== 'dashboard') {
+              loadTasks();
+              loadEvents();
+            }
+          }}
+          className={`block w-full text-left px-3 py-2 rounded-lg text-sm font-semibold ${
+            activeTab === 'dashboard'
+              ? 'bg-primary text-white'
+              : 'text-gray-700 hover:bg-gray-100'
+          }`}
+        >
+          Dashboard
+        </button>
+        <button
+          onClick={() => {
+            setActiveTab('tasks');
+            setMobileMenuOpen(false);
+          }}
+          className={`block w-full text-left px-3 py-2 rounded-lg text-sm font-semibold ${
+            activeTab === 'tasks'
+              ? 'bg-primary text-white'
+              : 'text-gray-700 hover:bg-gray-100'
+          }`}
+        >
+          Tasks
+        </button>
+        <button
+          onClick={() => {
+            setActiveTab('calendar');
+            setMobileMenuOpen(false);
+          }}
+          className={`block w-full text-left px-3 py-2 rounded-lg text-sm font-semibold ${
+            activeTab === 'calendar'
+              ? 'bg-primary text-white'
+              : 'text-gray-700 hover:bg-gray-100'
+          }`}
+        >
+          <CalendarIcon className="w-4 h-4 inline mr-2" />
+          Calendar
+        </button>
+        <button
+          onClick={() => {
+            setActiveTab('collaboration');
+            setMobileMenuOpen(false);
+          }}
+          className={`block w-full text-left px-3 py-2 rounded-lg text-sm font-semibold relative ${
+            activeTab === 'collaboration'
+              ? 'bg-primary text-white'
+              : 'text-gray-700 hover:bg-gray-100'
+          }`}
+        >
+          <Users className="w-4 h-4 inline mr-2" />
+          Collaborate
+          {(pendingInvitations > 0 || totalUnreadMessages > 0) && (
+            <span className="absolute right-3 top-1/2 -translate-y-1/2 min-w-[18px] h-4 px-1 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center">
+              {pendingInvitations + totalUnreadMessages}
+            </span>
+          )}
+        </button>
+        <button
+          onClick={() => {
+            setActiveTab('analytics');
+            setMobileMenuOpen(false);
+          }}
+          className={`block w-full text-left px-3 py-2 rounded-lg text-sm font-semibold ${
+            activeTab === 'analytics'
+              ? 'bg-primary text-white'
+              : 'text-gray-700 hover:bg-gray-100'
+          }`}
+        >
+          <BarChart3 className="w-4 h-4 inline mr-2" />
+          Analytics
+        </button>
+        <button
+          onClick={() => {
+            setActiveTab('settings');
+            setMobileMenuOpen(false);
+          }}
+          className={`block w-full text-left px-3 py-2 rounded-lg text-sm font-semibold ${
+            activeTab === 'settings'
+              ? 'bg-primary text-white'
+              : 'text-gray-700 hover:bg-gray-100'
+          }`}
+        >
+          ⚙️ Settings
+        </button>
+      </div>
+    )}
+  </div>
+</nav>
 
       {/* Main Content - OPTIMIZED LAYOUT */}
       <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-10 py-4 md:py-6">
