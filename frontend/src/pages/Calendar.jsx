@@ -561,13 +561,13 @@ const handleViewSeriesClick = () => {
   }
 
   return (
-    <div className="max-w-7xl mx-auto space-y-3 md:space-y-4 px-4 sm:px-6 lg:px-8">
+    <div className="max-w-7xl mx-auto space-y-2 md:space-y-4 px-2 sm:px-6 lg:px-8">
       {/* ✨ Enhanced Page Header */}
-      <div className="mb-4 md:mb-6">
-        <div className="flex justify-between items-start">
-          <div>
-            <h1 className="text-page-title mb-2">Academic Calendar</h1>
-            <p className="text-body text-gray-600">
+      <div className="mb-3 md:mb-6">
+        <div className="flex flex-col sm:flex-row justify-between items-start gap-2 sm:gap-0">
+          <div className="flex-1">
+            <h1 className="text-xl md:text-3xl lg:text-4xl font-bold mb-1 md:mb-2 leading-tight">Academic Calendar</h1>
+            <p className="text-xs md:text-base text-gray-600 leading-tight">
               View and manage your schedule and events
             </p>
           </div>
@@ -577,29 +577,29 @@ const handleViewSeriesClick = () => {
               data: null, 
               extraData: new Date() 
             })}
-            className="btn-hover flex items-center space-x-2 px-4 py-2 bg-primary text-white rounded-lg font-medium shadow-sm"
+            className="btn-hover flex items-center space-x-1 md:space-x-2 px-3 md:px-4 py-1.5 md:py-2 bg-primary text-white rounded-lg font-medium shadow-sm text-sm md:text-base whitespace-nowrap self-end sm:self-auto"
           >
-            <Plus className="w-5 h-5" />
-            <span className="btn-text">New Event</span>
+            <Plus className="w-4 h-4 md:w-5 md:h-5" />
+            <span>New Event</span>
           </button>
         </div>
       </div>
 
       {/* ✨ Enhanced Search Bar */}
-      <div className="bg-white rounded-lg shadow p-4">
-        <label className="text-label mb-2 block">
+      <div className="bg-white rounded-lg shadow p-2 md:p-4">
+        <label className="text-xs md:text-sm font-medium text-gray-700 mb-1 md:mb-2 block">
           Search Events
         </label>
         <div className="relative">
           <input
             type="text"
-            placeholder="Search events by title, type, or location..."
+            placeholder="Search events..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent text-body"
+            className="w-full pl-8 md:pl-10 pr-8 md:pr-4 py-2 md:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent text-sm md:text-base"
           />
           <svg
-            className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400"
+           className="absolute left-2 md:left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 md:w-5 md:h-5 text-gray-400"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -614,16 +614,16 @@ const handleViewSeriesClick = () => {
           {searchQuery && (
             <button
               onClick={() => setSearchQuery('')}
-              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+              className="absolute right-2 md:right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-4 h-4 md:w-5 md:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
           )}
         </div>
         {searchQuery && (
-          <p className="text-caption mt-2">
+          <p className="text-[10px] md:text-xs text-gray-600 mt-1 md:mt-2">
             Found <span className="font-semibold">{filteredEvents.length}</span> event{filteredEvents.length !== 1 ? 's' : ''} matching "<span className="font-medium">{searchQuery}</span>"
           </p>
         )}
