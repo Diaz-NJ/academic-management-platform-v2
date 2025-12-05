@@ -533,30 +533,30 @@ const handleSaveGroup = async (groupData) => {
                 </div>
 
                 {/* Card Footer - Members Preview */}
-                <div className="px-6 pb-6 border-t border-gray-200 pt-4">
-                  <p className="text-label mb-2">Members</p>
-                  <div className="flex items-center space-x-2">
+                <div className="px-3 md:px-6 pb-3 md:pb-6 border-t border-gray-200 pt-3 md:pt-4">
+                  <p className="text-xs md:text-sm font-medium text-gray-700 mb-1.5 md:mb-2">Members</p>
+                  <div className="flex items-center space-x-1 md:space-x-2">
                     {group.members.slice(0, 4).map((member, idx) => (
                       <div
                         key={idx}
-                        className="w-8 h-8 bg-gradient-to-br from-indigo-400 to-cyan-400 rounded-full border-2 border-white flex items-center justify-center text-xs font-medium text-white shadow-md"
+                        className="w-6 h-6 md:w-8 md:h-8 bg-gradient-to-br from-indigo-400 to-cyan-400 rounded-full border-2 border-white flex items-center justify-center text-[10px] md:text-xs font-medium text-white shadow-md"
                         title={member.name}
                       >
                         {member.name.charAt(0).toUpperCase()}
                       </div>
                     ))}
                     {group.members.length > 4 && (
-                      <div className="w-8 h-8 bg-gray-200 rounded-full border-2 border-white flex items-center justify-center text-xs font-medium text-gray-600">
-                        +{group.members.length - 4}
-                      </div>
-                    )}
+                        <div className="w-6 h-6 md:w-8 md:h-8 bg-gray-200 rounded-full border-2 border-white flex items-center justify-center text-[10px] md:text-xs font-medium text-gray-600">
+                          +{group.members.length - 4}
+                        </div>
+                      )}
                   </div>
                   <button
-                    onClick={() => handleEditGroup(group)}
-                    className="text-xs text-primary hover:underline ml-2 mt-2"
-                  >
-                    View all members
-                  </button>
+                      onClick={() => handleEditGroup(group)}
+                      className="text-[10px] md:text-xs text-primary hover:underline ml-1 md:ml-2 mt-1.5 md:mt-2"
+                    >
+                      View all members
+                    </button>
                 </div>
               </div>
             ))}
