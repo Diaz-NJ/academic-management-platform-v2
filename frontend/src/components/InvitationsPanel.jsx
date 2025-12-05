@@ -92,32 +92,32 @@ const loadInvitationsQuietly = async () => {
   if (invitations.length === 0) return null;
 
   return (
-    <div className="bg-gradient-to-r from-purple-50 to-blue-50 border-2 border-blue-200 rounded-lg p-4 mb-6">
-      <h3 className="font-semibold text-gray-800 mb-3 flex items-center">
-        <Mail className="w-5 h-5 mr-2" />
+    <div className="bg-gradient-to-r from-purple-50 to-blue-50 border-2 border-blue-200 rounded-lg p-2 md:p-4 mb-3 md:mb-6">
+      <h3 className="text-sm md:text-base font-semibold text-gray-800 mb-2 md:mb-3 flex items-center">
+        <Mail className="w-4 h-4 md:w-5 md:h-5 mr-1 md:mr-2" />
         Group Invitations ({invitations.length})
       </h3>
-      <div className="space-y-2">
+      <div className="space-y-1.5 md:space-y-2">
         {invitations.map(inv => (
-          <div key={inv.id} className="bg-white rounded-lg p-3 flex items-center justify-between shadow-sm">
-            <div className="flex-1">
-              <p className="font-medium text-gray-800">{inv.groupName}</p>
-              <p className="text-sm text-gray-600">Invited by {inv.invitedByName}</p>
+          <div key={inv.id} className="bg-white rounded-lg p-2 md:p-3 flex items-center justify-between shadow-sm">
+            <div className="flex-1 min-w-0 mr-2">
+              <p className="text-sm md:text-base font-medium text-gray-800 truncate">{inv.groupName}</p>
+              <p className="text-xs md:text-sm text-gray-600 truncate">Invited by {inv.invitedByName}</p>
             </div>
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center space-x-1 md:space-x-2 flex-shrink-0">
               <button
                 onClick={() => handleAccept(inv.id)}
-                className="p-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition"
+                className="p-1.5 md:p-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition"
                 title="Accept"
               >
-                <Check className="w-4 h-4" />
+                <Check className="w-3 h-3 md:w-4 md:h-4" />
               </button>
               <button
                 onClick={() => handleReject(inv.id)}
-                className="p-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition"
+                className="p-1.5 md:p-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition"
                 title="Reject"
               >
-                <X className="w-4 h-4" />
+                <X className="w-3 h-3 md:w-4 md:h-4" />
               </button>
             </div>
           </div>

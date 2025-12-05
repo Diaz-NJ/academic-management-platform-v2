@@ -98,21 +98,6 @@ const Collaboration = ({ onUnreadCountChange }) => {
     }
   }, [groups, searchQuery]);// ✅ FIXED: Search filtering with better performance
 
-  useEffect(() => {
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase();
-      const filtered = groups.filter(group =>
-        group.groupName.toLowerCase().includes(query) ||
-        group.subject.toLowerCase().includes(query) ||
-        (group.groupNumber && group.groupNumber.toLowerCase().includes(query)) ||
-        group.taskDescription.toLowerCase().includes(query)
-      );
-      setFilteredGroups(filtered);
-    } else {
-      setFilteredGroups(groups);
-    }
-  }, [groups, searchQuery]);
-
   // ✅ NEW: Load unread counts for all groups
 
 const loadGroups = useCallback(async() => {
@@ -257,18 +242,18 @@ const handleSaveGroup = async (groupData) => {
   }
 
   return (
-    <div className="max-w-7xl mx-auto space-y-3 md:space-y-4 px-4 sm:px-6 lg:px-8">
+    <div className="max-w-7xl mx-auto space-y-2 md:space-y-4 px-2 sm:px-6 lg:px-8">
       {/* Page Header */}
-      <div className="mb-8">
-        <div className="flex justify-between items-start">
-          <div>
-            <h1 className="text-page-title mb-2">Collaboration Groups</h1>
-            <p className="text-body text-gray-600">
+      <div className="mb-3 md:mb-6">
+        <div className="flex flex-col sm:flex-row justify-between items-start gap-2 sm:gap-0">
+          <div className="flex-1">
+            <h1 className="text-xl md:text-3xl lg:text-4xl font-bold mb-1 md:mb-2 leading-tight">Collaboration Groups</h1>
+            <p className="text-xs md:text-base text-gray-600 leading-tight">
               Manage your group projects and assignments
             </p>
           </div>
           {/* Buttons in upper right corner */}
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center space-x-1 md:space-x-2 self-end sm:self-auto">
             <button
               onClick={async () => {
                 // ✅ Don't show full loading state for refresh
@@ -276,20 +261,20 @@ const handleSaveGroup = async (groupData) => {
                 await loadAllGroupUnreadCounts(groups);
                 showToast('Groups refreshed', 'success');
               }}
-              className="btn-hover flex items-center space-x-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg font-medium shadow-sm hover:bg-gray-200"
+              className="btn-hover flex items-center space-x-1 md:space-x-2 px-2 md:px-4 py-1.5 md:py-2 bg-gray-100 text-gray-700 rounded-lg font-medium shadow-sm hover:bg-gray-200 text-sm md:text-base"
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-4 h-4 md:w-5 md:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
               </svg>
-              <span className="hidden sm:inline">Refresh</span>
+              <span className="hidden md:inline">Refresh</span>
             </button>
             
             <button
               onClick={handleCreateGroup}
-              className="btn-hover flex items-center space-x-2 px-4 py-2 bg-primary text-white rounded-lg font-medium shadow-sm"
+              className="btn-hover flex items-center space-x-1 md:space-x-2 px-3 md:px-4 py-1.5 md:py-2 bg-primary text-white rounded-lg font-medium shadow-sm text-sm md:text-base whitespace-nowrap"
             >
-              <Plus className="w-5 h-5" />
-              <span className="btn-text">Create Group</span>
+              <Plus className="w-4 h-4 md:w-5 md:h-5" />
+              <span>New Group</span>
             </button>
           </div>
         </div>
@@ -302,20 +287,20 @@ const handleSaveGroup = async (groupData) => {
       />
 
       {/* Search Bar */}
-      <div className="bg-white rounded-lg shadow p-4">
-        <label className="text-label mb-2 block">
+      <div className="bg-white rounded-lg shadow p-2 md:p-4">
+        <label className="text-xs md:text-sm font-medium text-gray-700 mb-1 md:mb-2 block">
           Search Groups
         </label>
         <div className="relative">
           <input
             type="text"
-            placeholder="Search groups by name, subject, or description..."
+            placeholder="Search groups..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent text-body"
+            className="w-full pl-8 md:pl-10 pr-8 md:pr-4 py-2 md:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent text-sm md:text-base"
           />
           <svg
-            className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400"
+            className="absolute left-2 md:left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 md:w-5 md:h-5 text-gray-400"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -330,9 +315,9 @@ const handleSaveGroup = async (groupData) => {
           {searchQuery && (
             <button
               onClick={() => setSearchQuery('')}
-              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+              className="absolute right-2 md:right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-4 h-4 md:w-5 md:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
@@ -342,27 +327,27 @@ const handleSaveGroup = async (groupData) => {
 
       {/* Bulk Actions Bar */}
       {selectedGroups.length > 0 && (
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <span className="font-semibold text-blue-900">
-                {selectedGroups.length} group(s) selected
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-2 md:p-4">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+            <div className="flex items-center space-x-2 md:space-x-4">
+              <span className="text-sm md:text-base font-semibold text-blue-900">
+                {selectedGroups.length} Group(s) Selected
               </span>
               <button
                 onClick={() => setSelectedGroups([])}
-                className="text-sm text-blue-600 hover:text-blue-800"
+                className="text-xs md:text-sm text-blue-600 hover:text-blue-800"
               >
-                Clear Selection
+                Clear
               </button>
             </div>
             
             <div className="flex items-center space-x-2">
               <button
                 onClick={() => setShowBulkDeleteDialog(true)}
-                className="flex items-center space-x-2 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition"
+                 className="flex items-center space-x-1 md:space-x-2 px-2 md:px-4 py-1.5 md:py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition text-xs md:text-sm whitespace-nowrap"
               >
-                <Trash2 className="w-4 h-4" />
-                <span>Delete Selected</span>
+                <Trash2 className="w-3 h-3 md:w-4 md:h-4" />
+                <span>Delete</span>
               </button>
             </div>
           </div>
@@ -387,15 +372,15 @@ const handleSaveGroup = async (groupData) => {
       ) : (
         <>
           {/* Select All Header */}
-          <div className="bg-white rounded-lg shadow p-4">
-            <button
-              onClick={toggleSelectAll}
-              className="flex items-center space-x-2 text-sm text-gray-700 hover:text-primary"
-            >
+            <div className="bg-white rounded-lg shadow p-2 md:p-4">
+              <button
+                onClick={toggleSelectAll}
+                className="flex items-center space-x-1 md:space-x-2 text-xs md:text-sm text-gray-700 hover:text-primary"
+              >
               {selectedGroups.length === filteredGroups.length ? (
-                <CheckSquare className="w-5 h-5 text-primary" />
+                <CheckSquare className="w-4 h-4 md:w-5 md:h-5 text-primary" />
               ) : (
-                <Square className="w-5 h-5" />
+                <Square className="w-4 h-4 md:w-5 md:h-5" />
               )}
               <span className="font-medium">
                 {selectedGroups.length === filteredGroups.length 
@@ -406,35 +391,35 @@ const handleSaveGroup = async (groupData) => {
           </div>
 
           {/* Group Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 md:gap-4">
             {filteredGroups.map(group => (
-              <div 
-                key={group.id} 
-                className="card-hover bg-white rounded-lg shadow"
-              >
-                {/* Checkbox */}
-                <div className="p-4 border-b border-gray-200 bg-gray-50">
+            <div 
+              key={group.id} 
+              className="card-hover bg-white rounded-lg shadow"
+            >
+              {/* Checkbox */}
+              <div className="p-2 md:p-4 border-b border-gray-200 bg-gray-50">
                   <button
                     onClick={() => toggleGroupSelection(group.id)}
-                    className="flex items-center space-x-2 text-sm"
+                    className="flex items-center space-x-1 md:space-x-2 text-xs md:text-sm"
                   >
                     {selectedGroups.includes(group.id) ? (
-                      <CheckSquare className="w-5 h-5 text-primary" />
+                      <CheckSquare className="w-4 h-4 md:w-5 md:h-5 text-primary" />
                     ) : (
-                      <Square className="w-5 h-5 text-gray-400 hover:text-primary" />
+                      <Square className="w-4 h-4 md:w-5 md:h-5 text-gray-400 hover:text-primary" />
                     )}
                     <span className="text-gray-700">Select</span>
                   </button>
                 </div>
 
                 {/* Card Header */}
-                <div className="p-6 border-b border-gray-200">
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="flex items-center space-x-3">
+                <div className="p-3 md:p-6 border-b border-gray-200">
+                  <div className="flex items-start justify-between mb-2 md:mb-3">
+                    <div className="flex items-center space-x-2 md:space-x-3 flex-1 min-w-0">
                       {/* ... existing code ... */}
                     </div>
                     {/* ✅ REPLACE: Role-based action buttons */}
-                    <div className="flex items-center space-x-1">
+                    <div className="flex items-center space-x-0.5 md:space-x-1 flex-shrink-0">
                       {(() => {
                         const currentMember = group.members?.find(m => m.userId === user.id);
                         const isAdmin = group.createdBy === user.id; // ✅ CHANGED: Only creator is admin
@@ -445,10 +430,10 @@ const handleSaveGroup = async (groupData) => {
                             <>
                               <button
                                 onClick={() => handleEditGroup(group)}
-                                className="p-2 text-gray-500 hover:text-primary hover:bg-blue-50 rounded transition"
-                                title="Edit group (Admin only)"
+                                className="p-1.5 md:p-2 text-gray-500 hover:text-primary hover:bg-blue-50 rounded transition"
+                                title="Edit group"
                               >
-                                <Edit className="w-4 h-4" />
+                                <Edit className="w-3 h-3 md:w-4 md:h-4" />
                               </button>
                               <button
                                 type="button"
@@ -457,10 +442,10 @@ const handleSaveGroup = async (groupData) => {
                                   e.stopPropagation();
                                   handleDeleteClick(group);
                                 }}
-                                className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded transition"
-                                title="Delete group (Admin only)"
+                                className="p-1.5 md:p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded transition"
+                                title="Delete group"
                               >
-                                <Trash2 className="w-4 h-4" />
+                                <Trash2 className="w-3 h-3 md:w-4 md:h-4" />
                               </button>
                             </>
                           );
@@ -473,12 +458,10 @@ const handleSaveGroup = async (groupData) => {
                                 e.stopPropagation();
                                 handleLeaveGroup(group);
                               }}
-                              className="p-2 text-gray-500 hover:text-orange-600 hover:bg-orange-50 rounded transition"
+                              className="p-1.5 md:p-2 text-gray-500 hover:text-orange-600 hover:bg-orange-50 rounded transition"
                               title="Leave group"
                             >
-                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                              </svg>
+                              <Trash2 className="w-3 h-3 md:w-4 md:h-4" />
                             </button>
                           );
                         }
@@ -487,29 +470,29 @@ const handleSaveGroup = async (groupData) => {
                     </div>
                   </div>
 
-                  <div className="flex items-center space-x-2 text-sm text-gray-600">
-                    <BookOpen className="w-4 h-4" />
-                    <span className="font-medium">{group.subject}</span>
+                  <div className="flex items-center space-x-1 md:space-x-2 text-xs md:text-sm text-gray-600">
+                    <BookOpen className="w-3 h-3 md:w-4 md:h-4 flex-shrink-0" />
+                    <span className="font-medium truncate">{group.subject}</span>
                   </div>
                 </div>
 
                 {/* Card Body */}
-                <div className="p-6">
-                  <div className="mb-4">
-                    <div className="flex items-start space-x-2">
-                      <FileText className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
-                      <p className="text-body-sm text-gray-600 line-clamp-3">
+                <div className="p-3 md:p-6">
+                  <div className="mb-3 md:mb-4">
+                    <div className="flex items-start space-x-1 md:space-x-2">
+                      <FileText className="w-3 h-3 md:w-4 md:h-4 text-gray-400 mt-0.5 flex-shrink-0" />
+                      <p className="text-xs md:text-sm text-gray-600 line-clamp-3">
                         {group.taskDescription}
                       </p>
                     </div>
                   </div>
 
-                  <div className="flex items-center justify-between pt-4 border-t border-gray-200">
-                    <span className="text-body-sm text-gray-600 flex items-center">
-                      <Users className="w-4 h-4 mr-1" />
+                  <div className="flex items-center justify-between pt-3 md:pt-4 border-t border-gray-200">
+                    <span className="text-xs md:text-sm text-gray-600 flex items-center">
+                      <Users className="w-3 h-3 md:w-4 md:h-4 mr-1" />
                       <span className="font-medium">{group.members.length}</span> member{group.members.length !== 1 ? 's' : ''}
                     </span>
-                    <span className="text-caption text-gray-400">
+                    <span className="text-[10px] md:text-xs text-gray-400">
                       {new Date(group.createdAt).toLocaleDateString('en-US', {
                         month: 'short',
                         day: 'numeric'
@@ -519,30 +502,30 @@ const handleSaveGroup = async (groupData) => {
                 </div>
 
                 {/* ✅ NEW: Action Buttons */}
-                <div className="px-6 pb-4 flex items-center space-x-2">
+                <div className="px-3 md:px-6 pb-3 md:pb-4 flex items-center space-x-1 md:space-x-2">
                   <button
                     onClick={() => {
                       setSelectedGroup(group);
                       setShowInviteModal(true);
                     }}
-                    className="flex-1 flex items-center justify-center space-x-1 px-3 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition text-sm font-medium"
+                    className="flex-1 flex items-center justify-center space-x-0.5 md:space-x-1 px-2 md:px-3 py-1.5 md:py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition text-xs md:text-sm font-medium"
                   >
-                    <UserPlus className="w-4 h-4" />
+                    <UserPlus className="w-3 h-3 md:w-4 md:h-4" />
                     <span>Invite</span>
                   </button>
 
                   <button
-                    onClick={() => {
-                      setSelectedGroup(group);
-                      setShowDiscussionBoard(true);
-                    }}
-                    className="flex-1 flex items-center justify-center space-x-1 px-3 py-2 bg-purple-100 text-purple-700 rounded-lg hover:bg-purple-200 transition text-sm font-medium relative"
-                  >
-                    <MessageSquare className="w-4 h-4" />
-                    <span>Discuss</span>
-                    {/* ✅ NEW: Show unread badge */}
-                    {groupUnreadCounts[group.id] > 0 && (
-                      <span className="absolute -top-1 -right-1">
+                      onClick={() => {
+                        setSelectedGroup(group);
+                        setShowDiscussionBoard(true);
+                      }}
+                      className="flex-1 flex items-center justify-center space-x-0.5 md:space-x-1 px-2 md:px-3 py-1.5 md:py-2 bg-purple-100 text-purple-700 rounded-lg hover:bg-purple-200 transition text-xs md:text-sm font-medium relative"
+                    >
+                      <MessageSquare className="w-3 h-3 md:w-4 md:h-4" />
+                      <span>Discuss</span>
+                      {/* ✅ NEW: Show unread badge */}
+                      {groupUnreadCounts[group.id] > 0 && (
+                        <span className="absolute -top-0.5 md:-top-1 -right-0.5 md:-right-1">
                         <UnreadBadge count={groupUnreadCounts[group.id]} size="small" />
                       </span>
                     )}

@@ -195,7 +195,7 @@ const GroupModal = ({ onClose, onSave, group, currentUser }) => {
             <div className="border border-gray-200 rounded-lg divide-y max-h-64 overflow-y-auto">
               {formData.members.length === 0 ? (
                 <div className="p-4 text-center text-gray-500 text-sm">
-                  {group ? 'No members in this group' : 'You will be added as the admin'}
+                  {group ? 'No members in this group' : 'You will be added as the Admin'}
                 </div>
               ) : (
                 formData.members.map((member) => {
