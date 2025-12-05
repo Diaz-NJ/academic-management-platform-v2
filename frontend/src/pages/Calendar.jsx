@@ -630,64 +630,64 @@ const handleViewSeriesClick = () => {
       </div>
 
       {/* Search Results */}
-      {searchQuery && (
-        <div className="bg-white rounded-lg shadow p-4 md:p-5">
-          <h3 className="text-xl font-semibold mb-4">Search Results</h3>
-          <div className="space-y-3">
-            {filteredEvents.length > 0 ? (
-              filteredEvents
-                .sort((a, b) => new Date(a.startDateTime) - new Date(b.startDateTime))
-                .map(event => {
-                  const eventConfig = EVENT_TYPE_CONFIG[event.eventType] || EVENT_TYPE_CONFIG.Other;
-                  
-                  return (
-                    <div 
-                      key={event.id} 
-                      className={`flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition cursor-pointer border-l-4 ${
-                        event.isCanceled ? 'opacity-60' : ''
-                      }`}
+        {searchQuery && (
+          <div className="bg-white rounded-lg shadow p-3 md:p-5">
+            <h3 className="text-base md:text-xl font-semibold mb-2 md:mb-4">Search Results</h3>
+          <div className="space-y-2 md:space-y-3">
+        {filteredEvents.length > 0 ? (
+          filteredEvents
+            .sort((a, b) => new Date(a.startDateTime) - new Date(b.startDateTime))
+            .map(event => {
+              const eventConfig = EVENT_TYPE_CONFIG[event.eventType] || EVENT_TYPE_CONFIG.Other;
+              
+              return (
+                <div 
+                  key={event.id} 
+                  className={`flex items-center justify-between p-2 md:p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition cursor-pointer border-l-4 ${
+                    event.isCanceled ? 'opacity-60' : ''
+                  }`}
                       style={{ borderLeftColor: eventConfig.color }}
                       onClick={() => setModalState({ type: 'details', data: event, extraData: null })}
                     >
-                      <div className="flex items-center space-x-3 flex-1 min-w-0">
-                        {/* ✨ Event type icon */}
-                        <div 
-                          className="w-8 h-8 rounded-full flex items-center justify-center text-white font-medium shadow-sm"
+                      <div className="flex items-center space-x-2 md:space-x-3 flex-1 min-w-0">
+                    {/* ✨ Event type icon */}
+                    <div 
+                      className="w-6 h-6 md:w-8 md:h-8 rounded-full flex items-center justify-center text-white font-medium shadow-sm flex-shrink-0"
                           style={{ backgroundColor: eventConfig.color }}
                         >
                           <span className="text-lg">{eventConfig.icon}</span>
                         </div>
                         
                         <div className="flex-1 min-w-0">
-                          <div className="flex items-center space-x-2">
-                            <h4 className={`font-medium text-gray-800 truncate ${
-                              event.isCanceled ? 'line-through' : ''
-                            }`}>
-                              {event.title}
-                            </h4>
+                        <div className="flex items-center space-x-1 md:space-x-2">
+                          <h4 className={`text-sm md:text-base font-medium text-gray-800 truncate ${
+                            event.isCanceled ? 'line-through' : ''
+                          }`}>
+                            {event.title}
+                          </h4> 
                             {event.isRecurring && !event.isCanceled && (
-                              <RefreshCw className="w-4 h-4 text-blue-500 flex-shrink-0" />
+                              <RefreshCw className="w-3 h-3 md:w-4 md:h-4 text-blue-500 flex-shrink-0" />
                             )}
                             {event.isCanceled && (
-                              <span className="px-2 py-1 bg-red-100 text-red-800 rounded-full text-xs font-medium">
+                              <span className="px-1.5 md:px-2 py-0.5 md:py-1 bg-red-100 text-red-800 rounded-full text-[10px] md:text-xs font-medium">
                                 Canceled
                               </span>
                             )}
                           </div>
-                          <p className="text-sm text-gray-600">
-                            {new Date(event.startDateTime).toLocaleString('en-US', {
-                              month: 'short',
-                              day: 'numeric',
-                              hour: 'numeric',
-                              minute: '2-digit',
-                            })}
-                            {event.location && ` • ${event.location}`}
-                          </p>
+                          <p className="text-xs md:text-sm text-gray-600 truncate">
+                              {new Date(event.startDateTime).toLocaleString('en-US', {
+                                month: 'short',
+                                day: 'numeric',
+                                hour: 'numeric',
+                                minute: '2-digit',
+                              })}
+                              {event.location && ` • ${event.location}`}
+                            </p>
                         </div>
                         
                         {/* ✨ Enhanced event type badge */}
                         <span 
-                          className="px-3 py-1 text-xs rounded-full whitespace-nowrap text-white font-medium shadow-sm"
+                          className="hidden sm:inline-flex px-2 md:px-3 py-0.5 md:py-1 text-[10px] md:text-xs rounded-full whitespace-nowrap text-white font-medium shadow-sm"
                           style={{ backgroundColor: eventConfig.color }}
                         >
                           {eventConfig.icon} {event.eventType}
@@ -710,92 +710,92 @@ const handleViewSeriesClick = () => {
       )}
 
        {/* ✨ Enhanced Calendar Section */}
-    <div className="bg-white rounded-lg shadow p-6">
-      {/* Month navigation with better text */}
-      <div className="flex justify-between items-center mb-6">
+      <div className="bg-white rounded-lg shadow p-3 md:p-6">
+        {/* Month navigation with better text */}
+        <div className="flex justify-between items-center mb-3 md:mb-6">
         <button
           onClick={previousMonth}
-          className="p-2 hover:bg-gray-100 rounded-lg transition"
+          className="p-1.5 md:p-2 hover:bg-gray-100 rounded-lg transition"
           aria-label="Previous month"
         >
-          <ChevronLeft className="w-6 h-6" />
+          <ChevronLeft className="w-5 h-5 md:w-6 md:h-6" />
         </button>
-        <h2 className="text-section-title">
+        <h2 className="text-lg md:text-2xl lg:text-3xl font-bold text-gray-800">
           {monthName}
         </h2>
         <button
           onClick={nextMonth}
-          className="p-2 hover:bg-gray-100 rounded-lg transition"
+          className="p-1.5 md:p-2 hover:bg-gray-100 rounded-lg transition"
           aria-label="Next month"
         >
-          <ChevronRight className="w-6 h-6" />
+          <ChevronRight className="w-5 h-5 md:w-6 md:h-6" />
         </button>
       </div>
 
-      {/* Calendar grid - OPTIMIZED */}
-          <div className="grid grid-cols-7 gap-1 md:gap-2">
-            {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
-              <div 
-                key={day} 
-                className="text-center font-semibold text-gray-700 py-2 md:py-3 text-xs md:text-sm uppercase tracking-wider"
-              >
-                {day}
-              </div>
-            ))}
+      {/* Calendar grid - MOBILE OPTIMIZED */}
+        <div className="grid grid-cols-7 gap-0.5 md:gap-2">
+          {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
+            <div 
+              key={day} 
+              className="text-center font-semibold text-gray-700 py-1.5 md:py-3 text-[10px] md:text-sm uppercase tracking-wide"
+            >
+              {day}
+            </div>
+          ))}
 
-            {/* Calendar days - LARGER CELLS */}
-            {days.map((day, index) => {
-              if (day === null) {
-                return <div key={`empty-${index}`} className="min-h-[100px] md:min-h-[140px] lg:min-h-[160px]" />;
-              }
+            {/* Calendar days - MOBILE WIDTH OPTIMIZED */}
+              {days.map((day, index) => {
+                if (day === null) {
+                  return <div key={`empty-${index}`} className="min-h-[70px] md:min-h-[140px] lg:min-h-[160px]" />;
+                }
 
-              const date = new Date(currentDate.getFullYear(), currentDate.getMonth(), day);
-              const dayEvents = getEventsForDate(date);
-              const isToday = date.toDateString() === new Date().toDateString();
+                const date = new Date(currentDate.getFullYear(), currentDate.getMonth(), day);
+                const dayEvents = getEventsForDate(date);
+                const isToday = date.toDateString() === new Date().toDateString();
 
-              return (
-                <div
-                  key={day}
-                  onClick={() => handleDateClick(day)}
-                  className={`min-h-[100px] md:min-h-[140px] lg:min-h-[160px] border rounded-lg p-1.5 md:p-2 cursor-pointer hover:bg-gray-50 transition ${
-                    isToday ? 'border-primary border-2 bg-blue-50' : 'border-gray-200'
-                  }`}
-                >
-                  {/* Day number - LARGER */}
-                  <div className={`text-sm md:text-base font-semibold mb-1 md:mb-2 ${
-                    isToday ? 'text-primary' : 'text-gray-700'
-                  }`}>
-                    {day}
-                  </div>
+                return (
+                  <div
+                    key={day}
+                    onClick={() => handleDateClick(day)}
+                    className={`min-h-[70px] md:min-h-[140px] lg:min-h-[160px] border rounded p-1 md:p-2 cursor-pointer hover:bg-gray-50 transition ${
+                      isToday ? 'border-primary border-2 bg-blue-50' : 'border-gray-200'
+                    }`}
+                  >
+                    {/* Day number - MOBILE OPTIMIZED */}
+                    <div className={`text-xs md:text-base font-semibold mb-0.5 md:mb-2 ${
+                      isToday ? 'text-primary' : 'text-gray-700'
+                    }`}>
+                      {day}
+                    </div>
                   
-                  {/* Event indicators - LARGER BUBBLES */}
-                  <div className="space-y-1">
-                    {dayEvents.slice(0, 3).map(event => (
+                  {/* Event indicators - MOBILE COMPACT */}
+                  <div className="space-y-0.5 md:space-y-1">
+                    {dayEvents.slice(0, 2).map(event => (
                       <div
                         key={event.id}
                         onClick={(e) => handleEventClick(event, e)}
-                        className={`relative text-xs md:text-sm text-white rounded px-1.5 md:px-2 py-1 md:py-1.5 truncate cursor-pointer transition-all duration-200 hover:opacity-80 hover:scale-105 font-medium shadow-sm ${
+                        className={`relative text-[9px] md:text-sm text-white rounded px-1 md:px-2 py-0.5 md:py-1.5 truncate cursor-pointer transition-all duration-200 hover:opacity-80 font-medium shadow-sm ${
                           event.isCanceled ? 'opacity-50' : ''
                         }`}
                         style={{ 
                           backgroundColor: event.colorCode || '#3788d8',
                           textDecoration: event.isCanceled ? 'line-through' : 'none',
-                          minHeight: '28px'
+                          minHeight: '16px'
                         }}
                         title={event.isCanceled ? `${event.title} (Canceled)` : event.title}
                       >
-                        <div className="flex items-center space-x-1">
+                        <div className="flex items-center space-x-0.5 md:space-x-1">
                           {event.isRecurring && !event.isCanceled && (
-                            <RefreshCw className="w-3 h-3 flex-shrink-0" />
+                            <RefreshCw className="hidden md:block w-3 h-3 flex-shrink-0" />
                           )}
-                          {event.isCanceled && <span className="text-xs">🚫</span>}
+                          {event.isCanceled && <span className="text-[8px] md:text-xs">🚫</span>}
                           <span className="truncate">{event.title}</span>
                         </div>
                       </div>
                     ))}
-                    {dayEvents.length > 3 && (
-                      <div className="text-xs font-semibold text-gray-600 px-1.5 py-1">
-                        +{dayEvents.length - 3} more
+                    {dayEvents.length > 2 && (
+                      <div className="text-[9px] md:text-xs font-semibold text-gray-600 px-1 py-0.5 md:px-1.5 md:py-1">
+                        +{dayEvents.length - 2}
                       </div>
                     )}
                   </div>
@@ -807,15 +807,15 @@ const handleViewSeriesClick = () => {
 
     {/* ✨ Enhanced Upcoming Events Section */}
     {!searchQuery && (
-      <div className="bg-white rounded-lg shadow p-6">
-        <div className="mb-6">
-          <h2 className="text-section-title mb-1">Upcoming Events</h2>
-          <p className="text-body-sm text-gray-600">
+      <div className="bg-white rounded-lg shadow p-3 md:p-6">
+        <div className="mb-3 md:mb-6">
+          <h2 className="text-lg md:text-2xl lg:text-3xl font-bold text-gray-800 mb-1">Upcoming Events</h2>
+          <p className="text-xs md:text-sm text-gray-600">
             Your next scheduled activities
           </p>
         </div>
         
-        <div className="space-y-3">
+        <div className="space-y-2 md:space-y-3">
           {events
             .filter(e => {
               const eventDate = new Date(e.startDateTime);
@@ -829,13 +829,13 @@ const handleViewSeriesClick = () => {
             .map(event => (
               <div 
                 key={event.id} 
-                className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition cursor-pointer border-l-4"
+                className="flex items-center justify-between p-2 md:p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition cursor-pointer border-l-4"
                 style={{ borderLeftColor: event.colorCode || '#3788d8' }}
                 onClick={() => setModalState({ type: 'details', data: event, extraData: null })}
               >
-                <div className="flex items-center space-x-3 flex-1 min-w-0">
+                <div className="flex items-center space-x-2 md:space-x-3 flex-1 min-w-0">
                   <div 
-                    className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
+                    className="w-8 h-8 md:w-10 md:h-10 rounded-full flex items-center justify-center flex-shrink-0"
                     style={{ backgroundColor: event.colorCode || '#3788d8' }}
                   >
                     <span className="text-white text-lg">
@@ -843,13 +843,13 @@ const handleViewSeriesClick = () => {
                     </span>
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center space-x-2">
-                      <h3 className="text-subsection truncate">{event.title}</h3>
+                    <div className="flex items-center space-x-1 md:space-x-2">
+                      <h3 className="text-sm md:text-lg font-semibold text-gray-800 truncate">{event.title}</h3>
                       {event.isRecurring && (
-                        <RefreshCw className="w-4 h-4 text-blue-500 flex-shrink-0" />
+                        <RefreshCw className="w-3 h-3 md:w-4 md:h-4 text-blue-500 flex-shrink-0" />
                       )}
                     </div>
-                    <p className="text-body-sm text-gray-600">
+                    <p className="text-xs md:text-sm text-gray-600 truncate">
                       {new Date(event.startDateTime).toLocaleString('en-US', {
                         month: 'short',
                         day: 'numeric',
@@ -860,7 +860,7 @@ const handleViewSeriesClick = () => {
                     </p>
                   </div>
                   <span 
-                    className="px-3 py-1 text-xs rounded-full whitespace-nowrap text-white font-semibold"
+                    className="hidden sm:inline-flex px-2 md:px-3 py-0.5 md:py-1 text-[10px] md:text-xs rounded-full whitespace-nowrap text-white font-semibold"
                     style={{ backgroundColor: event.colorCode || '#3788d8' }}
                   >
                     {event.eventType}
