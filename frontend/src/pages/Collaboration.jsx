@@ -416,7 +416,9 @@ const handleSaveGroup = async (groupData) => {
                 <div className="p-3 md:p-6 border-b border-gray-200">
                   <div className="flex items-start justify-between mb-2 md:mb-3">
                     <div className="flex items-center space-x-2 md:space-x-3 flex-1 min-w-0">
-                      {/* ... existing code ... */}
+                      <h3 className="text-base md:text-xl lg:text-2xl font-bold text-gray-800 truncate leading-tight">
+                        {group.groupName}
+                      </h3>
                     </div>
                     {/* ✅ REPLACE: Role-based action buttons */}
                     <div className="flex items-center space-x-0.5 md:space-x-1 flex-shrink-0">

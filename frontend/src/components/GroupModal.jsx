@@ -222,11 +222,11 @@ const GroupModal = ({ onClose, onSave, group, currentUser }) => {
                           <span className={`inline-block px-2 py-0.5 text-xs rounded-full ${
                             isMemberAdmin
                               ? 'bg-purple-100 text-purple-800 border border-purple-300' 
-                              : member.role === 'Leader'
+                              : member.role === 'Admin'
                               ? 'bg-blue-100 text-blue-800 border border-blue-300'
                               : 'bg-gray-100 text-gray-800 border border-gray-300'
                           }`}>
-                            {isMemberAdmin ? 'Admin' : member.role || 'Member'}
+                            {!group && isCurrentUserItself ? 'Admin' : (isMemberAdmin ? 'Admin' : member.role || 'Member')}
                           </span>
                         </div>
                       </div>
