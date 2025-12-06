@@ -176,28 +176,28 @@ const Settings = () => {
 };
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6 px-4 sm:px-6 lg:px-8">
-      <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold text-gray-800">Account Settings</h2>
+    <div className="max-w-4xl mx-auto space-y-3 md:space-y-6 px-2 sm:px-6 lg:px-8">
+      <div className="flex justify-between items-center mb-3 md:mb-0">
+        <h2 className="text-xl md:text-2xl lg:text-3xl font-bold text-gray-800">Account Settings</h2>
       </div>
 
       {/* Profile Information Section */}
-      <div className="bg-white rounded-lg shadow p-6 max-w-2xl">
-        <div className="flex items-center space-x-4 mb-6 pb-6 border-b">
-          <div className="w-16 h-16 bg-gradient-to-br from-primary to-blue-600 rounded-full flex items-center justify-center text-white text-2xl font-bold">
+      <div className="bg-white rounded-lg shadow p-3 md:p-6 max-w-2xl">
+        <div className="flex items-center space-x-2 md:space-x-4 mb-4 md:mb-6 pb-4 md:pb-6 border-b">
+          <div className="w-12 h-12 md:w-16 md:h-16 bg-gradient-to-br from-primary to-blue-600 rounded-full flex items-center justify-center text-white text-lg md:text-2xl font-bold flex-shrink-0">
             {user?.name?.charAt(0).toUpperCase()}
           </div>
-          <div>
-            <h3 className="text-xl font-semibold text-gray-800">{user?.name}</h3>
-            <p className="text-gray-600">{user?.email}</p>
+          <div className="flex-1 min-w-0">
+            <h3 className="text-base md:text-xl font-semibold text-gray-800 truncate">{user?.name}</h3>
+            <p className="text-sm md:text-base text-gray-600 truncate">{user?.email}</p>
           </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <form onSubmit={handleSubmit} className="space-y-3 md:space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                <User className="w-4 h-4 inline mr-1" />
+              <label className="block text-xs md:text-sm font-medium text-gray-700 mb-1">
+                <User className="w-3 h-3 md:w-4 md:h-4 inline mr-1" />
                 First Name *
               </label>
               <input
@@ -205,14 +205,14 @@ const Settings = () => {
                 name="firstName"
                 value={formData.firstName}
                 onChange={handleChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                className="w-full px-3 md:px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent text-sm md:text-base"
                 required
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                <User className="w-4 h-4 inline mr-1" />
+              <label className="block text-xs md:text-sm font-medium text-gray-700 mb-1">
+                <User className="w-3 h-3 md:w-4 md:h-4 inline mr-1" />
                 Last Name *
               </label>
               <input
@@ -220,15 +220,15 @@ const Settings = () => {
                 name="lastName"
                 value={formData.lastName}
                 onChange={handleChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                className="w-full px-3 md:px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent text-sm md:text-base"
                 required
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              <Mail className="w-4 h-4 inline mr-1" />
+            <label className="block text-xs md:text-sm font-medium text-gray-700 mb-1">
+              <Mail className="w-3 h-3 md:w-4 md:h-4 inline mr-1" />
               Email *
             </label>
             <input
@@ -236,14 +236,14 @@ const Settings = () => {
               name="email"
               value={formData.email}
               onChange={handleChange}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+              className="w-full px-3 md:px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent text-sm md:text-base"
               required
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              <IdCard className="w-4 h-4 inline mr-1" />
+            <label className="block text-xs md:text-sm font-medium text-gray-700 mb-1">
+              <IdCard className="w-3 h-3 md:w-4 md:h-4 inline mr-1" />
               Student ID *
             </label>
             <input
@@ -251,14 +251,14 @@ const Settings = () => {
               name="studentId"
               value={formData.studentId}
               onChange={handleChange}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+              className="w-full px-3 md:px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent text-sm md:text-base"
               required
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              <BookOpen className="w-4 h-4 inline mr-1" />
+            <label className="block text-xs md:text-sm font-medium text-gray-700 mb-1">
+              <BookOpen className="w-3 h-3 md:w-4 md:h-4 inline mr-1" />
               Course/Year/Section *
             </label>
             <input
@@ -267,7 +267,7 @@ const Settings = () => {
               value={formData.section}
               onChange={handleChange}
               placeholder="e.g., BSIT 3A"
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+              className="w-full px-3 md:px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent text-sm md:text-base"
               required
             />
           </div>
@@ -286,51 +286,51 @@ const Settings = () => {
       </div>
 
       {/* Change Password Section */}
-      <div className="bg-white rounded-lg shadow p-6 max-w-2xl">
-        <h3 className="text-xl font-semibold text-gray-800 mb-4 flex items-center">
-          <Lock className="w-5 h-5 mr-2" />
+      <div className="bg-white rounded-lg shadow p-3 md:p-6 max-w-2xl">
+        <h3 className="text-lg md:text-xl font-semibold text-gray-800 mb-3 md:mb-4 flex items-center">
+          <Lock className="w-4 h-4 md:w-5 md:h-5 mr-1 md:mr-2" />
           Change Password
         </h3>
         
-        <form onSubmit={handlePasswordChange} className="space-y-4">
+        <form onSubmit={handlePasswordChange} className="space-y-3 md:space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-xs md:text-sm font-medium text-gray-700 mb-1">
               Current Password *
             </label>
             <input
               type="password"
               value={passwordData.currentPassword}
               onChange={(e) => setPasswordData({...passwordData, currentPassword: e.target.value})}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+              className="w-full px-3 md:px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent text-sm md:text-base"
               required
               minLength={6}
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-xs md:text-sm font-medium text-gray-700 mb-1">
               New Password *
             </label>
             <input
               type="password"
               value={passwordData.newPassword}
               onChange={(e) => setPasswordData({...passwordData, newPassword: e.target.value})}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+              className="w-full px-3 md:px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent text-sm md:text-base"
               required
               minLength={6}
             />
-            <p className="text-xs text-gray-500 mt-1">Minimum 6 characters</p>
+            <p className="text-[10px] md:text-xs text-gray-500 mt-1">Minimum 6 characters</p>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-xs md:text-sm font-medium text-gray-700 mb-1">
               Confirm New Password *
             </label>
             <input
               type="password"
               value={passwordData.confirmPassword}
               onChange={(e) => setPasswordData({...passwordData, confirmPassword: e.target.value})}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+              className="w-full px-3 md:px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent text-sm md:text-base"
               required
               minLength={6}
             />
@@ -340,9 +340,9 @@ const Settings = () => {
             <button
               type="submit"
               disabled={passwordLoading}
-              className="w-full md:w-auto px-6 py-3 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition disabled:opacity-50 disabled:cursor-not-allowed font-medium flex items-center justify-center space-x-2"
+              className="w-full md:w-auto px-4 md:px-6 py-2 md:py-3 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition disabled:opacity-50 disabled:cursor-not-allowed font-medium flex items-center justify-center space-x-1 md:space-x-2 text-sm md:text-base"
             >
-              <Lock className="w-5 h-5" />
+              <Lock className="w-4 h-4 md:w-5 md:h-5" />
               <span>{passwordLoading ? 'Changing...' : 'Change Password'}</span>
             </button>
           </div>
@@ -350,28 +350,28 @@ const Settings = () => {
       </div>
 
       {/* Info Box */}
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 max-w-2xl">
-        <h4 className="font-semibold text-blue-900 mb-2">ℹ️ Note</h4>
-        <p className="text-blue-800 text-sm">
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 md:p-4 max-w-2xl">
+        <h4 className="text-sm md:text-base font-semibold text-blue-900 mb-1 md:mb-2">ℹ️ Note</h4>
+        <p className="text-blue-800 text-xs md:text-sm">
           Changes to your profile will take effect immediately. Make sure your email is correct as it's used for login.
         </p>
       </div>
 
       {/* Delete Account Section */}
-      <div className="bg-red-50 border-2 border-red-200 rounded-lg p-6 max-w-2xl">
-        <h3 className="text-xl font-semibold text-red-900 mb-4 flex items-center">
-          <Trash2 className="w-5 h-5 mr-2" />
+      <div className="bg-red-50 border-2 border-red-200 rounded-lg p-3 md:p-6 max-w-2xl">
+        <h3 className="text-lg md:text-xl font-semibold text-red-900 mb-3 md:mb-4 flex items-center">
+          <Trash2 className="w-4 h-4 md:w-5 md:h-5 mr-1 md:mr-2" />
           Delete Account
         </h3>
         
-        <div className="bg-white border border-red-200 rounded-lg p-4 mb-4">
-          <div className="flex items-start space-x-3">
-            <AlertTriangle className="w-5 h-5 text-red-600 mt-0.5 flex-shrink-0" />
+        <div className="bg-white border border-red-200 rounded-lg p-3 md:p-4 mb-3 md:mb-4">
+          <div className="flex items-start space-x-2 md:space-x-3">
+            <AlertTriangle className="w-4 h-4 md:w-5 md:h-5 text-red-600 mt-0.5 flex-shrink-0" />
             <div>
-              <h4 className="font-semibold text-red-900 mb-2">
+              <h4 className="text-sm md:text-base font-semibold text-red-900 mb-1 md:mb-2">
                 Warning: This action is permanent
               </h4>
-              <ul className="text-sm text-red-800 space-y-1">
+              <ul className="text-xs md:text-sm text-red-800 space-y-0.5 md:space-y-1">
                 <li>• All your tasks will be permanently deleted</li>
                 <li>• All your events will be permanently deleted</li>
                 <li>• All your groups will be permanently deleted</li>
@@ -383,37 +383,37 @@ const Settings = () => {
 
         <button
           onClick={() => setShowDeleteDialog(true)}
-          className="px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition font-medium flex items-center space-x-2"
+          className="px-4 md:px-6 py-2 md:py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition font-medium flex items-center space-x-1 md:space-x-2 text-sm md:text-base"
         >
-          <Trash2 className="w-5 h-5" />
+          <Trash2 className="w-4 h-4 md:w-5 md:h-5" />
           <span>Delete My Account</span>
         </button>
       </div>
 
       {/* Delete Confirmation Dialog */}
-      {showDeleteDialog && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg w-full max-w-md shadow-xl">
-            <div className="p-6">
+        {showDeleteDialog && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-2 md:p-4">
+            <div className="bg-white rounded-lg w-full max-w-md shadow-xl">
+              <div className="p-4 md:p-6">
               {/* Header */}
-              <div className="flex items-start space-x-3 mb-4">
-                <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center flex-shrink-0">
-                  <AlertTriangle className="w-6 h-6 text-red-600" />
+              <div className="flex items-start space-x-2 md:space-x-3 mb-3 md:mb-4">
+                <div className="w-10 h-10 md:w-12 md:h-12 bg-red-100 rounded-full flex items-center justify-center flex-shrink-0">
+                  <AlertTriangle className="w-5 h-5 md:w-6 md:h-6 text-red-600" />
                 </div>
                 <div>
-                  <h3 className="text-xl font-bold text-gray-900 mb-1">
+                  <h3 className="text-lg md:text-xl font-bold text-gray-900 mb-1">
                     Delete Account?
                   </h3>
-                  <p className="text-sm text-gray-600">
+                  <p className="text-xs md:text-sm text-gray-600">
                     This will permanently delete your account and all associated data.
                   </p>
                 </div>
               </div>
 
               {/* Password Confirmation */}
-              <form onSubmit={handleDeleteAccount} className="space-y-4">
-                <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                  <p className="text-sm text-red-800 font-medium mb-3">
+              <form onSubmit={handleDeleteAccount} className="space-y-3 md:space-y-4">
+                <div className="bg-red-50 border border-red-200 rounded-lg p-3 md:p-4">
+                  <p className="text-xs md:text-sm text-red-800 font-medium mb-2 md:mb-3">
                     ⚠️ To confirm deletion, please enter your password:
                   </p>
                   <input
@@ -421,14 +421,14 @@ const Settings = () => {
                     value={deletePassword}
                     onChange={(e) => setDeletePassword(e.target.value)}
                     placeholder="Enter your password"
-                    className="w-full px-4 py-2 border-2 border-red-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                    className="w-full px-3 md:px-4 py-2 border-2 border-red-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent text-sm md:text-base"
                     required
                     autoFocus
                   />
                 </div>
 
                 {/* Action Buttons */}
-                <div className="flex space-x-3">
+                <div className="flex space-x-2 md:space-x-3">
                   <button
                     type="button"
                     onClick={() => {
@@ -436,23 +436,23 @@ const Settings = () => {
                       setDeletePassword('');
                     }}
                     disabled={deleteLoading}
-                    className="flex-1 px-4 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition font-medium"
+                    className="flex-1 px-3 md:px-4 py-2 md:py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition font-medium text-sm md:text-base"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
                     disabled={deleteLoading || !deletePassword}
-                    className="flex-1 px-4 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition disabled:opacity-50 disabled:cursor-not-allowed font-medium flex items-center justify-center space-x-2"
+                    className="flex-1 px-3 md:px-4 py-2 md:py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition disabled:opacity-50 disabled:cursor-not-allowed font-medium flex items-center justify-center space-x-1 md:space-x-2 text-sm md:text-base"
                   >
                     {deleteLoading ? (
                       <>
-                        <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                        <div className="animate-spin rounded-full h-4 w-4 md:h-5 md:w-5 border-b-2 border-white"></div>
                         <span>Deleting...</span>
                       </>
                     ) : (
                       <>
-                        <Trash2 className="w-5 h-5" />
+                        <Trash2 className="w-4 h-4 md:w-5 md:h-5" />
                         <span>Delete Forever</span>
                       </>
                     )}
@@ -460,7 +460,7 @@ const Settings = () => {
                 </div>
               </form>
 
-              <p className="text-xs text-gray-500 text-center mt-4">
+              <p className="text-[10px] md:text-xs text-gray-500 text-center mt-3 md:mt-4">
                 This action cannot be undone. Please be certain.
               </p>
             </div>
