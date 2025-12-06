@@ -1,5 +1,4 @@
-// Update TaskBoard.jsx with enhanced colors
-// Replace the getPriorityColor function and task card rendering
+// frontend/src/components/TaskBoard.jsx - COMPLETE REPLACEMENT
 
 import React from 'react';
 import { taskAPI } from '../services/api';
@@ -7,6 +6,7 @@ import { useToast } from '../context/ToastContext';
 import { Clock } from 'lucide-react';
 import { formatShortDate } from '../utils/dateUtils';
 import { PRIORITY_CONFIG, STATUS_CONFIG } from '../utils/colorUtils';
+import { getTaskUrgency, formatTimeRemaining } from '../utils/deadlineUtils'; // ✅ NEW
 
 const TaskBoard = ({ tasks, onTasksChange }) => {
   const { showToast } = useToast();
@@ -51,7 +51,7 @@ const TaskBoard = ({ tasks, onTasksChange }) => {
     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
       {columns.map((column) => (
         <div key={column.id} className="bg-gray-50 rounded-lg p-4 border-2 border-gray-200">
-          {/* ✨ Enhanced Column Header */}
+          {/* Column Header */}
           <div className={`flex items-center space-x-2 font-semibold text-lg mb-4 pb-3 border-b-3 ${column.color}`}>
             <span className="text-2xl">{column.icon}</span>
             <h3 className={`bg-gradient-to-r ${column.bgGradient} bg-clip-text text-transparent`}>
@@ -68,12 +68,40 @@ const TaskBoard = ({ tasks, onTasksChange }) => {
               .map((task) => {
                 const priorityConfig = PRIORITY_CONFIG[task.priority] || PRIORITY_CONFIG.Medium;
                 
+                // ✅ NEW: Get urgency for deadline highlighting
+                const urgency = getTaskUrgency(task.dueDate);
+                const isUrgent = urgency.level === 'overdue' || urgency.level === 'critical' || urgency.level === 'urgent';
+                const isCompleted = task.status === 'Completed';
+                
                 return (
                   <div
                     key={task.id}
-                    className="card-hover-subtle bg-white p-4 rounded-lg shadow-sm cursor-pointer border-l-4"
-                    style={{ borderLeftColor: priorityConfig.borderColor.replace('border-', '') }}
+                    className={`
+                      card-hover-subtle bg-white p-4 rounded-lg shadow-sm cursor-pointer border-l-4 
+                      ${isUrgent && !isCompleted ? 'ring-2 ring-red-500 ring-opacity-50 animate-pulse-subtle' : ''}
+                    `}
+                    style={{ 
+                      borderLeftColor: isUrgent && !isCompleted 
+                        ? urgency.color === 'red' ? '#ef4444' : '#f97316'
+                        : priorityConfig.borderColor.replace('border-', '') 
+                    }}
                   >
+                    {/* ✅ NEW: Urgency Banner (only for urgent incomplete tasks) */}
+                    {isUrgent && !isCompleted && (
+                      <div className={`
+                        -mx-4 -mt-4 mb-3 px-3 py-1.5 flex items-center justify-between text-xs font-semibold
+                        ${urgency.bgColor} ${urgency.textColor} border-b ${urgency.borderColor}
+                      `}>
+                        <span className="flex items-center space-x-1">
+                          <span>{urgency.icon}</span>
+                          <span>{urgency.label}</span>
+                        </span>
+                        <span className="text-[10px] opacity-75">
+                          {formatTimeRemaining(urgency.hoursRemaining)}
+                        </span>
+                      </div>
+                    )}
+
                     <div className="flex justify-between items-start mb-2">
                       <h4 className="font-semibold text-gray-800 flex-1 hover:text-primary transition-colors">
                         {task.title}
@@ -87,13 +115,20 @@ const TaskBoard = ({ tasks, onTasksChange }) => {
                     )}
                     
                     <div className="flex items-center justify-between text-xs mb-3">
-                      {/* ✨ Enhanced Priority Badge */}
+                      {/* Priority Badge */}
                       <span className={`inline-flex items-center space-x-1 px-2 py-1 rounded-full font-medium border transition-all duration-200 hover:scale-105 ${priorityConfig.bgColor} ${priorityConfig.textColor} ${priorityConfig.borderColor}`}>
                         <span className="text-sm">{priorityConfig.icon}</span>
                         <span>{task.priority}</span>
                       </span>
                       
-                      <span className="flex items-center text-gray-500 hover:text-gray-700 transition-colors">
+                      {/* Due Date with Urgency Styling */}
+                      <span className={`
+                        flex items-center transition-colors
+                        ${isUrgent && !isCompleted 
+                          ? urgency.textColor + ' font-semibold' 
+                          : 'text-gray-500 hover:text-gray-700'
+                        }
+                      `}>
                         <Clock className="w-3 h-3 mr-1" />
                         {formatShortDate(task.dueDate)}
                       </span>
@@ -106,7 +141,7 @@ const TaskBoard = ({ tasks, onTasksChange }) => {
                       </div>
                     )}
                     
-                    {/* ✨ Enhanced Status Change Buttons */}
+                    {/* Status Change Buttons */}
                     <div className="mt-3 flex gap-2 flex-wrap">
                       {column.id !== 'Pending' && (
                         <button

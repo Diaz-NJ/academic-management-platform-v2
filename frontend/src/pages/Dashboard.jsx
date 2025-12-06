@@ -20,6 +20,8 @@ import WeeklyEvents from '../components/WeeklyEvents';
 import LoadingSpinner from '../components/LoadingSpinner';
 import { expandRecurringEvents } from '../utils/recurringUtils';
 import { invitationAPI } from '../services/api';
+import DeadlineBadge from '../components/DeadlineBadge';
+import { getTaskUrgency, getUrgentTasks } from '../utils/deadlineUtils';
 
 const Dashboard = () => {
   const { user, logout } = useAuth();
@@ -32,7 +34,8 @@ const Dashboard = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [pendingInvitations, setPendingInvitations] = useState(0);
-    const [totalUnreadMessages, setTotalUnreadMessages] = useState(0); 
+  const [totalUnreadMessages, setTotalUnreadMessages] = useState(0); 
+  const [urgentTaskCount, setUrgentTaskCount] = useState(0);
 
   // ✅ FIXED: Wrapped in useCallback with proper dependencies
   const loadTasks = useCallback(async () => {
@@ -102,9 +105,6 @@ const Dashboard = () => {
     };
   }, [loadTasks, loadEvents]); // ✅ Proper dependencies
 
-  // ✅ REMOVED: Duplicate loading on tab change
-  // The data is already loaded, no need to reload when switching tabs
-
   // ✅ OPTIMIZED: Poll for notifications less frequently and only when on dashboard
   useEffect(() => {
     const checkNotifications = async () => {
@@ -149,6 +149,16 @@ const Dashboard = () => {
         console.error('Error checking notifications:', error);
       }
     };
+
+{/* Add this useEffect after the existing useEffects (around line 80) */}
+useEffect(() => {
+  if (tasks.length > 0) {
+    const counts = getUrgencyCounts(tasks);
+    setUrgentTaskCount(counts.total);
+  } else {
+    setUrgentTaskCount(0);
+  }
+}, [tasks]);
 
     // ✅ Check immediately on mount
     checkNotifications();
@@ -196,69 +206,76 @@ const Dashboard = () => {
   >
     <div className="absolute inset-0 bg-white/85 backdrop-blur-sm"></div>
     <div className="relative z-10">
-      {/* Navigation Bar - ENLARGED */}
-        <nav className="bg-white/95 backdrop-blur-sm shadow-md border-b-2 border-gray-100">
+      {/* Navigation Bar - ENLARGED */}      
+<nav className="bg-white/95 backdrop-blur-sm shadow-md border-b-2 border-gray-100">
   <div className="max-w-8xl mx-auto px-3 sm:px-8 lg:px-12">
     <div className="flex justify-between items-center h-14 md:h-24">
       {/* Left side - Logo and Navigation */}
       <div className="flex items-center space-x-2 md:space-x-10">
-  {/* Mobile menu button - MOVED TO LEFT */}
-  <button
-    onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-    className="md:hidden p-2 rounded-lg text-gray-700 hover:bg-gray-100"
-  >
-    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      {mobileMenuOpen ? (
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-      ) : (
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-      )}
-    </svg>
-  </button>
-  
-  {/* Logo - MOBILE: after menu button, DESKTOP: stays left */}
-  <h1 className="text-xl md:text-4xl font-bold text-primary tracking-tight">
-    AMP
-  </h1>
-  
-  {/* Desktop Navigation */}
-  <div className="hidden md:flex space-x-2 lg:space-x-3">
-          {/* Desktop buttons stay the same */}
+        {/* Mobile menu button */}
+        <button
+          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+          className="md:hidden p-2 rounded-lg text-gray-700 hover:bg-gray-100"
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            {mobileMenuOpen ? (
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            ) : (
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+            )}
+          </svg>
+        </button>
+        
+        {/* Logo */}
+        <h1 className="text-xl md:text-4xl font-bold text-primary tracking-tight">
+          AMP
+        </h1>
+        
+        {/* Desktop Navigation */}
+        <div className="hidden md:flex space-x-2 lg:space-x-3">
+          {/* Dashboard Button */}
           <button
-  onClick={() => {
-    setActiveTab('dashboard');
-    if (activeTab !== 'dashboard') {
-      loadTasks();
-      loadEvents();
-    }
-  }}
-  className={`flex items-center space-x-2 px-3 lg:px-5 py-2.5 lg:py-3 rounded-lg text-sm lg:text-base font-semibold transition-all duration-200 ${
-    activeTab === 'dashboard'
-      ? 'bg-primary text-white shadow-lg transform scale-105'
-      : 'text-gray-700 hover:bg-gray-100 hover:scale-105'
-  }`}
->
-  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-  </svg>
-  <span className="hidden sm:inline">Dashboard</span>
-</button>
+            onClick={() => {
+              setActiveTab('dashboard');
+              if (activeTab !== 'dashboard') {
+                loadTasks();
+                loadEvents();
+              }
+            }}
+            className={`flex items-center space-x-2 px-3 lg:px-5 py-2.5 lg:py-3 rounded-lg text-sm lg:text-base font-semibold transition-all duration-200 ${
+              activeTab === 'dashboard'
+                ? 'bg-primary text-white shadow-lg transform scale-105'
+                : 'text-gray-700 hover:bg-gray-100 hover:scale-105'
+            }`}
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+            </svg>
+            <span className="hidden sm:inline">Dashboard</span>
+          </button>
           
-          {/* Rest of desktop buttons... */}
+          {/* Tasks Button - WITH DEADLINE BADGE */}
           <button
-  onClick={() => setActiveTab('tasks')}
-  className={`flex items-center space-x-2 px-3 lg:px-5 py-2.5 lg:py-3 rounded-lg text-sm lg:text-base font-semibold transition-all duration-200 ${
-    activeTab === 'tasks'
-      ? 'bg-primary text-white shadow-lg transform scale-105'
-      : 'text-gray-700 hover:bg-gray-100 hover:scale-105'
-  }`}
->
-  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
-  </svg>
-  <span className="hidden sm:inline">Tasks</span>
-</button>
+            onClick={() => setActiveTab('tasks')}
+            className={`relative flex items-center space-x-2 px-3 lg:px-5 py-2.5 lg:py-3 rounded-lg text-sm lg:text-base font-semibold transition-all duration-200 ${
+              activeTab === 'tasks'
+                ? 'bg-primary text-white shadow-lg transform scale-105'
+                : 'text-gray-700 hover:bg-gray-100 hover:scale-105'
+            }`}
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+            </svg>
+            <span className="hidden sm:inline">Tasks</span>
+            {/* ✅ NEW: Deadline Badge */}
+            {urgentTaskCount > 0 && (
+              <span className="absolute -top-1 -right-1">
+                <DeadlineBadge count={urgentTaskCount} size="small" />
+              </span>
+            )}
+          </button>
           
+          {/* Calendar Button */}
           <button
             onClick={() => setActiveTab('calendar')}
             className={`px-4 lg:px-5 py-2.5 lg:py-3 rounded-lg text-sm lg:text-base font-semibold transition-all duration-200 flex items-center space-x-2 ${
@@ -271,6 +288,7 @@ const Dashboard = () => {
             <span>Calendar</span>
           </button>
           
+          {/* Collaboration Button */}
           <button
             onClick={() => setActiveTab('collaboration')}
             className={`px-4 lg:px-5 py-2.5 lg:py-3 rounded-lg text-sm lg:text-base font-semibold transition-all duration-200 flex items-center space-x-2 relative ${
@@ -288,6 +306,7 @@ const Dashboard = () => {
             )}
           </button>
           
+          {/* Analytics Button */}
           <button
             onClick={() => setActiveTab('analytics')}
             className={`px-4 lg:px-5 py-2.5 lg:py-3 rounded-lg text-sm lg:text-base font-semibold transition-all duration-200 flex items-center space-x-2 ${
@@ -300,6 +319,7 @@ const Dashboard = () => {
             <span>Analytics</span>
           </button>
           
+          {/* Settings Button */}
           <button
             onClick={() => setActiveTab('settings')}
             className={`px-4 lg:px-5 py-2.5 lg:py-3 rounded-lg text-sm lg:text-base font-semibold transition-all duration-200 ${
@@ -313,15 +333,13 @@ const Dashboard = () => {
         </div>
       </div>
       
-      {/* Right side - MOBILE OPTIMIZED */}
+      {/* Right side - UNCHANGED */}
       <div className="flex items-center space-x-2">
         <div className="hidden sm:flex items-center space-x-2">
-          {/* User Avatar - SMALLER ON MOBILE */}
           <div className="w-8 h-8 md:w-12 md:h-12 bg-gradient-to-br from-primary to-blue-600 rounded-full flex items-center justify-center text-white text-base md:text-xl font-bold shadow-md">
             {user.name.charAt(0).toUpperCase()}
           </div>
           
-          {/* User Info - HIDDEN ON SMALL SCREENS */}
           <div className="hidden lg:block">
             <p className="text-xs md:text-sm font-semibold text-gray-800 leading-tight">
               {user.name}
@@ -332,7 +350,6 @@ const Dashboard = () => {
           </div>
         </div>
         
-        {/* Logout Button - MOBILE OPTIMIZED */}
         <button
           onClick={handleLogout}
           className="btn-hover flex items-center space-x-1 md:space-x-2 px-2 md:px-5 py-1.5 md:py-3 bg-red-500 text-white rounded-lg font-semibold shadow-md text-xs md:text-base"
@@ -343,45 +360,56 @@ const Dashboard = () => {
       </div>
     </div>
 
-    {/* Mobile Navigation Menu - SMALLER */}
+    {/* Mobile Navigation Menu - WITH DEADLINE BADGE */}
     {mobileMenuOpen && (
       <div className="md:hidden pb-3 space-y-1">
+        {/* Dashboard */}
         <button
-  onClick={() => {
-    setActiveTab('dashboard');
-    setMobileMenuOpen(false);
-    if (activeTab !== 'dashboard') {
-      loadTasks();
-      loadEvents();
-    }
-  }}
-  className={`flex items-center space-x-3 w-full text-left px-3 py-2.5 rounded-lg text-sm font-semibold ${
-    activeTab === 'dashboard'
-      ? 'bg-primary text-white'
-      : 'text-gray-700 hover:bg-gray-100'
-  }`}
->
-  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-  </svg>
-  <span>Dashboard</span>
-</button>
+          onClick={() => {
+            setActiveTab('dashboard');
+            setMobileMenuOpen(false);
+            if (activeTab !== 'dashboard') {
+              loadTasks();
+              loadEvents();
+            }
+          }}
+          className={`flex items-center space-x-3 w-full text-left px-3 py-2.5 rounded-lg text-sm font-semibold ${
+            activeTab === 'dashboard'
+              ? 'bg-primary text-white'
+              : 'text-gray-700 hover:bg-gray-100'
+          }`}
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+          </svg>
+          <span>Dashboard</span>
+        </button>
+        
+        {/* Tasks - WITH DEADLINE BADGE */}
         <button
-  onClick={() => {
-    setActiveTab('tasks');
-    setMobileMenuOpen(false);
-  }}
-  className={`flex items-center space-x-3 w-full text-left px-3 py-2.5 rounded-lg text-sm font-semibold ${
-    activeTab === 'tasks'
-      ? 'bg-primary text-white'
-      : 'text-gray-700 hover:bg-gray-100'
-  }`}
->
-  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
-  </svg>
-  <span>Tasks</span>
-</button>
+          onClick={() => {
+            setActiveTab('tasks');
+            setMobileMenuOpen(false);
+          }}
+          className={`relative flex items-center space-x-3 w-full text-left px-3 py-2.5 rounded-lg text-sm font-semibold ${
+            activeTab === 'tasks'
+              ? 'bg-primary text-white'
+              : 'text-gray-700 hover:bg-gray-100'
+          }`}
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+          </svg>
+          <span>Tasks</span>
+          {/* ✅ NEW: Mobile Deadline Badge */}
+          {urgentTaskCount > 0 && (
+            <span className="absolute right-3 top-1/2 -translate-y-1/2">
+              <DeadlineBadge count={urgentTaskCount} size="small" />
+            </span>
+          )}
+        </button>
+        
+        {/* Rest of mobile menu - UNCHANGED */}
         <button
           onClick={() => {
             setActiveTab('calendar');
@@ -582,31 +610,48 @@ const Dashboard = () => {
             {/* Task Board - Full Width, Mobile Optimized */}
 <div className="bg-white rounded-lg shadow p-3 md:p-5">
   <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-3 md:mb-4 gap-2">
-                <div>
-  <h2 className="text-lg md:text-2xl font-bold mb-0.5 md:mb-1 leading-tight">
-    Task Board
-  </h2>
-  <p className="text-xs md:text-sm text-gray-600">
-    Organize your assignments
-  </p>
+    <div>
+      <h2 className="text-lg md:text-2xl font-bold mb-0.5 md:mb-1 leading-tight">
+        Task Board
+      </h2>
+      <p className="text-xs md:text-sm text-gray-600">
+        Organize your assignments
+        {/* ✅ NEW: Show urgent task count */}
+        {urgentTaskCount > 0 && (
+          <span className="ml-2 inline-flex items-center space-x-1 px-2 py-0.5 bg-red-100 text-red-800 rounded-full text-xs font-semibold border border-red-300">
+            <span>🔴</span>
+            <span>{urgentTaskCount} urgent</span>
+          </span>
+        )}
+      </p>
+    </div>
+    <button
+      onClick={() => {
+        setEditingTask(null);
+        setShowTaskModal(true);
+      }}
+      className="btn-hover flex items-center space-x-1 md:space-x-2 px-3 md:px-4 py-1.5 md:py-2 bg-primary text-white rounded-lg font-medium text-sm md:text-base"
+    >
+      <Plus className="w-4 h-4 md:w-5 md:h-5" />
+      <span>New Task</span>
+    </button>
+  </div>
+  
+  {/* ✅ NEW: Sort tasks by urgency - most urgent first */}
+  <TaskBoard 
+    tasks={[...tasks].sort((a, b) => {
+      // Completed tasks go to end
+      if (a.status === 'Completed' && b.status !== 'Completed') return 1;
+      if (a.status !== 'Completed' && b.status === 'Completed') return -1;
+      
+      // Sort incomplete tasks by due date (soonest first)
+      const dateA = new Date(a.dueDate);
+      const dateB = new Date(b.dueDate);
+      return dateA - dateB;
+    })} 
+    onTasksChange={loadTasks}
+  />
 </div>
-<button
-  onClick={() => {
-    setEditingTask(null);
-    setShowTaskModal(true);
-  }}
-  className="btn-hover flex items-center space-x-1 md:space-x-2 px-3 md:px-4 py-1.5 md:py-2 bg-primary text-white rounded-lg font-medium text-sm md:text-base"
->
-  <Plus className="w-4 h-4 md:w-5 md:h-5" />
-  <span>New Task</span>
-</button>
-              </div>
-              
-              <TaskBoard 
-                tasks={tasks} 
-                onTasksChange={loadTasks}
-              />
-            </div>
           </>
         )}
 

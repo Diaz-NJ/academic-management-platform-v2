@@ -13,6 +13,7 @@ import { formatRelativeDate } from '../utils/dateUtils';
 import { PRIORITY_CONFIG, STATUS_CONFIG } from '../utils/colorUtils';
 import TaskIntegrationModal from '../components/TaskIntegrationModal';
 import { Link } from 'lucide-react';
+import { getTaskUrgency, formatTimeRemaining } from '../utils/deadlineUtils';
 
 const Tasks = () => {
   const { user } = useAuth();
@@ -430,11 +431,37 @@ const Tasks = () => {
               {/* Grid Layout - Mobile Optimized */}
               <div className="p-2 md:p-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 md:gap-4">
                 {filteredTasks.map((task) => {
-                  const priorityConfig = PRIORITY_CONFIG[task.priority] || PRIORITY_CONFIG.Medium;
-                  const statusConfig = STATUS_CONFIG[task.status] || STATUS_CONFIG.Pending;
+  const priorityConfig = PRIORITY_CONFIG[task.priority] || PRIORITY_CONFIG.Medium;
+  const statusConfig = STATUS_CONFIG[task.status] || STATUS_CONFIG.Pending;
 
-                  return (
-                    <div className="bg-white border-2 border-gray-200 rounded-lg p-2 md:p-4 hover:shadow-xl hover:-translate-y-1 transition-all duration-200">
+  // ✅ NEW: Add urgency detection
+  const urgency = getTaskUrgency(task.dueDate);
+  const isUrgent = urgency.level === 'overdue' || urgency.level === 'critical' || urgency.level === 'urgent';
+  const isCompleted = task.status === 'Completed';
+
+  return (
+    <div 
+      key={task.id}
+      className={`
+        bg-white border-2 border-gray-200 rounded-lg p-2 md:p-4 hover:shadow-xl hover:-translate-y-1 transition-all duration-200
+        ${isUrgent && !isCompleted ? 'ring-2 ring-red-500 ring-opacity-50 border-red-300' : ''}
+      `}
+    >
+      {/* ✅ NEW: Urgency banner for grid cards */}
+      {isUrgent && !isCompleted && (
+        <div className={`
+          -mx-2 md:-mx-4 -mt-2 md:-mt-4 mb-2 px-2 md:px-3 py-1 flex items-center justify-between text-[10px] md:text-xs font-semibold
+          ${urgency.bgColor} ${urgency.textColor} border-b ${urgency.borderColor}
+        `}>
+          <span className="flex items-center space-x-0.5">
+            <span>{urgency.icon}</span>
+            <span>{urgency.label}</span>
+          </span>
+          <span className="text-[9px] md:text-[10px] opacity-75 truncate max-w-[80px]">
+            {formatTimeRemaining(urgency.hoursRemaining)}
+          </span>
+        </div>
+      )}
                       {/* Checkbox */}
                       <div className="flex items-start justify-between mb-2">
                         <button onClick={() => toggleTaskSelection(task.id)}>
@@ -582,14 +609,41 @@ const Tasks = () => {
                   const statusConfig = STATUS_CONFIG[task.status] || STATUS_CONFIG.Pending;
                   const isEven = index % 2 === 0;
                   
+                  // ✅ NEW: Add urgency detection
+                  const urgency = getTaskUrgency(task.dueDate);
+                  const isUrgent = urgency.level === 'overdue' || urgency.level === 'critical' || urgency.level === 'urgent';
+                  const isCompleted = task.status === 'Completed';
+                  
                   return (
                     <div 
                       key={task.id} 
-                      className={`p-3 md:p-6 transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5 border-l-4 ${
-                        isEven ? 'bg-gray-50' : 'bg-white'
-                      } hover:bg-blue-50`}
-                      style={{ borderLeftColor: priorityConfig.borderColor.replace('border-', '') }}
+                      className={`
+                        p-3 md:p-6 transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5 border-l-4 
+                        ${isEven ? 'bg-gray-50' : 'bg-white'} 
+                        hover:bg-blue-50
+                        ${isUrgent && !isCompleted ? 'ring-2 ring-red-500 ring-opacity-50' : ''}
+                      `}
+                      style={{ 
+                        borderLeftColor: isUrgent && !isCompleted 
+                          ? urgency.color === 'red' ? '#ef4444' : '#f97316'
+                          : priorityConfig.borderColor.replace('border-', '') 
+                      }}
                     >
+                      {/* ✅ NEW: Add urgency banner AFTER opening div but BEFORE existing content */}
+                      {isUrgent && !isCompleted && (
+                        <div className={`
+                          -mx-3 md:-mx-6 -mt-3 md:-mt-6 mb-3 md:mb-4 px-3 md:px-6 py-2 flex items-center justify-between text-xs md:text-sm font-semibold
+                          ${urgency.bgColor} ${urgency.textColor} border-b ${urgency.borderColor}
+                        `}>
+                          <span className="flex items-center space-x-1">
+                            <span className="text-base md:text-lg">{urgency.icon}</span>
+                            <span>{urgency.label}</span>
+                          </span>
+                          <span className="text-[10px] md:text-xs opacity-75">
+                            {formatTimeRemaining(urgency.hoursRemaining)}
+                          </span>
+                        </div>
+                      )}
                       <div className="flex items-start space-x-2 md:space-x-4">
                         {/* Checkbox */}
                         <button
