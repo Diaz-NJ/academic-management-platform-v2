@@ -108,152 +108,151 @@ const calculateStats = (taskData) => {
   }
 
   return (
-    <div className="max-w-7xl mx-auto space-y-3 md:space-y-4 px-4 sm:px-6 lg:px-8">
+    <div className="max-w-7xl mx-auto space-y-2 md:space-y-4 px-2 sm:px-6 lg:px-8">
       {/* Enhanced Page Header */}
-      <div className="mb-8">
-        <h1 className="text-page-title mb-2">Progress & Analytics</h1>
-        <p className="text-body text-gray-600">
+      <div className="mb-3 md:mb-6">
+        <h1 className="text-xl md:text-3xl lg:text-4xl font-bold mb-1 md:mb-2 leading-tight">Progress & Analytics</h1>
+        <p className="text-xs md:text-base text-gray-600 leading-tight">
           Track your academic performance and task completion
         </p>
       </div>
 
       {/* Overview Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <div className="card-hover bg-white rounded-lg shadow p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-label text-gray-600 mb-1">Total Tasks</p>
-              <p className="text-stat text-gray-800">{stats.total || 0}</p>
-              <p className="text-caption text-gray-500 mt-1">All time</p>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 md:gap-6 mb-3 md:mb-6">
+        <div className="card-hover bg-white rounded-lg shadow p-3 md:p-6">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+            <div className="flex-1">
+              <p className="text-[10px] md:text-sm font-medium text-gray-600 mb-0.5 md:mb-1 uppercase tracking-wide leading-tight">Total Tasks</p>
+              <p className="text-2xl md:text-4xl font-bold text-gray-800 tabular-nums">{stats.total || 0}</p>
+              <p className="text-[9px] md:text-xs text-gray-500 mt-0.5 md:mt-1">All time</p>
             </div>
-            <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-              <TrendingUp className="w-6 h-6 text-blue-600" />
-            </div>
-          </div>
-        </div>
-
-        <div className="card-hover bg-white rounded-lg shadow p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-label text-gray-600 mb-1">Completed</p>
-              <p className="text-stat text-green-600">{stats.completed || 0}</p>
-              <p className="text-caption text-gray-500 mt-1">Finished</p>
-            </div>
-            <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
-              <CheckCircle className="w-6 h-6 text-green-600" />
+            <div className="w-8 h-8 md:w-12 md:h-12 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
+              <TrendingUp className="w-4 h-4 md:w-6 md:h-6 text-blue-600" />
             </div>
           </div>
         </div>
 
-        <div className="card-hover bg-white rounded-lg shadow p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-label text-gray-600 mb-1">This Week</p>
-              <p className="text-stat text-blue-600">{stats.thisWeek || 0}</p>
-              <p className="text-caption text-gray-500 mt-1">Due soon</p>
+        <div className="card-hover bg-white rounded-lg shadow p-3 md:p-6">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+            <div className="flex-1">
+              <p className="text-[10px] md:text-sm font-medium text-gray-600 mb-0.5 md:mb-1 uppercase tracking-wide leading-tight">Completed</p>
+              <p className="text-2xl md:text-4xl font-bold text-green-600 tabular-nums">{stats.completed || 0}</p>
+              <p className="text-[9px] md:text-xs text-gray-500 mt-0.5 md:mt-1">Finished</p>
             </div>
-            <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-              <Calendar className="w-6 h-6 text-blue-600" />
+            <div className="w-8 h-8 md:w-12 md:h-12 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
+              <CheckCircle className="w-4 h-4 md:w-6 md:h-6 text-green-600" />
             </div>
           </div>
         </div>
 
-        <div className="card-hover bg-white rounded-lg shadow p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-label text-gray-600 mb-1">Overdue</p>
-              <p className="text-stat text-red-600">{stats.overdue || 0}</p>
-              <p className="text-caption text-gray-500 mt-1">Need attention</p>
+        <div className="card-hover bg-white rounded-lg shadow p-3 md:p-6">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+            <div className="flex-1">
+              <p className="text-[10px] md:text-sm font-medium text-gray-600 mb-0.5 md:mb-1 uppercase tracking-wide leading-tight">This Week</p>
+              <p className="text-2xl md:text-4xl font-bold text-blue-600 tabular-nums">{stats.thisWeek || 0}</p>
+              <p className="text-[9px] md:text-xs text-gray-500 mt-0.5 md:mt-1">Due soon</p>
             </div>
-            <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
-              <AlertCircle className="w-6 h-6 text-red-600" />
+            <div className="w-8 h-8 md:w-12 md:h-12 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
+              <Calendar className="w-4 h-4 md:w-6 md:h-6 text-blue-600" />
+            </div>
+          </div>
+        </div>
+
+        <div className="card-hover bg-white rounded-lg shadow p-3 md:p-6">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+            <div className="flex-1">
+              <p className="text-[10px] md:text-sm font-medium text-gray-600 mb-0.5 md:mb-1 uppercase tracking-wide leading-tight">Overdue</p>
+              <p className="text-2xl md:text-4xl font-bold text-red-600 tabular-nums">{stats.overdue || 0}</p>
+              <p className="text-[9px] md:text-xs text-gray-500 mt-0.5 md:mt-1">Need attention</p>
+            </div>
+            <div className="w-8 h-8 md:w-12 md:h-12 bg-red-100 rounded-full flex items-center justify-center flex-shrink-0">
+              <AlertCircle className="w-4 h-4 md:w-6 md:h-6 text-red-600" />
             </div>
           </div>
         </div>
       </div>
 
       {/* Main Charts Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 md:gap-4 mb-4 md:mb-6">
-{/* 📊 Pie Chart - Task Status Distribution */}
-<div className="lg:col-span-1 bg-white rounded-lg shadow p-6">
-  <div className="mb-6">
-    <h2 className="text-section-title mb-1">Task Status</h2>
-    <p className="text-body-sm text-gray-600">Distribution overview</p>
-  </div>
-  
-  {loading ? (
-    <div className="flex items-center justify-center h-64">
-      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-    </div>
-  ) : tasks.length === 0 ? (
-    <div className="flex items-center justify-center h-64 text-gray-400">
-      <div className="text-center">
-        <p className="text-body-sm">No tasks yet</p>
-        <p className="text-xs mt-1">Create tasks to see distribution</p>
-      </div>
-    </div>
-  ) : (
-    <PieChart 
-      data={[
-        { label: 'Pending', value: stats.pending || 0, color: '#64748b' },
-        { label: 'In Progress', value: stats.inProgress || 0, color: '#3b82f6' },
-        { label: 'Completed', value: stats.completed || 0, color: '#10b981' }
-      ]}
-    />
-  )}
-</div>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-2 md:gap-4 mb-3 md:mb-6">
+      {/* 📊 Pie Chart - Task Status Distribution */}
+        <div className="lg:col-span-1 bg-white rounded-lg shadow p-3 md:p-6">
+          <div className="mb-3 md:mb-6">
+            <h2 className="text-base md:text-2xl lg:text-3xl font-bold text-gray-800 mb-0.5 md:mb-1 leading-tight">Task Status</h2>
+            <p className="text-xs md:text-sm text-gray-600">Distribution overview</p>
+          </div>
+    
+        {loading ? (
+          <div className="flex items-center justify-center h-48 md:h-64">
+            <div className="animate-spin rounded-full h-6 w-6 md:h-8 md:w-8 border-b-2 border-primary"></div>
+          </div>
+          ) : tasks.length === 0 ? (
+          <div className="flex items-center justify-center h-48 md:h-64 text-gray-400">
+            <div className="text-center">
+              <p className="text-xs md:text-sm">No tasks yet</p>
+              <p className="text-[10px] md:text-xs mt-1">Create tasks to see distribution</p>
+              </div>
+            </div>
+            ) : (
+            <PieChart 
+              data={[
+                { label: 'Pending', value: stats.pending || 0, color: '#64748b' },
+                { label: 'In Progress', value: stats.inProgress || 0, color: '#3b82f6' },
+                { label: 'Completed', value: stats.completed || 0, color: '#10b981' }
+              ]}
+            />
+          )}
+        </div>
 
         {/* ⭕ Progress Ring - Completion Rate */}
-        <div className="lg:col-span-1 bg-white rounded-lg shadow p-6">
-          <div className="mb-6">
-            <h2 className="text-section-title mb-1">Completion Rate</h2>
-            <p className="text-body-sm text-gray-600">Overall progress</p>
+        <div className="lg:col-span-1 bg-white rounded-lg shadow p-3 md:p-6">
+          <div className="mb-3 md:mb-6">
+            <h2 className="text-base md:text-2xl lg:text-3xl font-bold text-gray-800 mb-0.5 md:mb-1 leading-tight">Completion Rate</h2>
+            <p className="text-xs md:text-sm text-gray-600">Overall progress</p>
           </div>
           
           <ProgressRing percentage={stats.completionRate || 0} />
         </div>
 
         {/* 📈 Mini Stats */}
-        <div className="lg:col-span-1 space-y-4">
-          <div className="card-hover bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg shadow p-6 text-white cursor-pointer">
-            <div className="flex items-center justify-between mb-2">
-              <Target className="w-8 h-8" />
-              <span className="text-3xl font-bold">{stats.inProgress || 0}</span>
+        <div className="lg:col-span-1 space-y-2 md:space-y-4">
+          <div className="card-hover bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg shadow p-4 md:p-6 text-white cursor-pointer">
+            <div className="flex items-center justify-between mb-1 md:mb-2">
+              <Target className="w-6 h-6 md:w-8 md:h-8" />
+              <span className="text-2xl md:text-3xl font-bold tabular-nums">{stats.inProgress || 0}</span>
             </div>
-            <p className="text-sm opacity-90">Active Tasks</p>
-            <p className="text-xs opacity-75 mt-1">Currently in progress</p>
+            <p className="text-xs md:text-sm opacity-90 font-medium">Active Tasks</p>
+            <p className="text-[10px] md:text-xs opacity-75 mt-0.5 md:mt-1">Currently in progress</p>
           </div>
 
-          <div className="card-hover bg-gradient-to-br from-amber-500 to-amber-600 rounded-lg shadow p-6 text-white cursor-pointer">
-            <div className="flex items-center justify-between mb-2">
-              <Zap className="w-8 h-8" />
-              <span className="text-3xl font-bold">{stats.pending || 0}</span>
+          <div className="card-hover bg-gradient-to-br from-amber-500 to-amber-600 rounded-lg shadow p-4 md:p-6 text-white cursor-pointer">
+            <div className="flex items-center justify-between mb-1 md:mb-2">
+              <Zap className="w-6 h-6 md:w-8 md:h-8" />
+              <span className="text-2xl md:text-3xl font-bold tabular-nums">{stats.pending || 0}</span>
             </div>
-            <p className="text-sm opacity-90">Pending Tasks</p>
-            <p className="text-xs opacity-75 mt-1">Ready to start</p>
+            <p className="text-xs md:text-sm opacity-90 font-medium">Pending Tasks</p>
+            <p className="text-[10px] md:text-xs opacity-75 mt-0.5 md:mt-1">Ready to start</p>
           </div>
         </div>
       </div>
 
       {/* 📊 Bar Chart - Tasks by Subject */}
-      <div className="bg-white rounded-lg shadow p-6 mb-8">
-        <div className="mb-6">
-          <h2 className="text-section-title mb-1">Tasks by Subject</h2>
-          <p className="text-body-sm text-gray-600">Workload distribution across subjects</p>
+      <div className="bg-white rounded-lg shadow p-3 md:p-6 mb-3 md:mb-6">
+        <div className="mb-3 md:mb-6">
+          <h2 className="text-base md:text-2xl lg:text-3xl font-bold text-gray-800 mb-0.5 md:mb-1 leading-tight">Tasks by Subject</h2>
+          <p className="text-xs md:text-sm text-gray-600">Workload distribution across subjects</p>
         </div>
-        
-        <BarChart data={stats.subjectBreakdown || {}} />
-      </div>
+          <BarChart data={stats.subjectBreakdown || {}} />
+        </div>
 
       {/* Breakdown Tables */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-6">
         {/* Tasks by Priority */}
-        <div className="bg-white rounded-lg shadow p-6">
-          <div className="mb-6">
-            <h2 className="text-section-title mb-1">Tasks by Priority</h2>
-            <p className="text-body-sm text-gray-600">Priority distribution</p>
-          </div>
-          <div className="space-y-3">
+      <div className="bg-white rounded-lg shadow p-3 md:p-6">
+        <div className="mb-3 md:mb-6">
+          <h2 className="text-base md:text-xl font-bold text-gray-800 mb-0.5 md:mb-1">Tasks by Priority</h2>
+          <p className="text-xs md:text-sm text-gray-600">Priority distribution</p>
+        </div>
+        <div className="space-y-2 md:space-y-3">
             {Object.entries(stats.priorityBreakdown || {}).map(([priority, count]) => {
               const configs = {
                 Low: { bg: 'bg-blue-100', text: 'text-blue-800', border: 'border-blue-300', icon: '📋' },
@@ -264,12 +263,12 @@ const calculateStats = (taskData) => {
               const config = configs[priority] || configs.Medium;
               
               return (
-                <div key={priority} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition">
-                  <span className={`inline-flex items-center space-x-2 px-3 py-1 rounded-full text-body-sm font-medium border ${config.bg} ${config.text} ${config.border}`}>
-                    <span>{config.icon}</span>
+                <div key={priority} className="flex items-center justify-between p-2 md:p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition">
+                  <span className={`inline-flex items-center space-x-1 md:space-x-2 px-2 md:px-3 py-0.5 md:py-1 rounded-full text-xs md:text-sm font-medium border ${config.bg} ${config.text} ${config.border}`}>
+                    <span className="text-sm md:text-base">{config.icon}</span>
                     <span>{priority}</span>
                   </span>
-                  <span className="text-body-sm font-semibold text-gray-900 bg-white px-3 py-1 rounded-full border border-gray-200">
+                  <span className="text-xs md:text-sm font-semibold text-gray-900 bg-white px-2 md:px-3 py-0.5 md:py-1 rounded-full border border-gray-200">
                     {count}
                   </span>
                 </div>
@@ -279,17 +278,17 @@ const calculateStats = (taskData) => {
         </div>
 
         {/* Summary Insights */}
-        <div className="bg-white rounded-lg shadow p-6">
-          <div className="mb-6">
-            <h2 className="text-section-title mb-1">Quick Insights</h2>
-            <p className="text-body-sm text-gray-600">Performance summary</p>
+        <div className="bg-white rounded-lg shadow p-3 md:p-6">
+          <div className="mb-3 md:mb-6">
+            <h2 className="text-base md:text-xl font-bold text-gray-800 mb-0.5 md:mb-1">Quick Insights</h2>
+            <p className="text-xs md:text-sm text-gray-600">Performance summary</p>
           </div>
-          <div className="space-y-4">
-            <div className="p-4 bg-green-50 rounded-lg border-l-4 border-green-500">
-              <p className="text-body-sm font-semibold text-green-800 mb-1">
+          <div className="space-y-2 md:space-y-4">
+            <div className="p-3 md:p-4 bg-green-50 rounded-lg border-l-4 border-green-500">
+              <p className="text-xs md:text-sm font-semibold text-green-800 mb-0.5 md:mb-1">
                 ✅ {stats.completed || 0} tasks completed
               </p>
-              <p className="text-caption text-green-600">
+              <p className="text-[10px] md:text-xs text-green-600">
                 Keep up the great work!
               </p>
             </div>
@@ -352,7 +351,7 @@ const PieChart = ({ data }) => {
     const item = filteredData[0];
     return (
       <div className="flex flex-col items-center">
-        <svg viewBox="0 0 200 200" className="w-64 h-64">
+        <svg viewBox="0 0 200 200" className="w-48 h-48 md:w-64 md:h-64">
           {/* Full circle for 100% */}
           <circle 
             cx="100" 
@@ -373,14 +372,14 @@ const PieChart = ({ data }) => {
         </svg>
 
         {/* Legend - Show ALL categories including zeros */}
-        <div className="mt-4 space-y-2 w-full">
+        <div className="mt-3 md:mt-4 space-y-1.5 md:space-y-2 w-full">
           {data.map((dataItem, index) => (
             <div key={index} className="flex items-center justify-between">
-              <div className="flex items-center space-x-2">
-                <div className="w-4 h-4 rounded" style={{ backgroundColor: dataItem.color }} />
-                <span className="text-body-sm text-gray-700">{dataItem.label}</span>
+              <div className="flex items-center space-x-1 md:space-x-2">
+                <div className="w-3 h-3 md:w-4 md:h-4 rounded flex-shrink-0" style={{ backgroundColor: dataItem.color }} />
+                <span className="text-xs md:text-sm text-gray-700">{dataItem.label}</span>
               </div>
-              <span className="text-body-sm font-semibold text-gray-900">
+              <span className="text-xs md:text-sm font-semibold text-gray-900">
                 {dataItem.value} ({((dataItem.value / total) * 100).toFixed(0)}%)
               </span>
             </div>
@@ -446,14 +445,14 @@ const PieChart = ({ data }) => {
       </svg>
 
       {/* Legend - Show ALL categories including zeros */}
-      <div className="mt-4 space-y-2 w-full">
-        {data.map((item, index) => (
+      <div className="mt-3 md:mt-4 space-y-1.5 md:space-y-2 w-full">
+        {data.map((dataItem, index) => (
           <div key={index} className="flex items-center justify-between">
-            <div className="flex items-center space-x-2">
-              <div className="w-4 h-4 rounded" style={{ backgroundColor: item.color }} />
-              <span className="text-body-sm text-gray-700">{item.label}</span>
+            <div className="flex items-center space-x-1 md:space-x-2">
+              <div className="w-3 h-3 md:w-4 md:h-4 rounded flex-shrink-0" style={{ backgroundColor: dataItem.color }} />
+              <span className="text-xs md:text-sm text-gray-700">{dataItem.label}</span>
             </div>
-            <span className="text-body-sm font-semibold text-gray-900">
+            <span className="text-xs md:text-sm font-semibold text-gray-900">
               {item.value} ({total > 0 ? ((item.value / total) * 100).toFixed(0) : 0}%)
             </span>
           </div>
@@ -476,7 +475,7 @@ const ProgressRing = ({ percentage }) => {
 
   return (
     <div className="flex flex-col items-center justify-center">
-      <div className="relative w-64 h-64">
+      <div className="relative w-48 h-48 md:w-64 md:h-64">
         <svg viewBox="0 0 200 200" className="transform -rotate-90 w-full h-full">
           {/* Background circle */}
           <circle
@@ -504,18 +503,18 @@ const ProgressRing = ({ percentage }) => {
         
         {/* Center text */}
         <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <span className="text-5xl font-bold text-gray-800">{percentage}%</span>
-          <span className="text-body-sm text-gray-600 mt-1">Complete</span>
+          <span className="text-3xl md:text-5xl font-bold text-gray-800">{percentage}%</span>
+          <span className="text-xs md:text-sm text-gray-600 mt-0.5 md:mt-1">Complete</span>
         </div>
       </div>
       
       {/* Status message */}
-      <div className="mt-6 text-center">
+      <div className="mt-3 md:mt-6 text-center">
         {percentage >= 80 && (
-          <p className="text-body font-medium text-green-600">Excellent progress! 🎉</p>
+          <p className="text-sm md:text-base font-medium text-green-600">Excellent progress! 🎉</p>
         )}
         {percentage >= 50 && percentage < 80 && (
-          <p className="text-body font-medium text-blue-600">Good progress! Keep going 💪</p>
+          <p className="text-sm md:text-base font-medium text-blue-600">Good progress! Keep going 💪</p>
         )}
         {percentage < 50 && percentage > 0 && (
           <p className="text-body font-medium text-amber-600">Getting started! 🚀</p>
@@ -551,20 +550,20 @@ const BarChart = ({ data }) => {
         
         return (
           <div key={subject}>
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-body-sm font-medium text-gray-700">{subject}</span>
-              <span className="text-body-sm font-semibold text-gray-900">{count}</span>
+            <div className="flex items-center justify-between mb-1 md:mb-2">
+              <span className="text-xs md:text-sm font-medium text-gray-700 truncate flex-1 mr-2">{subject}</span>
+              <span className="text-xs md:text-sm font-semibold text-gray-900 flex-shrink-0">{count}</span>
             </div>
-            <div className="w-full bg-gray-200 rounded-full h-8 overflow-hidden">
+            <div className="w-full bg-gray-200 rounded-full h-6 md:h-8 overflow-hidden">
               <div
-                className="h-8 rounded-full transition-all duration-1000 ease-out flex items-center px-3"
+                className="h-6 md:h-8 rounded-full transition-all duration-1000 ease-out flex items-center px-2 md:px-3"
                 style={{ 
                   width: `${percentage}%`,
                   backgroundColor: color,
                   minWidth: count > 0 ? '40px' : '0'
                 }}
               >
-                <span className="text-xs font-semibold text-white">
+                <span className="text-[10px] md:text-xs font-semibold text-white">
                   {count > 0 && `${count} tasks`}
                 </span>
               </div>
