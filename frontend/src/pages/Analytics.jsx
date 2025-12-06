@@ -453,7 +453,7 @@ const PieChart = ({ data }) => {
               <span className="text-xs md:text-sm text-gray-700">{dataItem.label}</span>
             </div>
             <span className="text-xs md:text-sm font-semibold text-gray-900">
-              {item.value} ({total > 0 ? ((item.value / total) * 100).toFixed(0) : 0}%)
+              {dataItem.value} ({total > 0 ? ((dataItem.value / total) * 100).toFixed(0) : 0}%)
             </span>
           </div>
         ))}

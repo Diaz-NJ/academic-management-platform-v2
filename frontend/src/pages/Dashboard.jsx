@@ -105,6 +105,15 @@ const Dashboard = () => {
     };
   }, [loadTasks, loadEvents]); // ✅ Proper dependencies
 
+  useEffect(() => {
+  if (tasks.length > 0) {
+    const urgentTasks = getUrgentTasks(tasks);
+    setUrgentTaskCount(urgentTasks.length);
+  } else {
+    setUrgentTaskCount(0);
+  }
+}, [tasks]);
+
   // ✅ OPTIMIZED: Poll for notifications less frequently and only when on dashboard
   useEffect(() => {
     const checkNotifications = async () => {
@@ -149,16 +158,6 @@ const Dashboard = () => {
         console.error('Error checking notifications:', error);
       }
     };
-
-{/* Add this useEffect after the existing useEffects (around line 80) */}
-useEffect(() => {
-  if (tasks.length > 0) {
-    const counts = getUrgencyCounts(tasks);
-    setUrgentTaskCount(counts.total);
-  } else {
-    setUrgentTaskCount(0);
-  }
-}, [tasks]);
 
     // ✅ Check immediately on mount
     checkNotifications();
