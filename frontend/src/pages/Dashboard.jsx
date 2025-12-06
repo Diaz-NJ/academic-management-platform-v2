@@ -82,7 +82,7 @@ const Dashboard = () => {
     let mounted = true;
     
     const initialLoad = async () => {
-      if (mounted) {
+      if (mounted && activeTab === 'dashboard') {
         try {
           await Promise.all([
             loadTasks(),
@@ -91,12 +91,15 @@ const Dashboard = () => {
         } catch (error) {
           console.error('Error loading dashboard:', error);
         } finally {
-          if (mounted) {
-            setLoading(false);
-          }
+        if (mounted) {
+          setLoading(false);
         }
       }
-    };
+    } else {
+      // ✅ If not on dashboard, don't show loading state
+      setLoading(false);
+    }
+  };
     
     initialLoad();
     

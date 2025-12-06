@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
-import { groupAPI, invitationAPI, discussionAPI } from '../services/api';
+import { groupAPI, invitationAPI, discussionAPI, taskAPI } from '../services/api';
 import { Users, Plus, Trash2, FileText, BookOpen, CheckSquare, Square, UserPlus, MessageSquare } from 'lucide-react';
 import GroupModal from '../components/GroupModal';
 import ConfirmDialog from '../components/ConfirmDialog';
@@ -30,6 +30,7 @@ const Collaboration = ({ onUnreadCountChange }) => {
   const [groupUnreadCounts, setGroupUnreadCounts] = useState({});
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
   const [groupToLeave, setGroupToLeave] = useState(null);
+  const [groupTaskCounts, setGroupTaskCounts] = useState({});
 
   const loadAllGroupUnreadCounts = useCallback(async (groupsList) => {
     if (!groupsList || groupsList.length === 0) return;
@@ -58,21 +59,48 @@ const Collaboration = ({ onUnreadCountChange }) => {
     }
   }, [user.id]);
 
-// ✅ ENHANCED: Load, poll, and notify parent of unread counts
-  useEffect(() => {
+  // ✅ NEW FUNCTION: Load task counts for all groups
+const loadAllGroupTaskCounts = useCallback(async (groupsList) => {
+  if (!groupsList || groupsList.length === 0) return;
+  
+  try {
+    const counts = {};
+    
+    await Promise.all(
+      groupsList.map(async (group) => {
+        try {
+          const response = await taskAPI.getGroupTasks(group.id);
+          counts[group.id] = response.data.length;
+        } catch (error) {
+          console.error(`Error loading tasks for group ${group.id}:`, error);
+          counts[group.id] = 0;
+        }
+      })
+    );
+    
+    setGroupTaskCounts(counts);
+  } catch (error) {
+    console.error('Error loading group task counts:', error);
+  }
+}, []);
+
+useEffect(() => {
   if (groups.length > 0) {
     // Load immediately
     loadAllGroupUnreadCounts(groups);
     
+    // ✅ ADD THIS:
+    loadAllGroupTaskCounts(groups);
+    
     // Poll every 10 seconds
     const interval = setInterval(() => {
       loadAllGroupUnreadCounts(groups);
+      loadAllGroupTaskCounts(groups); // ✅ ADD THIS
     }, 10000);
     
     return () => clearInterval(interval);
   }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-}, [groups.length]); // ✅ Intentionally not including groups/loadAllGroupUnreadCounts
+}, [groups.length]);
 
   // ✅ NEW: Notify parent when unread count changes
   useEffect(() => {
@@ -98,17 +126,20 @@ const Collaboration = ({ onUnreadCountChange }) => {
     }
   }, [groups, searchQuery]);// ✅ FIXED: Search filtering with better performance
 
-  // ✅ NEW: Load unread counts for all groups
+const loadGroups = useCallback(async (force = false) => {
+    // ✅ OPTIMIZATION: Skip if already loaded (unless forced)
+    if (!force && groups.length > 0) {
+      setLoading(false);
+      return;
+    }
 
-const loadGroups = useCallback(async() => {
     try {
       const response = await groupAPI.getGroups(user.id);
       const newGroups = response.data;
       
-      // ✅ Only update if there are actual changes
       setGroups(prevGroups => {
         if (JSON.stringify(prevGroups) === JSON.stringify(newGroups)) {
-          return prevGroups; // No change, don't trigger re-render
+          return prevGroups;
         }
         return newGroups;
       });
@@ -120,7 +151,7 @@ const loadGroups = useCallback(async() => {
     } finally {
       setLoading(false);
     }
-  }, [user.id, showToast]);
+  }, [user.id, showToast, groups.length]);
 
   useEffect(() => {
   loadGroups();
@@ -256,8 +287,8 @@ const handleSaveGroup = async (groupData) => {
           <div className="flex items-center space-x-1 md:space-x-2 self-end sm:self-auto">
             <button
               onClick={async () => {
-                // ✅ Don't show full loading state for refresh
-                await loadGroups();
+                // ✅ CHANGED: Pass force=true to refresh
+                await loadGroups(true);
                 await loadAllGroupUnreadCounts(groups);
                 showToast('Groups refreshed', 'success');
               }}
@@ -462,7 +493,10 @@ const handleSaveGroup = async (groupData) => {
               </div>
 
               {/* ✨ Stats Row - Mobile: compact */}
-              <div className="flex items-center justify-between py-2 md:py-3 border-y border-gray-200">
+                <div className="flex items-center justify-between py-2 md:py-3 border-y border-gray-200">
+              {/* ✅ CHANGED: Now shows both members AND tasks */}
+              <div className="flex items-center space-x-3 md:space-x-4">
+                {/* Members Count */}
                 <div className="flex items-center space-x-1 md:space-x-2">
                   <div className="w-8 h-8 md:w-10 md:h-10 bg-blue-100 rounded-full flex items-center justify-center">
                     <Users className="w-4 h-4 md:w-5 md:h-5 text-blue-600" />
@@ -477,26 +511,42 @@ const handleSaveGroup = async (groupData) => {
                   </div>
                 </div>
                 
-                {/* Role Badge - Mobile: smaller */}
-                <div>
-                  {isAdmin ? (
-                    <span className="inline-flex items-center space-x-0.5 md:space-x-1 px-1.5 md:px-3 py-0.5 md:py-1 bg-purple-100 text-purple-800 rounded-full text-[10px] md:text-xs font-semibold border border-purple-300">
-                      <span>👑</span>
-                      <span className="hidden sm:inline">Admin</span>
-                    </span>
-                  ) : currentMember?.role === 'Leader' ? (
-                    <span className="inline-flex items-center space-x-0.5 md:space-x-1 px-1.5 md:px-3 py-0.5 md:py-1 bg-blue-100 text-blue-800 rounded-full text-[10px] md:text-xs font-semibold border border-blue-300">
-                      <span>⭐</span>
-                      <span className="hidden sm:inline">Leader</span>
-                    </span>
-                  ) : (
-                    <span className="inline-flex items-center space-x-0.5 md:space-x-1 px-1.5 md:px-3 py-0.5 md:py-1 bg-gray-100 text-gray-700 rounded-full text-[10px] md:text-xs font-medium border border-gray-300">
-                      <span>👤</span>
-                      <span className="hidden sm:inline">Member</span>
-                    </span>
-                  )}
+                {/* ✅ NEW: Tasks Count */}
+                <div className="flex items-center space-x-1 md:space-x-2">
+                  <div className="w-8 h-8 md:w-10 md:h-10 bg-purple-100 rounded-full flex items-center justify-center">
+                    <CheckSquare className="w-4 h-4 md:w-5 md:h-5 text-purple-600" />
+                  </div>
+                  <div>
+                    <p className="text-base md:text-xl font-bold text-gray-800 leading-none">
+                      {groupTaskCounts[group.id] || 0}
+                    </p>
+                    <p className="text-[10px] md:text-xs text-gray-500">
+                      Task{(groupTaskCounts[group.id] || 0) !== 1 ? 's' : ''}
+                    </p>
+                  </div>
                 </div>
               </div>
+              
+              {/* Role Badge - Mobile: smaller */}
+              <div>
+                {isAdmin ? (
+                  <span className="inline-flex items-center space-x-0.5 md:space-x-1 px-1.5 md:px-3 py-0.5 md:py-1 bg-purple-100 text-purple-800 rounded-full text-[10px] md:text-xs font-semibold border border-purple-300">
+                    <span>👑</span>
+                    <span className="hidden sm:inline">Admin</span>
+                  </span>
+                ) : currentMember?.role === 'Leader' ? (
+                  <span className="inline-flex items-center space-x-0.5 md:space-x-1 px-1.5 md:px-3 py-0.5 md:py-1 bg-blue-100 text-blue-800 rounded-full text-[10px] md:text-xs font-semibold border border-blue-300">
+                    <span>⭐</span>
+                    <span className="hidden sm:inline">Leader</span>
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center space-x-0.5 md:space-x-1 px-1.5 md:px-3 py-0.5 md:py-1 bg-gray-100 text-gray-700 rounded-full text-[10px] md:text-xs font-medium border border-gray-300">
+                    <span>👤</span>
+                    <span className="hidden sm:inline">Member</span>
+                  </span>
+                )}
+              </div>
+            </div>
 
               {/* ✨ Members Preview - Mobile: smaller avatars */}
               <div className="mt-3 md:mt-4">
