@@ -21,7 +21,7 @@ import LoadingSpinner from '../components/LoadingSpinner';
 import { expandRecurringEvents } from '../utils/recurringUtils';
 import { invitationAPI } from '../services/api';
 import DeadlineBadge from '../components/DeadlineBadge';
-import { getTaskUrgency, getUrgentTasks } from '../utils/deadlineUtils';
+import { getUrgentTasks } from '../utils/deadlineUtils';
 
 const Dashboard = () => {
   const { user, logout } = useAuth();
