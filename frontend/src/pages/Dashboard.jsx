@@ -106,6 +106,7 @@ const Dashboard = () => {
     return () => {
       mounted = false;
     };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loadTasks, loadEvents]); // ✅ Proper dependencies
 
   useEffect(() => {

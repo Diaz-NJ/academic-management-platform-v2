@@ -90,18 +90,17 @@ useEffect(() => {
   if (groups.length > 0) {
     // Load immediately
     loadAllGroupUnreadCounts(groups);
-    
-    // ✅ ADD THIS:
     loadAllGroupTaskCounts(groups);
     
     // Poll every 10 seconds
     const interval = setInterval(() => {
       loadAllGroupUnreadCounts(groups);
-      loadAllGroupTaskCounts(groups); // ✅ ADD THIS
+      loadAllGroupTaskCounts(groups);
     }, 10000);
     
     return () => clearInterval(interval);
   }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
 }, [groups.length]);
 
   // ✅ NEW: Notify parent when unread count changes
@@ -195,11 +194,6 @@ const loadGroups = useCallback(async (force = false) => {
 
   const handleCreateGroup = () => {
     setSelectedGroup(null);
-    setShowGroupModal(true);
-  };
-
-  const handleEditGroup = (group) => {
-    setSelectedGroup(group);
     setShowGroupModal(true);
   };
 

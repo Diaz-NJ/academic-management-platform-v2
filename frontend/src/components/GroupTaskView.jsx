@@ -1,8 +1,5 @@
-
-// frontend/src/components/GroupTaskView.jsx - COMPLETE REPLACEMENT
-
 import React, { useState, useEffect } from 'react';
-import { X, CheckCircle, Clock, AlertCircle, Calendar as CalendarIcon } from 'lucide-react';
+import { X, CheckCircle, Clock, Calendar as CalendarIcon } from 'lucide-react';
 import { taskAPI } from '../services/api';
 import { formatRelativeDate } from '../utils/dateUtils';
 import { PRIORITY_CONFIG, STATUS_CONFIG } from '../utils/colorUtils';
@@ -20,6 +17,7 @@ const GroupTasksView = ({ group, onClose }) => {
     if (isMember) {
       loadGroupTasks();
     }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [group.id, isMember]); // ✅ Added isMember dependency
 
   // Now the conditional return is AFTER the hook
