@@ -405,7 +405,6 @@ const handleDeleteConfirm = async () => {
     showToast('Event deleted successfully', 'success');
     
     await loadEvents();
-    dataSync.notify('events'); // ✅ ADD THIS
     closeModal();
   } catch (error) {
     console.error('❌ Error deleting event:', error);
