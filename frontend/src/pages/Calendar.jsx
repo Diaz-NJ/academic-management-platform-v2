@@ -342,7 +342,6 @@ const handleDeleteSeriesClick = () => {
   });
 };
 
-// ✅ FIXED: Delete confirm with proper handling
 const handleDeleteConfirm = async () => {
   const eventToDelete = modalState.data;
   if (!eventToDelete) return;
@@ -351,32 +350,34 @@ const handleDeleteConfirm = async () => {
     console.log('🗑️ Delete confirm called for:', {
       title: eventToDelete.title,
       isCanceled: eventToDelete.isCanceled,
+      isRecurring: eventToDelete.isRecurring,
       isRecurringInstance: eventToDelete.isRecurringInstance,
       eventId: eventToDelete.id,
       originalId: eventToDelete.originalId
     });
 
-    // ✅ FIXED: Canceled recurring instance - DELETE ONLY THIS INSTANCE
-    if (eventToDelete.isCanceled && eventToDelete.isRecurringInstance) {
+    // ✅ FIXED: Handle ANY canceled recurring event (instance OR source)
+    if (eventToDelete.isCanceled && (eventToDelete.isRecurring || eventToDelete.isRecurringInstance)) {
       const instanceDate = new Date(eventToDelete.startDateTime);
       const dateStr = instanceDate.toISOString().substring(0, 10);
       
       // Get the ORIGINAL parent event ID
       const originalId = eventToDelete.originalId || eventToDelete.id;
       
-      console.log('🗑️ Deleting CANCELED instance ONLY:', {
+      console.log('🗑️ Deleting CANCELED event (adding to deletedDates):', {
         dateStr,
         originalId,
-        title: eventToDelete.title
+        title: eventToDelete.title,
+        wasSourceEvent: !eventToDelete.isRecurringInstance
       });
       
-      // ✅ THIS SHOULD ONLY ADD TO deletedDates, NOT delete the series
+      // This adds the date to deletedDates, doesn't delete the series
       await eventAPI.deleteInstance(originalId, dateStr);
       showToast('Canceled event removed from calendar', 'success');
       
       await loadEvents();
       closeModal();
-      return; // ✅ IMPORTANT: Return here to prevent series deletion
+      return; // ✅ CRITICAL: Return here to prevent series deletion
     } 
     
     // ✅ Non-canceled recurring instance
@@ -396,7 +397,7 @@ const handleDeleteConfirm = async () => {
       
       await loadEvents();
       closeModal();
-      return; // ✅ IMPORTANT: Return here
+      return;
     }
     
     // ✅ Regular event or entire recurring series

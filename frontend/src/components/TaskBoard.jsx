@@ -1,5 +1,3 @@
-// frontend/src/components/TaskBoard.jsx - COMPLETE REPLACEMENT
-
 import React from 'react';
 import { taskAPI } from '../services/api';
 import { useToast } from '../context/ToastContext';
