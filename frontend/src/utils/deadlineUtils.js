@@ -129,26 +129,35 @@ export const getUrgentTasks = (tasks) => {
 
 /**
  * Format hours remaining into human-readable text
- * @param {number} hours - Hours remaining
+ * @param {number} hours - Hours remaining (negative = overdue)
  * @returns {string} - Formatted text
  */
 export const formatTimeRemaining = (hours) => {
+  // ✅ FIXED: Handle overdue tasks correctly
   if (hours < 0) {
     const absHours = Math.abs(hours);
-    if (absHours < 24) {
-      return `${Math.floor(absHours)} hours overdue`;
+    
+    if (absHours < 1) {
+      const minutes = Math.floor(absHours * 60);
+      return `${minutes} minute${minutes !== 1 ? 's' : ''} ago`;
+    } else if (absHours < 24) {
+      const hoursOverdue = Math.floor(absHours);
+      return `${hoursOverdue} hour${hoursOverdue !== 1 ? 's' : ''} ago`;
+    } else {
+      const daysOverdue = Math.floor(absHours / 24);
+      return `${daysOverdue} day${daysOverdue !== 1 ? 's' : ''} ago`;
     }
-    const days = Math.floor(absHours / 24);
-    return `${days} day${days !== 1 ? 's' : ''} overdue`;
   }
   
+  // ✅ Handle tasks that are due soon (positive hours)
   if (hours < 1) {
     const minutes = Math.floor(hours * 60);
     return `${minutes} minute${minutes !== 1 ? 's' : ''} left`;
   } else if (hours < 24) {
-    return `${Math.floor(hours)} hour${Math.floor(hours) !== 1 ? 's' : ''} left`;
+    const hoursLeft = Math.floor(hours);
+    return `${hoursLeft} hour${hoursLeft !== 1 ? 's' : ''} left`;
   } else {
-    const days = Math.floor(hours / 24);
-    return `${days} day${days !== 1 ? 's' : ''} left`;
+    const daysLeft = Math.floor(hours / 24);
+    return `${daysLeft} day${daysLeft !== 1 ? 's' : ''} left`;
   }
 };

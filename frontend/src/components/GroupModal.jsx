@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { X, Trash2, Users } from 'lucide-react';
+import { X, Trash2, Users, Edit } from 'lucide-react';
 import { useToast } from '../context/ToastContext';
 
-const GroupModal = ({ onClose, onSave, group, currentUser }) => {
+const GroupModal = ({ onClose, onSave, group, currentUser, mode = 'edit' }) => {
   const [formData, setFormData] = useState({
     groupNumber: '',
     groupName: '',
@@ -12,6 +12,10 @@ const GroupModal = ({ onClose, onSave, group, currentUser }) => {
   });
   const [loading, setLoading] = useState(false);
   const { showToast } = useToast();
+  const [viewMode, setViewMode] = useState(mode); // 'view' or 'edit'
+
+  // ✅ Check if current user is admin
+  const isAdmin = group?.createdBy === currentUser.id;
 
   useEffect(() => {
     if (group) {
@@ -23,7 +27,7 @@ const GroupModal = ({ onClose, onSave, group, currentUser }) => {
         members: group.members || []
       });
     } else {
-      // Auto-add current user as leader when creating new group
+      // Auto-add current user as admin when creating new group
       setFormData(prev => ({
         ...prev,
         members: [{
@@ -62,11 +66,11 @@ const GroupModal = ({ onClose, onSave, group, currentUser }) => {
       return;
     }
 
-    // Check if there's at least one leader (for editing)
+    // Check if there's at least one admin (for editing)
     if (group) {
-      const hasLeader = formData.members.some(m => m.role === 'Leader');
-      if (!hasLeader) {
-        showToast('Group must have at least one leader', 'error');
+      const hasAdmin = formData.members.some(m => m.userId === group.createdBy);
+      if (!hasAdmin) {
+        showToast('Group must have the original admin', 'error');
         return;
       }
     }
@@ -98,6 +102,150 @@ const GroupModal = ({ onClose, onSave, group, currentUser }) => {
     }
   };
 
+  // ✅ VIEW MODE RENDER
+  if (viewMode === 'view' && group) {
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="bg-white rounded-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+          {/* Header */}
+          <div className="sticky top-0 bg-gradient-to-r from-purple-50 to-blue-50 border-b px-6 py-4 flex justify-between items-center">
+            <div>
+              <h2 className="text-2xl font-bold text-gray-800">Group Information</h2>
+              <p className="text-sm text-gray-600 mt-1">Read-only view</p>
+            </div>
+            <button
+              onClick={onClose}
+              className="text-gray-400 hover:text-gray-600 transition"
+            >
+              <X className="w-6 h-6" />
+            </button>
+          </div>
+
+          <div className="p-6 space-y-6">
+            {/* Group Number */}
+            {formData.groupNumber && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Group Number/ID
+                </label>
+                <div className="px-4 py-3 bg-gray-50 rounded-lg border border-gray-200">
+                  <p className="text-gray-800">{formData.groupNumber}</p>
+                </div>
+              </div>
+            )}
+
+            {/* Group Name */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Group Name
+              </label>
+              <div className="px-4 py-3 bg-gray-50 rounded-lg border border-gray-200">
+                <p className="text-gray-800 font-semibold">{formData.groupName}</p>
+              </div>
+            </div>
+
+            {/* Subject */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Subject
+              </label>
+              <div className="px-4 py-3 bg-gray-50 rounded-lg border border-gray-200">
+                <p className="text-gray-800">{formData.subject}</p>
+              </div>
+            </div>
+
+            {/* Task Description */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Task/Project Description
+              </label>
+              <div className="px-4 py-3 bg-gray-50 rounded-lg border border-gray-200 min-h-[100px]">
+                <p className="text-gray-800 whitespace-pre-wrap">{formData.taskDescription}</p>
+              </div>
+            </div>
+
+            {/* Members Section */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center space-x-2">
+                <Users className="w-4 h-4" />
+                <span>Members ({formData.members.length})</span>
+              </label>
+              
+              <div className="border border-gray-200 rounded-lg divide-y max-h-64 overflow-y-auto">
+                {formData.members.map((member) => {
+                  const isMemberAdmin = group?.createdBy === member.userId;
+                  const isCurrentUserItself = member.userId === currentUser.id;
+                  
+                  return (
+                    <div
+                      key={member.userId}
+                      className="p-3 bg-gray-50 flex items-center justify-between"
+                    >
+                      <div className="flex items-center space-x-3">
+                        <div className="w-10 h-10 bg-gradient-to-br from-indigo-400 to-cyan-400 rounded-full border-2 border-white flex items-center justify-center text-sm font-medium text-white shadow-md">
+                          {member.name.charAt(0).toUpperCase()}
+                        </div>
+                        <div>
+                          <p className="font-medium text-gray-800">
+                            {member.name}
+                            {isCurrentUserItself && (
+                              <span className="ml-2 text-xs text-blue-600 font-semibold">(You)</span>
+                            )}
+                          </p>
+                          <span className={`inline-block px-2 py-0.5 text-xs rounded-full ${
+                            isMemberAdmin
+                              ? 'bg-purple-100 text-purple-800 border border-purple-300' 
+                              : member.role === 'Leader'
+                              ? 'bg-blue-100 text-blue-800 border border-blue-300'
+                              : 'bg-gray-100 text-gray-800 border border-gray-300'
+                          }`}>
+                            {isMemberAdmin ? 'Admin' : member.role || 'Member'}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Created Date */}
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <p className="text-sm text-gray-600">
+                <strong>Created:</strong> {new Date(group.createdAt).toLocaleDateString('en-US', {
+                  weekday: 'long',
+                  year: 'numeric',
+                  month: 'long',
+                  day: 'numeric'
+                })}
+              </p>
+            </div>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="p-6 bg-gray-50 border-t border-gray-200 flex space-x-3">
+            {isAdmin && (
+              <button
+                onClick={() => setViewMode('edit')}
+                className="flex-1 px-4 py-3 bg-primary text-white rounded-lg hover:bg-blue-600 transition font-medium flex items-center justify-center space-x-2"
+              >
+                <Edit className="w-5 h-5" />
+                <span>Edit Group</span>
+              </button>
+            )}
+            <button
+              onClick={onClose}
+              className={`${isAdmin ? 'flex-1' : 'w-full'} px-4 py-3 border border-gray-300 rounded-lg hover:bg-gray-100 transition font-medium`}
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ✅ EDIT MODE RENDER (existing form)
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto">
@@ -191,7 +339,7 @@ const GroupModal = ({ onClose, onSave, group, currentUser }) => {
               </p>
             </div>
             
-            {/* ✅ UPDATED MEMBERS LIST */}
+            {/* Members List */}
             <div className="border border-gray-200 rounded-lg divide-y max-h-64 overflow-y-auto">
               {formData.members.length === 0 ? (
                 <div className="p-4 text-center text-gray-500 text-sm">
@@ -199,7 +347,6 @@ const GroupModal = ({ onClose, onSave, group, currentUser }) => {
                 </div>
               ) : (
                 formData.members.map((member) => {
-                  const isAdmin = group?.createdBy === currentUser.id; // ✅ Only creator is admin
                   const isMemberAdmin = group?.createdBy === member.userId;
                   const isCurrentUserItself = member.userId === currentUser.id;
                   
@@ -222,7 +369,7 @@ const GroupModal = ({ onClose, onSave, group, currentUser }) => {
                           <span className={`inline-block px-2 py-0.5 text-xs rounded-full ${
                             isMemberAdmin
                               ? 'bg-purple-100 text-purple-800 border border-purple-300' 
-                              : member.role === 'Admin'
+                              : member.role === 'Leader'
                               ? 'bg-blue-100 text-blue-800 border border-blue-300'
                               : 'bg-gray-100 text-gray-800 border border-gray-300'
                           }`}>
@@ -290,7 +437,7 @@ const GroupModal = ({ onClose, onSave, group, currentUser }) => {
             {/* Explanation for new groups */}
             {!group && (
               <p className="text-xs text-gray-500 mt-2">
-                💡 You'll be added as the group leader. Invite others after creating the group.
+                💡 You'll be added as the group admin. Invite others after creating the group.
               </p>
             )}
           </div>

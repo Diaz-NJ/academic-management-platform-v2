@@ -11,6 +11,7 @@ import InviteUserModal from '../components/InviteUserModal';
 import DiscussionBoard from '../components/DiscussionBoard';
 import InvitationsPanel from '../components/InvitationsPanel';
 import UnreadBadge from '../components/UnreadBadge'; 
+import GroupTasksView from '../components/GroupTaskView';
 
 const Collaboration = ({ onUnreadCountChange }) => {
   const { user } = useAuth();
@@ -31,6 +32,7 @@ const Collaboration = ({ onUnreadCountChange }) => {
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
   const [groupToLeave, setGroupToLeave] = useState(null);
   const [groupTaskCounts, setGroupTaskCounts] = useState({});
+  const [showTaskView, setShowTaskView] = useState(false);
 
   const loadAllGroupUnreadCounts = useCallback(async (groupsList) => {
     if (!groupsList || groupsList.length === 0) return;
@@ -292,7 +294,7 @@ const handleSaveGroup = async (groupData) => {
                 await loadAllGroupUnreadCounts(groups);
                 showToast('Groups refreshed', 'success');
               }}
-              className="btn-hover flex items-center space-x-1 md:space-x-2 px-2 md:px-4 py-1.5 md:py-2 bg-gray-100 text-gray-700 rounded-lg font-medium shadow-sm hover:bg-gray-200 text-sm md:text-base"
+               className="btn-hover flex items-center space-x-1 md:space-x-2 px-2 md:px-4 py-1.5 md:py-2 bg-gray-100 text-gray-700 rounded-lg font-medium shadow-sm hover:bg-gray-200 text-sm md:text-base"
             >
               <svg className="w-4 h-4 md:w-5 md:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
@@ -493,60 +495,79 @@ const handleSaveGroup = async (groupData) => {
               </div>
 
               {/* ✨ Stats Row - Mobile: compact */}
-                <div className="flex items-center justify-between py-2 md:py-3 border-y border-gray-200">
-              {/* ✅ CHANGED: Now shows both members AND tasks */}
-              <div className="flex items-center space-x-3 md:space-x-4">
-                {/* Members Count */}
-                <div className="flex items-center space-x-1 md:space-x-2">
-                  <div className="w-8 h-8 md:w-10 md:h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                    <Users className="w-4 h-4 md:w-5 md:h-5 text-blue-600" />
+              <div className="flex items-center justify-between py-2 md:py-3 border-y border-gray-200">
+                {/* ✅ CHANGED: Now shows both members AND tasks */}
+                <div className="flex items-center space-x-3 md:space-x-4">
+                  {/* Members Count */}
+                  <div className="flex items-center space-x-1 md:space-x-2">
+                    <div className="w-8 h-8 md:w-10 md:h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                      <Users className="w-4 h-4 md:w-5 md:h-5 text-blue-600" />
+                    </div>
+                    <div>
+                      <p className="text-base md:text-xl font-bold text-gray-800 leading-none">
+                        {group.members.length}
+                      </p>
+                      <p className="text-[10px] md:text-xs text-gray-500">
+                        Member{group.members.length !== 1 ? 's' : ''}
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-base md:text-xl font-bold text-gray-800 leading-none">
-                      {group.members.length}
-                    </p>
-                    <p className="text-[10px] md:text-xs text-gray-500">
-                      Member{group.members.length !== 1 ? 's' : ''}
-                    </p>
-                  </div>
+                  
+                  {/* ✅ ENHANCED: Tasks Count with visual indicator */}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelectedGroup(group);
+                      setShowTaskView(true);
+                    }}
+                    className="flex items-center space-x-1 md:space-x-2 hover:scale-105 transition-transform"
+                  >
+                    <div className={`w-8 h-8 md:w-10 md:h-10 rounded-full flex items-center justify-center ${
+                      (groupTaskCounts[group.id] || 0) > 0 
+                        ? 'bg-purple-100' 
+                        : 'bg-gray-100'
+                    }`}>
+                      <CheckSquare className={`w-4 h-4 md:w-5 md:h-5 ${
+                        (groupTaskCounts[group.id] || 0) > 0 
+                          ? 'text-purple-600' 
+                          : 'text-gray-400'
+                      }`} />
+                    </div>
+                    <div>
+                      <p className={`text-base md:text-xl font-bold leading-none ${
+                        (groupTaskCounts[group.id] || 0) > 0 
+                          ? 'text-gray-800' 
+                          : 'text-gray-400'
+                      }`}>
+                        {groupTaskCounts[group.id] || 0}
+                      </p>
+                      <p className="text-[10px] md:text-xs text-gray-500">
+                        Task{(groupTaskCounts[group.id] || 0) !== 1 ? 's' : ''}
+                      </p>
+                    </div>
+                  </button>
                 </div>
                 
-                {/* ✅ NEW: Tasks Count */}
-                <div className="flex items-center space-x-1 md:space-x-2">
-                  <div className="w-8 h-8 md:w-10 md:h-10 bg-purple-100 rounded-full flex items-center justify-center">
-                    <CheckSquare className="w-4 h-4 md:w-5 md:h-5 text-purple-600" />
-                  </div>
-                  <div>
-                    <p className="text-base md:text-xl font-bold text-gray-800 leading-none">
-                      {groupTaskCounts[group.id] || 0}
-                    </p>
-                    <p className="text-[10px] md:text-xs text-gray-500">
-                      Task{(groupTaskCounts[group.id] || 0) !== 1 ? 's' : ''}
-                    </p>
-                  </div>
+                {/* Role Badge - Mobile: smaller */}
+                <div>
+                  {isAdmin ? (
+                    <span className="inline-flex items-center space-x-0.5 md:space-x-1 px-1.5 md:px-3 py-0.5 md:py-1 bg-purple-100 text-purple-800 rounded-full text-[10px] md:text-xs font-semibold border border-purple-300">
+                      <span>👑</span>
+                      <span className="hidden sm:inline">Admin</span>
+                    </span>
+                  ) : currentMember?.role === 'Leader' ? (
+                    <span className="inline-flex items-center space-x-0.5 md:space-x-1 px-1.5 md:px-3 py-0.5 md:py-1 bg-blue-100 text-blue-800 rounded-full text-[10px] md:text-xs font-semibold border border-blue-300">
+                      <span>⭐</span>
+                      <span className="hidden sm:inline">Leader</span>
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center space-x-0.5 md:space-x-1 px-1.5 md:px-3 py-0.5 md:py-1 bg-gray-100 text-gray-700 rounded-full text-[10px] md:text-xs font-medium border border-gray-300">
+                      <span>👤</span>
+                      <span className="hidden sm:inline">Member</span>
+                    </span>
+                  )}
                 </div>
               </div>
-              
-              {/* Role Badge - Mobile: smaller */}
-              <div>
-                {isAdmin ? (
-                  <span className="inline-flex items-center space-x-0.5 md:space-x-1 px-1.5 md:px-3 py-0.5 md:py-1 bg-purple-100 text-purple-800 rounded-full text-[10px] md:text-xs font-semibold border border-purple-300">
-                    <span>👑</span>
-                    <span className="hidden sm:inline">Admin</span>
-                  </span>
-                ) : currentMember?.role === 'Leader' ? (
-                  <span className="inline-flex items-center space-x-0.5 md:space-x-1 px-1.5 md:px-3 py-0.5 md:py-1 bg-blue-100 text-blue-800 rounded-full text-[10px] md:text-xs font-semibold border border-blue-300">
-                    <span>⭐</span>
-                    <span className="hidden sm:inline">Leader</span>
-                  </span>
-                ) : (
-                  <span className="inline-flex items-center space-x-0.5 md:space-x-1 px-1.5 md:px-3 py-0.5 md:py-1 bg-gray-100 text-gray-700 rounded-full text-[10px] md:text-xs font-medium border border-gray-300">
-                    <span>👤</span>
-                    <span className="hidden sm:inline">Member</span>
-                  </span>
-                )}
-              </div>
-            </div>
 
               {/* ✨ Members Preview - Mobile: smaller avatars */}
               <div className="mt-3 md:mt-4">
@@ -621,12 +642,13 @@ const handleSaveGroup = async (groupData) => {
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
-                    handleEditGroup(group);
+                    setSelectedGroup(group);
+                    setShowGroupModal(true);
                   }}
                   className="text-[10px] md:text-xs text-gray-600 hover:text-primary font-medium flex items-center space-x-0.5 md:space-x-1 transition"
                 >
                   <Users className="w-3 h-3" />
-                  <span>View Members</span>
+                  <span>View Info</span>
                 </button>
                 
                 {/* Admin/Member Actions - Mobile: smaller */}
@@ -672,6 +694,7 @@ const handleSaveGroup = async (groupData) => {
           onSave={handleSaveGroup}
           group={selectedGroup}
           currentUser={user}
+          mode={selectedGroup ? 'view' : 'edit'}
         />
       )}
 
@@ -701,6 +724,17 @@ const handleSaveGroup = async (groupData) => {
           }}
           currentUser={user}
           discussionAPI={discussionAPI}
+        />
+      )}
+
+      {/* ✅ NEW: Task View Modal */}
+      {showTaskView && selectedGroup && (
+        <GroupTasksView
+          group={selectedGroup}
+          onClose={() => {
+            setShowTaskView(false);
+            setSelectedGroup(null);
+          }}
         />
       )}
 
