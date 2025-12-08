@@ -1,7 +1,5 @@
-// frontend/src/components/EventDetailsModal.jsx - COMPLETE FIXED VERSION
-
 import React from 'react';
-import { X, Edit, Trash2, Clock, MapPin, Calendar, RefreshCw, RotateCcw } from 'lucide-react';
+import { X, Edit, Trash2, Clock, MapPin, Calendar, RefreshCw, RotateCcw, Ban } from 'lucide-react';
 import { getRecurrenceDescription } from '../utils/recurringUtils';
 
 const EventDetailsModal = ({ event, onClose, onEdit, onDelete, onUncancel, onViewSeries }) => {
@@ -146,8 +144,8 @@ const EventDetailsModal = ({ event, onClose, onEdit, onDelete, onUncancel, onVie
           <div className="flex flex-col space-y-2 mt-6 pt-6 border-t border-gray-200">
             {event.isCanceled ? (
               <>
-                {/* Un-cancel Button - only for recurring instances */}
-                {onUncancel && event.isRecurringInstance && (
+                {/* Un-cancel Button - for ALL canceled events */}
+                {onUncancel && (
                   <button
                     onClick={onUncancel}
                     className="flex items-center justify-center space-x-2 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition"
@@ -179,6 +177,18 @@ const EventDetailsModal = ({ event, onClose, onEdit, onDelete, onUncancel, onVie
                       : 'Edit Event'}
                   </span>
                 </button>
+                
+                {/* ✅ NEW: Cancel Button - Show for ALL events, not just recurring */}
+                {onCancel && (
+                  <button
+                    onClick={onCancel}
+                    className="flex items-center justify-center space-x-2 px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition"
+                  >
+                    <Ban className="w-4 h-4" />
+                    <span>Cancel Event</span>
+                  </button>
+                )}
+                
                 {/* Delete Button */}
                 <button
                   onClick={onDelete}

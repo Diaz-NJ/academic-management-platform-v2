@@ -451,6 +451,44 @@ const handleCancelInstanceClick = async (instance) => {
   }
 };
 
+// ✅ NEW: Handle cancel from details (for both recurring and non-recurring)
+const handleCancelFromDetails = async () => {
+  try {
+    const event = modalState.data;
+    
+    console.log('🚫 Canceling event:', {
+      id: event.id,
+      title: event.title,
+      isRecurring: event.isRecurring,
+      isRecurringInstance: event.isRecurringInstance
+    });
+    
+    // For recurring instances, use cancelInstance
+    if (event.isRecurring || event.isRecurringInstance) {
+      const instanceDate = new Date(event.startDateTime);
+      const dateStr = instanceDate.toISOString();
+      const originalId = event.originalId || event.id;
+      
+      await eventAPI.cancelInstance(originalId, dateStr);
+      showToast('Event occurrence canceled', 'success');
+    } else {
+      // For non-recurring events, we need a backend endpoint
+      // For now, we can use cancelInstance with the event's own ID
+      const instanceDate = new Date(event.startDateTime);
+      const dateStr = instanceDate.toISOString();
+      
+      await eventAPI.cancelInstance(event.id, dateStr);
+      showToast('Event canceled', 'success');
+    }
+    
+    await loadEvents();
+    closeModal();
+  } catch (error) {
+    console.error('Error canceling event:', error);
+    showToast('Failed to cancel event', 'error');
+  }
+};
+
 // ✅ FIXED: Un-cancel from details
 const handleUncancelFromDetails = async () => {
   try {
@@ -917,6 +955,7 @@ const handleViewSeriesClick = () => {
           onClose={closeModal}
           onEdit={handleEditFromDetails}
           onDelete={handleDeleteFromDetails}
+          onCancel={handleCancelFromDetails} // ✅ ADD THIS
           onUncancel={modalState.data?.isCanceled ? handleUncancelFromDetails : null}
           onViewSeries={modalState.data?.isRecurring ? handleViewSeriesClick : null}
         />
