@@ -2,7 +2,7 @@ import React from 'react';
 import { X, Edit, Trash2, Clock, MapPin, Calendar, RefreshCw, RotateCcw, Ban } from 'lucide-react';
 import { getRecurrenceDescription } from '../utils/recurringUtils';
 
-const EventDetailsModal = ({ event, onClose, onEdit, onDelete, onUncancel, onViewSeries }) => {
+const EventDetailsModal = ({ event, onClose, onEdit, onDelete, onUncancel, onViewSeries, onCancel }) => {
   if (!event) return null;
 
   const formatDateTime = (dateString) => {
