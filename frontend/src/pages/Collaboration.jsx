@@ -128,22 +128,32 @@ useEffect(() => {
   }, [groups, searchQuery]);// ✅ FIXED: Search filtering with better performance
 
 const loadGroups = useCallback(async (force = false) => {
-    // ✅ OPTIMIZATION: Skip if already loaded (unless forced)
-    if (!force && groups.length > 0) {
-      setLoading(false);
-      return;
-    }
-
     try {
+      // ✅ FIXED: Always show loading for forced refresh
+      if (force) {
+        setLoading(true);
+      } else if (groups.length > 0) {
+        // Skip if not forced and already loaded
+        setLoading(false);
+        return;
+      }
+
       const response = await groupAPI.getGroups(user.id);
       const newGroups = response.data;
       
-      setGroups(prevGroups => {
-        if (JSON.stringify(prevGroups) === JSON.stringify(newGroups)) {
-          return prevGroups;
-        }
-        return newGroups;
-      });
+      // ✅ FIXED: Always update when forced
+      if (force) {
+        console.log('Force refresh: Setting new groups', newGroups.length);
+        setGroups(newGroups);
+        setFilteredGroups(newGroups);
+      } else {
+        setGroups(prevGroups => {
+          if (JSON.stringify(prevGroups) === JSON.stringify(newGroups)) {
+            return prevGroups;
+          }
+          return newGroups;
+        });
+      }
       
       setSelectedGroups([]);
     } catch (error) {
@@ -283,6 +293,7 @@ const handleSaveGroup = async (groupData) => {
           <div className="flex items-center space-x-1 md:space-x-2 self-end sm:self-auto">
             <button
               onClick={async () => {
+                setLoading(true);
                 // ✅ CHANGED: Pass force=true to refresh
                 await loadGroups(true);
                 await loadAllGroupUnreadCounts(groups);
@@ -310,7 +321,7 @@ const handleSaveGroup = async (groupData) => {
       {/* ✅ NEW: Invitations Panel */}
       <InvitationsPanel 
         userId={user.id} 
-        onUpdate={loadGroups}
+        onUpdate={(force) => loadGroups(force || true)} // ✅ Always force refresh
       />
 
       {/* Search Bar */}

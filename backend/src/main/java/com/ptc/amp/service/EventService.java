@@ -47,10 +47,17 @@ public class EventService {
 
         Event event = eventOpt.get();
         System.out.println("✅ Found event: " + event.getTitle());
+        System.out.println("   - Is Recurring: " + event.getIsRecurring());
         
-        // For non-recurring events, use the startDateTime as the canceled date
-        String dateStr = event.getStartDateTime().toLocalDate().toString();
-        event.setCanceledDates(dateStr);
+        // ✅ FIXED: Set isCanceled flag for non-recurring events
+        if (Boolean.TRUE.equals(event.getIsRecurring())) {
+            // For recurring events, use canceledDates
+            String dateStr = event.getStartDateTime().toLocalDate().toString();
+            event.setCanceledDates(dateStr);
+        } else {
+            // For non-recurring events, set the isCanceled flag
+            event.setIsCanceled(true);
+        }
         
         Event saved = eventRepository.save(event);
         System.out.println("✅ Event canceled: " + saved.getTitle());
@@ -66,7 +73,15 @@ public class EventService {
         }
 
         Event event = eventOpt.get();
-        event.setCanceledDates(null);
+        System.out.println("✅ Found event: " + event.getTitle());
+        System.out.println("   - Is Recurring: " + event.getIsRecurring());
+        
+        // ✅ FIXED: Clear both canceledDates and isCanceled flag
+        if (Boolean.TRUE.equals(event.getIsRecurring())) {
+            event.setCanceledDates(null);
+        } else {
+            event.setIsCanceled(false);
+        }
         
         Event saved = eventRepository.save(event);
         System.out.println("✅ Event un-canceled: " + saved.getTitle());
