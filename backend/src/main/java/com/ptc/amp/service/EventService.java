@@ -87,13 +87,21 @@ public class EventService {
     }
 
     public Event deleteInstance(Long eventId, String dateStr) {
+        System.out.println("🔍 deleteInstance called - Event ID: " + eventId + ", Date: " + dateStr);
+        
         Optional<Event> eventOpt = eventRepository.findById(eventId);
         if (eventOpt.isEmpty()) {
+            System.err.println("❌ Event not found: " + eventId);
             throw new RuntimeException("Event not found");
         }
 
         Event event = eventOpt.get();
+        System.out.println("✅ Found event: " + event.getTitle() + " (ID: " + eventId + ")");
+        System.out.println("   - Is Recurring: " + event.getIsRecurring());
+        System.out.println("   - Current deletedDates: " + event.getDeletedDates());
+        System.out.println("   - Current canceledDates: " + event.getCanceledDates());
         
+        // ✅ Add to deletedDates
         String currentDeleted = event.getDeletedDates();
         List<String> deletedList = new ArrayList<>();
         
@@ -103,14 +111,22 @@ public class EventService {
         
         if (!deletedList.contains(dateStr)) {
             deletedList.add(dateStr);
+            System.out.println("✅ Added " + dateStr + " to deletedDates");
+        } else {
+            System.out.println("⚠️ Date " + dateStr + " already in deletedDates");
         }
         
         event.setDeletedDates(String.join(",", deletedList));
 
+        // ✅ Remove from canceledDates if present
         String currentCanceled = event.getCanceledDates();
         if (currentCanceled != null && !currentCanceled.isEmpty()) {
             List<String> canceledList = new ArrayList<>(Arrays.asList(currentCanceled.split(",")));
-            canceledList.remove(dateStr);
+            boolean removed = canceledList.remove(dateStr);
+            
+            if (removed) {
+                System.out.println("✅ Removed " + dateStr + " from canceledDates");
+            }
             
             if (canceledList.isEmpty()) {
                 event.setCanceledDates(null);
@@ -119,7 +135,12 @@ public class EventService {
             }
         }
         
-        return eventRepository.save(event);
+        Event saved = eventRepository.save(event);
+        System.out.println("✅ Event saved successfully");
+        System.out.println("   - New deletedDates: " + saved.getDeletedDates());
+        System.out.println("   - New canceledDates: " + saved.getCanceledDates());
+        
+        return saved;
     }
 
     public Event updateEvent(Event event) {

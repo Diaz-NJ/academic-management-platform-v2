@@ -215,7 +215,6 @@ const handleEditSeriesClick = () => {
   });
 };
 
-// ✅ FIXED: Edit instance - create exception properly
 const handleEditInstanceClick = async (instance) => {
   try {
     console.log('=== Edit Instance Clicked ===');
@@ -260,6 +259,10 @@ const handleEditInstanceClick = async (instance) => {
     } else {
       // Create new exception data
       console.log('Creating new exception for instance');
+      
+      // ✅ CRITICAL: Use YYYY-MM-DD format only
+      const dateStrToDelete = instanceDate.toISOString().substring(0, 10);
+      
       const exceptionEventData = {
         ...originalEvent,
         id: null, // New event
@@ -269,8 +272,8 @@ const handleEditInstanceClick = async (instance) => {
         exceptionDate: instanceDate.toISOString(),
         startDateTime: instance.startDateTime,
         endDateTime: instance.endDateTime,
-        // ✅ IMPORTANT: Store the date to delete AFTER save
-        _instanceDateToDelete: instanceDate.toISOString().substring(0, 10),
+        // ✅ IMPORTANT: Store the date to delete AFTER save (just date part)
+        _instanceDateToDelete: dateStrToDelete,
         _parentEventId: originalEvent.id,
         // Clear recurrence fields
         recurrencePattern: null,
@@ -280,6 +283,11 @@ const handleEditInstanceClick = async (instance) => {
         recurrenceEndType: 'never',
         recurrenceCount: null,
       };
+      
+      console.log('Exception data prepared:', {
+        parentEventId: exceptionEventData._parentEventId,
+        dateToDelete: exceptionEventData._instanceDateToDelete
+      });
       
       setModalState({
         type: 'edit',
@@ -347,66 +355,73 @@ const handleDeleteConfirm = async () => {
   if (!eventToDelete) return;
 
   try {
-    console.log('🗑️ Delete confirm called for:', {
+    console.log('🗑️ === DELETE CONFIRM CALLED ===');
+    console.log('Event to delete:', {
+      id: eventToDelete.id,
+      originalId: eventToDelete.originalId,
       title: eventToDelete.title,
       isCanceled: eventToDelete.isCanceled,
       isRecurring: eventToDelete.isRecurring,
       isRecurringInstance: eventToDelete.isRecurringInstance,
-      eventId: eventToDelete.id,
-      originalId: eventToDelete.originalId
+      startDateTime: eventToDelete.startDateTime
     });
 
-    // ✅ FIXED: Handle ANY canceled recurring event (instance OR source)
+    // ✅ CASE 1: Canceled instance from recurring series
+    // This should ONLY add to deletedDates, NOT delete the parent
     if (eventToDelete.isCanceled && (eventToDelete.isRecurring || eventToDelete.isRecurringInstance)) {
       const instanceDate = new Date(eventToDelete.startDateTime);
       const dateStr = instanceDate.toISOString().substring(0, 10);
       
-      // Get the ORIGINAL parent event ID
-      const originalId = eventToDelete.originalId || eventToDelete.id;
+      // ✅ Get parent ID - for instances use originalId, for source use id
+      const parentEventId = eventToDelete.originalId || eventToDelete.id;
       
-      console.log('🗑️ Deleting CANCELED event (adding to deletedDates):', {
-        dateStr,
-        originalId,
-        title: eventToDelete.title,
-        wasSourceEvent: !eventToDelete.isRecurringInstance
-      });
+      console.log('🗑️ CASE 1: Deleting CANCELED recurring instance');
+      console.log('  - Parent Event ID:', parentEventId);
+      console.log('  - Date to delete:', dateStr);
+      console.log('  - Is source event:', !eventToDelete.originalId);
       
-      // This adds the date to deletedDates, doesn't delete the series
-      await eventAPI.deleteInstance(originalId, dateStr);
-      showToast('Canceled event removed from calendar', 'success');
+      // ✅ This adds to deletedDates - does NOT delete parent
+      await eventAPI.deleteInstance(parentEventId, dateStr);
+      console.log('✅ Successfully added to deletedDates');
       
+      showToast('Canceled event removed permanently', 'success');
       await loadEvents();
       closeModal();
-      return; // ✅ CRITICAL: Return here to prevent series deletion
-    } 
-    
-    // ✅ Non-canceled recurring instance
-    if (eventToDelete.isRecurringInstance && !eventToDelete.isCanceled) {
-      const instanceDate = new Date(eventToDelete.startDateTime);
-      const dateStr = instanceDate.toISOString().substring(0, 10);
-      const originalId = eventToDelete.originalId || eventToDelete.id;
-      
-      console.log('🗑️ Deleting non-canceled instance permanently:', {
-        dateStr,
-        originalId,
-        title: eventToDelete.title
-      });
-      
-      await eventAPI.deleteInstance(originalId, dateStr);
-      showToast('Event instance deleted', 'success');
-      
-      await loadEvents();
-      closeModal();
-      return;
+      return; // ✅ CRITICAL: Exit here
     }
     
-    // ✅ Regular event or entire recurring series
-    console.log('🗑️ Deleting regular event or series:', eventToDelete.id);
-    await eventAPI.deleteEvent(eventToDelete.id);
-    showToast('Event deleted successfully', 'success');
+    // ✅ CASE 2: Non-canceled recurring instance
+    // This should also ONLY add to deletedDates
+    if ((eventToDelete.isRecurring || eventToDelete.isRecurringInstance) && !eventToDelete.isCanceled) {
+      const instanceDate = new Date(eventToDelete.startDateTime);
+      const dateStr = instanceDate.toISOString().substring(0, 10);
+      const parentEventId = eventToDelete.originalId || eventToDelete.id;
+      
+      console.log('🗑️ CASE 2: Deleting NON-CANCELED recurring instance');
+      console.log('  - Parent Event ID:', parentEventId);
+      console.log('  - Date to delete:', dateStr);
+      
+      await eventAPI.deleteInstance(parentEventId, dateStr);
+      console.log('✅ Successfully added to deletedDates');
+      
+      showToast('Event instance deleted', 'success');
+      await loadEvents();
+      closeModal();
+      return; // ✅ Exit here
+    }
     
+    // ✅ CASE 3: Standalone event (non-recurring) OR entire series deletion
+    // Only this case should call deleteEvent
+    console.log('🗑️ CASE 3: Deleting standalone event or entire series');
+    console.log('  - Event ID to delete:', eventToDelete.id);
+    
+    await eventAPI.deleteEvent(eventToDelete.id);
+    console.log('✅ Event deleted via deleteEvent endpoint');
+    
+    showToast('Event deleted successfully', 'success');
     await loadEvents();
     closeModal();
+    
   } catch (error) {
     console.error('❌ Error deleting event:', error);
     showToast('Failed to delete event', 'error');

@@ -221,34 +221,51 @@ const checkForConflicts = async (eventData) => {
 const saveEvent = async (eventData) => {
   try {
     if (event) {
-      // Check if this is a NEW exception (first time editing an instance)
+      // ✅ Check if this is a NEW exception (first time editing an instance)
       if (event.isException && !event.id) {
-        console.log('Creating new exception');
+        console.log('🔧 === CREATING NEW EXCEPTION ===');
         
-        // ✅ Create the exception first
-        await eventAPI.createEvent(eventData);
-        console.log('Exception created');
+        const parentEventId = event._parentEventId || event.parentEventId;
+        const instanceDate = event._instanceDateToDelete;
         
-        // ✅ THEN delete the original instance from parent
-        if (event._instanceDateToDelete && event._parentEventId) {
-          console.log('Deleting original instance:', event._instanceDateToDelete);
-          try {
-            await eventAPI.deleteInstance(event._parentEventId, event._instanceDateToDelete);
-            console.log('Original instance deleted successfully');
-          } catch (deleteError) {
-            console.error('Error deleting original instance:', deleteError);
-            // Don't fail the whole operation if this fails
-          }
+        console.log('Exception details:', {
+          parentEventId,
+          instanceDate,
+          title: eventData.title,
+          startDateTime: eventData.startDateTime
+        });
+        
+        if (!parentEventId) {
+          throw new Error('Missing parent event ID');
         }
+        
+        if (!instanceDate) {
+          throw new Error('Missing instance date to delete');
+        }
+        
+        // ✅ STEP 1: Create the exception event FIRST
+        console.log('Step 1: Creating exception event...');
+        const exceptionResponse = await eventAPI.createEvent(eventData);
+        console.log('✅ Exception created with ID:', exceptionResponse.data.id);
+        
+        // ✅ STEP 2: Add original date to parent's deletedDates
+        console.log('Step 2: Adding date to parent deletedDates...');
+        console.log('  - Parent ID:', parentEventId);
+        console.log('  - Date:', instanceDate);
+        
+        await eventAPI.deleteInstance(parentEventId, instanceDate);
+        console.log('✅ Date added to parent deletedDates');
         
         showToast('Event instance updated successfully!', 'success');
       } else {
-        console.log('Updating existing event');
+        // ✅ Regular update
+        console.log('🔧 Updating existing event:', event.id);
         await eventAPI.updateEvent(event.id, eventData);
         showToast('Event updated successfully!', 'success');
       }
     } else {
-      console.log('Creating new event');
+      // ✅ New event creation
+      console.log('🔧 Creating new event');
       await eventAPI.createEvent(eventData);
       showToast('Event created successfully!', 'success');
     }
@@ -256,7 +273,8 @@ const saveEvent = async (eventData) => {
     onSave();
     onClose();
   } catch (error) {
-    console.error('Save error:', error);
+    console.error('❌ Save error:', error);
+    showToast(error.message || 'Failed to save event', 'error');
     throw error;
   } finally {
     setLoading(false);
