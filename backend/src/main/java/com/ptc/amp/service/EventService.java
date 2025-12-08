@@ -3,6 +3,7 @@ package com.ptc.amp.service;
 import com.ptc.amp.model.Event;
 import com.ptc.amp.repository.EventRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -34,6 +35,42 @@ public class EventService {
 
     public List<Event> getExceptionsByParentId(Long parentId) {
         return eventRepository.findByParentEventId(parentId);
+    }
+
+    public Event cancelEvent(Long eventId) {
+        System.out.println("🚫 cancelEvent called for ID: " + eventId);
+        
+        Optional<Event> eventOpt = eventRepository.findById(eventId);
+        if (eventOpt.isEmpty()) {
+            throw new RuntimeException("Event not found");
+        }
+
+        Event event = eventOpt.get();
+        System.out.println("✅ Found event: " + event.getTitle());
+        
+        // For non-recurring events, use the startDateTime as the canceled date
+        String dateStr = event.getStartDateTime().toLocalDate().toString();
+        event.setCanceledDates(dateStr);
+        
+        Event saved = eventRepository.save(event);
+        System.out.println("✅ Event canceled: " + saved.getTitle());
+        return saved;
+    }
+
+    public Event uncancelEvent(Long eventId) {
+        System.out.println("♻️ uncancelEvent called for ID: " + eventId);
+        
+        Optional<Event> eventOpt = eventRepository.findById(eventId);
+        if (eventOpt.isEmpty()) {
+            throw new RuntimeException("Event not found");
+        }
+
+        Event event = eventOpt.get();
+        event.setCanceledDates(null);
+        
+        Event saved = eventRepository.save(event);
+        System.out.println("✅ Event un-canceled: " + saved.getTitle());
+        return saved;
     }
 
     public Event cancelInstance(Long eventId, String dateStr) {
@@ -86,22 +123,31 @@ public class EventService {
         return eventRepository.save(event);
     }
 
+@Transactional
     public Event deleteInstance(Long eventId, String dateStr) {
-        System.out.println("🔍 deleteInstance called - Event ID: " + eventId + ", Date: " + dateStr);
+        System.out.println("🔍 ========================================");
+        System.out.println("🔍 deleteInstance called");
+        System.out.println("🔍 Event ID: " + eventId);
+        System.out.println("🔍 Date: " + dateStr);
+        System.out.println("🔍 ========================================");
         
+        // ✅ CRITICAL: Use findById with transaction isolation
         Optional<Event> eventOpt = eventRepository.findById(eventId);
         if (eventOpt.isEmpty()) {
             System.err.println("❌ Event not found: " + eventId);
-            throw new RuntimeException("Event not found");
+            throw new RuntimeException("Event not found: " + eventId);
         }
 
         Event event = eventOpt.get();
-        System.out.println("✅ Found event: " + event.getTitle() + " (ID: " + eventId + ")");
+        
+        System.out.println("✅ Found event:");
+        System.out.println("   - ID: " + event.getId());
+        System.out.println("   - Title: " + event.getTitle());
         System.out.println("   - Is Recurring: " + event.getIsRecurring());
         System.out.println("   - Current deletedDates: " + event.getDeletedDates());
         System.out.println("   - Current canceledDates: " + event.getCanceledDates());
         
-        // ✅ Add to deletedDates
+        // ✅ Build new deletedDates
         String currentDeleted = event.getDeletedDates();
         List<String> deletedList = new ArrayList<>();
         
@@ -111,9 +157,7 @@ public class EventService {
         
         if (!deletedList.contains(dateStr)) {
             deletedList.add(dateStr);
-            System.out.println("✅ Added " + dateStr + " to deletedDates");
-        } else {
-            System.out.println("⚠️ Date " + dateStr + " already in deletedDates");
+            System.out.println("✅ Adding " + dateStr + " to deletedDates");
         }
         
         event.setDeletedDates(String.join(",", deletedList));
@@ -122,11 +166,7 @@ public class EventService {
         String currentCanceled = event.getCanceledDates();
         if (currentCanceled != null && !currentCanceled.isEmpty()) {
             List<String> canceledList = new ArrayList<>(Arrays.asList(currentCanceled.split(",")));
-            boolean removed = canceledList.remove(dateStr);
-            
-            if (removed) {
-                System.out.println("✅ Removed " + dateStr + " from canceledDates");
-            }
+            canceledList.remove(dateStr);
             
             if (canceledList.isEmpty()) {
                 event.setCanceledDates(null);
@@ -135,10 +175,14 @@ public class EventService {
             }
         }
         
-        Event saved = eventRepository.save(event);
-        System.out.println("✅ Event saved successfully");
-        System.out.println("   - New deletedDates: " + saved.getDeletedDates());
-        System.out.println("   - New canceledDates: " + saved.getCanceledDates());
+        System.out.println("💾 Saving with deletedDates: " + event.getDeletedDates());
+        
+        // ✅ Save and flush immediately
+        Event saved = eventRepository.saveAndFlush(event);
+        
+        System.out.println("✅✅✅ Event saved successfully");
+        System.out.println("   - Saved deletedDates: " + saved.getDeletedDates());
+        System.out.println("🔍 ========================================");
         
         return saved;
     }

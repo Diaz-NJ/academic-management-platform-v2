@@ -144,7 +144,7 @@ const EventDetailsModal = ({ event, onClose, onEdit, onDelete, onUncancel, onVie
           <div className="flex flex-col space-y-2 mt-6 pt-6 border-t border-gray-200">
             {event.isCanceled ? (
               <>
-                {/* Un-cancel Button - for ALL canceled events */}
+                {/* Un-cancel Button */}
                 {onUncancel && (
                   <button
                     onClick={onUncancel}
@@ -154,7 +154,7 @@ const EventDetailsModal = ({ event, onClose, onEdit, onDelete, onUncancel, onVie
                     <span>Restore Event</span>
                   </button>
                 )}
-                {/* Delete Permanently Button - always show for canceled events */}
+                {/* Delete Permanently */}
                 <button
                   onClick={onDelete}
                   className="flex items-center justify-center space-x-2 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition"
@@ -178,7 +178,7 @@ const EventDetailsModal = ({ event, onClose, onEdit, onDelete, onUncancel, onVie
                   </span>
                 </button>
                 
-                {/* ✅ NEW: Cancel Button - Show for ALL events, not just recurring */}
+                {/* ✅ Cancel Button - for ALL events */}
                 {onCancel && (
                   <button
                     onClick={onCancel}
@@ -204,7 +204,7 @@ const EventDetailsModal = ({ event, onClose, onEdit, onDelete, onUncancel, onVie
               </>
             )}
           </div>
-        </div>
+                  </div>
       </div>
     </div>
   );

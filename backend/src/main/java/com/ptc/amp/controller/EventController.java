@@ -207,6 +207,30 @@ public class EventController {
         }
     }
 
+@PostMapping("/{id}/cancel")
+public ResponseEntity<Event> cancelEvent(@PathVariable Long id) {
+    try {
+        System.out.println("🚫 Controller: cancelEvent called for ID: " + id);
+        Event updated = eventService.cancelEvent(id);
+        return ResponseEntity.ok(updated);
+    } catch (Exception e) {
+        System.err.println("❌ Error canceling event: " + e.getMessage());
+        return ResponseEntity.status(404).build();
+    }
+}
+
+@DeleteMapping("/{id}/cancel")
+public ResponseEntity<Event> uncancelEvent(@PathVariable Long id) {
+    try {
+        System.out.println("♻️ Controller: uncancelEvent called for ID: " + id);
+        Event updated = eventService.uncancelEvent(id);
+        return ResponseEntity.ok(updated);
+    } catch (Exception e) {
+        System.err.println("❌ Error uncanceling event: " + e.getMessage());
+        return ResponseEntity.status(404).build();
+    }
+}
+
     @DeleteMapping("/cleanup-orphans/{userId}")
 public ResponseEntity<?> cleanupOrphanedEvents(@PathVariable Long userId) {
     try {

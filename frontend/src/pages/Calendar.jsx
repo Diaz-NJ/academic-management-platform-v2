@@ -451,7 +451,7 @@ const handleCancelInstanceClick = async (instance) => {
   }
 };
 
-// ✅ NEW: Handle cancel from details (for both recurring and non-recurring)
+// ✅ NEW: Handle cancel from details
 const handleCancelFromDetails = async () => {
   try {
     const event = modalState.data;
@@ -463,21 +463,19 @@ const handleCancelFromDetails = async () => {
       isRecurringInstance: event.isRecurringInstance
     });
     
-    // For recurring instances, use cancelInstance
     if (event.isRecurring || event.isRecurringInstance) {
+      // Recurring event instance
       const instanceDate = new Date(event.startDateTime);
       const dateStr = instanceDate.toISOString();
       const originalId = event.originalId || event.id;
       
+      console.log('Canceling recurring instance:', { originalId, dateStr });
       await eventAPI.cancelInstance(originalId, dateStr);
       showToast('Event occurrence canceled', 'success');
     } else {
-      // For non-recurring events, we need a backend endpoint
-      // For now, we can use cancelInstance with the event's own ID
-      const instanceDate = new Date(event.startDateTime);
-      const dateStr = instanceDate.toISOString();
-      
-      await eventAPI.cancelInstance(event.id, dateStr);
+      // ✅ Non-recurring event
+      console.log('Canceling standalone event:', event.id);
+      await eventAPI.cancelEvent(event.id);
       showToast('Event canceled', 'success');
     }
     
@@ -489,21 +487,36 @@ const handleCancelFromDetails = async () => {
   }
 };
 
-// ✅ FIXED: Un-cancel from details
 const handleUncancelFromDetails = async () => {
   try {
     const event = modalState.data;
-    const instanceDate = new Date(event.startDateTime);
-    const dateStr = instanceDate.toISOString().substring(0, 10); // Just the date part
     
-    const originalId = event.isRecurringInstance ? event.originalId : event.id;
+    console.log('♻️ Uncanceling event:', {
+      id: event.id,
+      title: event.title,
+      isRecurring: event.isRecurring,
+      isRecurringInstance: event.isRecurringInstance
+    });
     
-    await eventAPI.uncancelInstance(originalId, dateStr);
-    showToast('Event restored successfully', 'success');
+    if (event.isRecurringInstance || event.isRecurring) {
+      const instanceDate = new Date(event.startDateTime);
+      const dateStr = instanceDate.toISOString().substring(0, 10);
+      const originalId = event.originalId || event.id;
+      
+      console.log('Uncanceling recurring instance:', { originalId, dateStr });
+      await eventAPI.uncancelInstance(originalId, dateStr);
+      showToast('Event restored successfully', 'success');
+    } else {
+      // ✅ Non-recurring event
+      console.log('Uncanceling standalone event:', event.id);
+      await eventAPI.uncancelEvent(event.id);
+      showToast('Event restored successfully', 'success');
+    }
+    
     await loadEvents();
     closeModal();
   } catch (error) {
-    console.error('Error un-canceling event:', error);
+    console.error('Error restoring event:', error);
     showToast('Failed to restore event', 'error');
   }
 };

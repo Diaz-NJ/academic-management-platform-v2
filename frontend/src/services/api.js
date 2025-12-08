@@ -54,16 +54,17 @@ export const eventAPI = {
   createEvent: (event) => api.post('/events', event),
   updateEvent: (id, event) => api.put(`/events/${id}`, event),
   deleteEvent: (id) => api.delete(`/events/${id}`),
-  cancelInstance: (id, date) => api.post(`/events/${id}/cancel-instance`, { date }),
-  uncancelInstance: (id, date) => {
-    return api.request({
-      method: 'delete',
-      url: `/events/${id}/cancel-instance`,
-      data: { date }
-    });
-  },
-  deleteInstance: (id, date) => api.post(`/events/${id}/delete-instance`, { date }),
+  cancelInstance: (eventId, date) => 
+    api.post(`/events/${eventId}/cancel-instance`, { date }),
+  uncancelInstance: (eventId, date) => 
+    api.delete(`/events/${eventId}/cancel-instance`, { data: { date } }),
+  deleteInstance: (eventId, date) =>
+    api.post(`/events/${eventId}/delete-instance`, { date }),
   getExceptions: (parentId) => api.get(`/events/${parentId}/exceptions`),
+  cancelEvent: (eventId) => 
+    api.post(`/events/${eventId}/cancel`),
+  uncancelEvent: (eventId) => 
+    api.delete(`/events/${eventId}/cancel`),
 };
 
 export const groupAPI = {
