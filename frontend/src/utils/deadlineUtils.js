@@ -133,31 +133,33 @@ export const getUrgentTasks = (tasks) => {
  * @returns {string} - Formatted text
  */
 export const formatTimeRemaining = (hours) => {
-  // ✅ FIXED: Handle overdue tasks correctly
-  if (hours < 0) {
-    const absHours = Math.abs(hours);
-    
-    if (absHours < 1) {
-      const minutes = Math.floor(absHours * 60);
-      return `${minutes} minute${minutes !== 1 ? 's' : ''} ago`;
-    } else if (absHours < 24) {
-      const hoursOverdue = Math.floor(absHours);
-      return `${hoursOverdue} hour${hoursOverdue !== 1 ? 's' : ''} ago`;
-    } else {
-      const daysOverdue = Math.floor(absHours / 24);
-      return `${daysOverdue} day${daysOverdue !== 1 ? 's' : ''} ago`;
-    }
-  }
+  // ✅ FIXED: Properly handle negative hours for overdue tasks
+  const isOverdue = hours < 0;
+  const absHours = Math.abs(hours);
   
-  // ✅ Handle tasks that are due soon (positive hours)
-  if (hours < 1) {
-    const minutes = Math.floor(hours * 60);
-    return `${minutes} minute${minutes !== 1 ? 's' : ''} left`;
-  } else if (hours < 24) {
-    const hoursLeft = Math.floor(hours);
-    return `${hoursLeft} hour${hoursLeft !== 1 ? 's' : ''} left`;
+  if (absHours < 1) {
+    // Less than 1 hour
+    const minutes = Math.floor(absHours * 60);
+    if (isOverdue) {
+      return `${minutes} minute${minutes !== 1 ? 's' : ''} ago`;
+    } else {
+      return `${minutes} minute${minutes !== 1 ? 's' : ''} left`;
+    }
+  } else if (absHours < 24) {
+    // Less than 24 hours
+    const displayHours = Math.floor(absHours);
+    if (isOverdue) {
+      return `${displayHours} hour${displayHours !== 1 ? 's' : ''} ago`;
+    } else {
+      return `${displayHours} hour${displayHours !== 1 ? 's' : ''} left`;
+    }
   } else {
-    const daysLeft = Math.floor(hours / 24);
-    return `${daysLeft} day${daysLeft !== 1 ? 's' : ''} left`;
+    // 24+ hours
+    const days = Math.floor(absHours / 24);
+    if (isOverdue) {
+      return `${days} day${days !== 1 ? 's' : ''} ago`;
+    } else {
+      return `${days} day${days !== 1 ? 's' : ''} left`;
+    }
   }
 };

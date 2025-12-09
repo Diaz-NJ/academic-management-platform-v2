@@ -127,9 +127,12 @@ const Tasks = () => {
     try {
       await Promise.all(selectedTasks.map(id => taskAPI.deleteTask(id)));
       showToast(`${selectedTasks.length} task(s) deleted successfully`, 'success');
+      
+      // ✅ FIX: Immediately update state
+      setTasks(prevTasks => prevTasks.filter(t => !selectedTasks.includes(t.id)));
+      
       setSelectedTasks([]);
       setShowBulkDeleteDialog(false);
-      loadTasks();
     } catch (error) {
       console.error('Error deleting tasks:', error);
       showToast('Failed to delete some tasks', 'error');
@@ -165,7 +168,10 @@ const Tasks = () => {
     try {
       await taskAPI.deleteTask(taskToDelete.id);
       showToast('Task deleted successfully', 'success');
-      loadTasks();
+      
+      // ✅ FIX: Immediately update state
+      setTasks(prevTasks => prevTasks.filter(t => t.id !== taskToDelete.id));
+      
     } catch (error) {
       console.error('Error deleting task:', error);
       showToast('Failed to delete task', 'error');
