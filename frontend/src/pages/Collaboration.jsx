@@ -12,6 +12,7 @@ import DiscussionBoard from '../components/DiscussionBoard';
 import InvitationsPanel from '../components/InvitationsPanel';
 import UnreadBadge from '../components/UnreadBadge'; 
 import GroupTasksView from '../components/GroupTaskView';
+import GroupEventsView from '../components/GroupEventsView';
 
 const Collaboration = ({ onUnreadCountChange }) => {
   const { user } = useAuth();
@@ -33,6 +34,7 @@ const Collaboration = ({ onUnreadCountChange }) => {
   const [groupToLeave, setGroupToLeave] = useState(null);
   const [groupTaskCounts, setGroupTaskCounts] = useState({});
   const [showTaskView, setShowTaskView] = useState(false);
+  const [showEventView, setShowEventView] = useState(false);
 
   const loadAllGroupUnreadCounts = useCallback(async (groupsList) => {
     if (!groupsList || groupsList.length === 0) return;
@@ -261,50 +263,42 @@ const handleSaveGroup = async (groupData) => {
   };
 
   const handleLeaveConfirm = async () => {
-    try {
-      console.log('🚪 Leaving group:', groupToLeave.id);
-      const response = await groupAPI.leaveGroup(groupToLeave.id, user.id);
-      
-      console.log('✅ Leave response:', response.data);
-      
-      if (response.data.groupDeleted) {
-        showToast('Left group successfully. Group was deleted as no members remain.', 'success');
-      } else {
-        showToast('Left group successfully', 'success');
-      }
-      
-      const leftGroupId = groupToLeave.id;
-      setShowLeaveConfirm(false);
-      setGroupToLeave(null);
-      
-      // ✅ FIXED: Clear cache and force immediate state update
-      console.log('🔄 Removing group from state:', leftGroupId);
-      console.log('Current groups count:', groups.length);
-      
-      // Clear both states immediately
-      setGroups(prevGroups => {
-        const filtered = prevGroups.filter(g => g.id !== leftGroupId);
-        console.log('New groups count:', filtered.length);
-        return filtered;
-      });
-      
-      setFilteredGroups(prevFiltered => {
-        const filtered = prevFiltered.filter(g => g.id !== leftGroupId);
-        return filtered;
-      });
-      
-      // Force complete reload from backend
-      setLoading(true);
-      setTimeout(async () => {
-        await loadGroups(true);
-      }, 100);
-      
-    } catch (error) {
-      console.error('Error leaving group:', error);
-      const errorMessage = error.response?.data?.message || 'Failed to leave group';
-      showToast(errorMessage, 'error');
+  try {
+    console.log('🚪 Leaving group:', groupToLeave.id);
+    const leftGroupId = groupToLeave.id;
+    
+    // ✅ FIXED: Clear local state BEFORE API call
+    setGroups(prevGroups => prevGroups.filter(g => g.id !== leftGroupId));
+    setFilteredGroups(prevFiltered => prevFiltered.filter(g => g.id !== leftGroupId));
+    
+    // Close modals immediately
+    setShowLeaveConfirm(false);
+    setGroupToLeave(null);
+    
+    // Make API call in background
+    const response = await groupAPI.leaveGroup(leftGroupId, user.id);
+    
+    console.log('✅ Leave response:', response.data);
+    
+    if (response.data.groupDeleted) {
+      showToast('Left group successfully. Group was deleted as no members remain.', 'success');
+    } else {
+      showToast('Left group successfully', 'success');
     }
-  };
+    
+    // Force refresh from backend after a short delay
+    setTimeout(async () => {
+      await loadGroups(true);
+    }, 500);
+    
+  } catch (error) {
+    console.error('Error leaving group:', error);
+    const errorMessage = error.response?.data?.message || 'Failed to leave group';
+    showToast(errorMessage, 'error');
+    // Reload on error to restore correct state
+    await loadGroups(true);
+  }
+};
 
   if (loading) {
     return <LoadingSpinner message="Loading your groups..." />;
@@ -583,24 +577,36 @@ const handleSaveGroup = async (groupData) => {
                       </p>
                     </div>
                   </button>
+
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelectedGroup(group);
+                      setShowEventView(true);
+                    }}
+                    className="relative flex items-center justify-center space-x-0.5 md:space-x-1 px-2 md:px-3 py-1.5 md:py-2.5 bg-gradient-to-r from-blue-500 to-cyan-600 text-white rounded-lg hover:from-blue-600 hover:to-cyan-700 transition-all shadow-sm hover:shadow-md text-xs md:text-sm font-semibold"
+                  >
+                    <CalendarIcon className="w-3 h-3 md:w-4 md:h-4" />
+                    <span>Events</span>
+                  </button>
                 </div>
                 
-                {/* Role Badge - Mobile: smaller */}
-                <div>
+                {/* ✅ FIXED: Role Badge - Now Shows Full Text */}
+                <div className="absolute top-3 right-3">
                   {isAdmin ? (
-                    <span className="inline-flex items-center space-x-0.5 md:space-x-1 px-1.5 md:px-3 py-0.5 md:py-1 bg-purple-100 text-purple-800 rounded-full text-[10px] md:text-xs font-semibold border border-purple-300">
+                    <span className="inline-flex items-center space-x-1 px-3 py-1.5 bg-purple-100 text-purple-800 rounded-full text-xs font-semibold border border-purple-300 shadow-sm">
                       <span>👑</span>
-                      <span className="hidden sm:inline">Admin</span>
+                      <span>Admin</span>
                     </span>
                   ) : currentMember?.role === 'Leader' ? (
-                    <span className="inline-flex items-center space-x-0.5 md:space-x-1 px-1.5 md:px-3 py-0.5 md:py-1 bg-blue-100 text-blue-800 rounded-full text-[10px] md:text-xs font-semibold border border-blue-300">
+                    <span className="inline-flex items-center space-x-1 px-3 py-1.5 bg-blue-100 text-blue-800 rounded-full text-xs font-semibold border border-blue-300 shadow-sm">
                       <span>⭐</span>
-                      <span className="hidden sm:inline">Leader</span>
+                      <span>Leader</span>
                     </span>
                   ) : (
-                    <span className="inline-flex items-center space-x-0.5 md:space-x-1 px-1.5 md:px-3 py-0.5 md:py-1 bg-gray-100 text-gray-700 rounded-full text-[10px] md:text-xs font-medium border border-gray-300">
+                    <span className="inline-flex items-center space-x-1 px-3 py-1.5 bg-gray-100 text-gray-700 rounded-full text-xs font-medium border border-gray-300 shadow-sm">
                       <span>👤</span>
-                      <span className="hidden sm:inline">Member</span>
+                      <span>Member</span>
                     </span>
                   )}
                 </div>
@@ -676,6 +682,7 @@ const handleSaveGroup = async (groupData) => {
               
               {/* Secondary Actions Row - Mobile: smaller text */}
               <div className="mt-1.5 md:mt-2 flex items-center justify-between">
+                {/* ✅ FIXED: View/Edit Button */}
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
@@ -685,7 +692,7 @@ const handleSaveGroup = async (groupData) => {
                   className="text-[10px] md:text-xs text-gray-600 hover:text-primary font-medium flex items-center space-x-0.5 md:space-x-1 transition"
                 >
                   <Users className="w-3 h-3" />
-                  <span>View Info</span>
+                  <span>{isAdmin ? 'View/Edit Info' : 'View Info'}</span>
                 </button>
                 
                 {/* Admin/Member Actions - Mobile: smaller */}
@@ -770,6 +777,17 @@ const handleSaveGroup = async (groupData) => {
           group={selectedGroup}
           onClose={() => {
             setShowTaskView(false);
+            setSelectedGroup(null);
+          }}
+        />
+      )}
+
+      {/* ✅ NEW: Event View Modal */}
+      {showEventView && selectedGroup && (
+        <GroupEventsView
+          group={selectedGroup}
+          onClose={() => {
+            setShowEventView(false);
             setSelectedGroup(null);
           }}
         />
