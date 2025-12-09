@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
-import { groupAPI, invitationAPI, discussionAPI, taskAPI } from '../services/api';
+import { groupAPI, invitationAPI, discussionAPI, taskAPI, eventAPI } from '../services/api';
 import { Users, Plus, Trash2, FileText, BookOpen, CheckSquare, Square, UserPlus, MessageSquare, Calendar } from 'lucide-react';
 import GroupModal from '../components/GroupModal';
 import ConfirmDialog from '../components/ConfirmDialog';
@@ -33,9 +33,9 @@ const Collaboration = ({ onUnreadCountChange }) => {
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
   const [groupToLeave, setGroupToLeave] = useState(null);
   const [groupTaskCounts, setGroupTaskCounts] = useState({});
+  const [groupEventCounts, setGroupEventCounts] = useState({});
   const [showTaskView, setShowTaskView] = useState(false);
   const [showEventView, setShowEventView] = useState(false);
-  const [groupEventCounts, setGroupEventCounts] = useState({});
 
   const loadAllGroupUnreadCounts = useCallback(async (groupsList) => {
     if (!groupsList || groupsList.length === 0) return;
@@ -89,16 +89,43 @@ const loadAllGroupTaskCounts = useCallback(async (groupsList) => {
   }
 }, []);
 
+const loadAllGroupEventCounts = useCallback(async (groupsList) => {
+  if (!groupsList || groupsList.length === 0) return;
+  
+  try {
+    const counts = {};
+    
+    await Promise.all(
+      groupsList.map(async (group) => {
+        try {
+          const response = await eventAPI.getGroupEvents(group.id);
+          // Filter out canceled events
+          counts[group.id] = response.data.filter(e => !e.isCanceled).length;
+        } catch (error) {
+          console.error(`Error loading events for group ${group.id}:`, error);
+          counts[group.id] = 0;
+        }
+      })
+    );
+    
+    setGroupEventCounts(counts);
+  } catch (error) {
+    console.error('Error loading group event counts:', error);
+  }
+}, []);
+
 useEffect(() => {
   if (groups.length > 0) {
     // Load immediately
     loadAllGroupUnreadCounts(groups);
     loadAllGroupTaskCounts(groups);
+    loadAllGroupEventCounts(groups); // ✅ ADD THIS LINE
     
     // Poll every 10 seconds
     const interval = setInterval(() => {
       loadAllGroupUnreadCounts(groups);
       loadAllGroupTaskCounts(groups);
+      loadAllGroupEventCounts(groups); // ✅ ADD THIS LINE
     }, 10000);
     
     return () => clearInterval(interval);
@@ -464,11 +491,11 @@ const handleSaveGroup = async (groupData) => {
      {/* ✨ REDESIGNED Group Cards - SIMPLIFIED BLUE THEME */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-6">
         {filteredGroups.map(group => {
-          const currentMember = group.members?.find(m => m.userId === user.id);
-          const isAdmin = group.createdBy === user.id;
-          const unreadCount = groupUnreadCounts[group.id] || 0;
-          const taskCount = groupTaskCounts[group.id] || 0;
-          const [eventCount, setEventCount] = useState(0);
+        const currentMember = group.members?.find(m => m.userId === user.id);
+        const isAdmin = group.createdBy === user.id;
+        const unreadCount = groupUnreadCounts[group.id] || 0;
+        const taskCount = groupTaskCounts[group.id] || 0;
+        const eventCount = groupEventCounts[group.id] || 0; // ✅ CHANGED: Get from state
           
           // ✅ Load event count on mount
           useEffect(() => {
