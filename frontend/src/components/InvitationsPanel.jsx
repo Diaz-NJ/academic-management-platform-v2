@@ -59,18 +59,17 @@ const loadInvitationsQuietly = async () => {
     try {
       await invitationAPI.acceptInvitation(id);
       showToast('Invitation accepted! You are now a member.', 'success');
-      loadInvitations();
       
-      // ✅ CRITICAL FIX: Force immediate page reload to show updated groups
-      setTimeout(() => {
-        window.location.reload();
-      }, 500);
+      // ✅ FIX: Call onUpdate to refresh groups without page reload
+      loadInvitations();
+      onUpdate(true); // Force refresh parent groups
       
     } catch (error) {
       console.error('Error accepting invitation:', error);
       showToast('Failed to accept invitation', 'error');
     }
   };
+    
 
   const handleReject = async (id) => {
     try {

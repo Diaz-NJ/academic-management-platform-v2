@@ -161,7 +161,7 @@ const loadGroups = useCallback(async (force = false) => {
     try {
       console.log('📥 loadGroups called, force:', force, 'current count:', groups.length);
       
-      // ✅ FIXED: Always show loading for forced refresh
+      // ✅ FIXED: Always reload when forced
       if (force) {
         setLoading(true);
       } else if (groups.length > 0) {
@@ -202,6 +202,13 @@ const loadGroups = useCallback(async (force = false) => {
 
   useEffect(() => {
   loadGroups();
+  
+  // ✅ FIX: Poll for group updates every 10 seconds
+  const interval = setInterval(() => {
+    loadGroups(true); // Force refresh to detect member changes
+  }, 10000);
+  
+  return () => clearInterval(interval);
   // eslint-disable-next-line react-hooks/exhaustive-deps
 }, []); // ✅ Empty array = run once on mount, loadGroups intentionally excluded
 
@@ -557,59 +564,59 @@ const handleSaveGroup = async (groupData) => {
               <div className="p-4">
                 {/* ✅ Stats Row - Members, Tasks, Events */}
                 <div className="grid grid-cols-3 gap-2 mb-4 pb-4 border-b border-gray-200">
-                  {/* Members */}
-                  <div className="text-center">
-                    <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-1">
-                      <Users className="w-5 h-5 text-blue-600" />
-                    </div>
-                    <p className="text-xl font-bold text-gray-800 leading-none">{group.members.length}</p>
-                    <p className="text-xs text-gray-500 mt-1">Members</p>
+                {/* Members */}
+                <div className="flex flex-col items-center justify-center text-center">
+                  <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center mb-1">
+                    <Users className="w-5 h-5 text-blue-600" />
                   </div>
-                  
-                  {/* Tasks */}
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setSelectedGroup(group);
-                      setShowTaskView(true);
-                    }}
-                    className="text-center hover:bg-blue-50 rounded-lg p-2 transition"
-                  >
-                    <div className={`w-10 h-10 rounded-full flex items-center justify-center mx-auto mb-1 ${
-                      taskCount > 0 ? 'bg-purple-100' : 'bg-gray-100'
-                    }`}>
-                      <CheckSquare className={`w-5 h-5 ${
-                        taskCount > 0 ? 'text-purple-600' : 'text-gray-400'
-                      }`} />
-                    </div>
-                    <p className={`text-xl font-bold leading-none ${
-                      taskCount > 0 ? 'text-gray-800' : 'text-gray-400'
-                    }`}>{taskCount}</p>
-                    <p className="text-xs text-gray-500 mt-1">Tasks</p>
-                  </button>
-                  
-                  {/* Events */}
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setSelectedGroup(group);
-                      setShowEventView(true);
-                    }}
-                    className="text-center hover:bg-blue-50 rounded-lg p-2 transition"
-                  >
-                    <div className={`w-10 h-10 rounded-full flex items-center justify-center mx-auto mb-1 ${
-                      eventCount > 0 ? 'bg-cyan-100' : 'bg-gray-100'
-                    }`}>
-                      <Calendar className={`w-5 h-5 ${
-                        eventCount > 0 ? 'text-cyan-600' : 'text-gray-400'
-                      }`} />
-                    </div>
-                    <p className={`text-xl font-bold leading-none ${
-                      eventCount > 0 ? 'text-gray-800' : 'text-gray-400'
-                    }`}>{eventCount}</p>
-                    <p className="text-xs text-gray-500 mt-1">Events</p>
-                  </button>
+                  <p className="text-xl font-bold text-gray-800 leading-none mb-0.5">{group.members.length}</p>
+                  <p className="text-xs text-gray-500 leading-tight">Members</p>
                 </div>
+                
+                {/* Tasks */}
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setSelectedGroup(group);
+                    setShowTaskView(true);
+                  }}
+                  className="flex flex-col items-center justify-center text-center hover:bg-blue-50 rounded-lg p-2 transition"
+                >
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center mb-1 ${
+                    taskCount > 0 ? 'bg-purple-100' : 'bg-gray-100'
+                  }`}>
+                    <CheckSquare className={`w-5 h-5 ${
+                      taskCount > 0 ? 'text-purple-600' : 'text-gray-400'
+                    }`} />
+                  </div>
+                  <p className={`text-xl font-bold leading-none mb-0.5 ${
+                    taskCount > 0 ? 'text-gray-800' : 'text-gray-400'
+                  }`}>{taskCount}</p>
+                  <p className="text-xs text-gray-500 leading-tight">Tasks</p>
+                </button>
+                
+                {/* Events */}
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setSelectedGroup(group);
+                    setShowEventView(true);
+                  }}
+                  className="flex flex-col items-center justify-center text-center hover:bg-blue-50 rounded-lg p-2 transition"
+                >
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center mb-1 ${
+                    eventCount > 0 ? 'bg-cyan-100' : 'bg-gray-100'
+                  }`}>
+                    <Calendar className={`w-5 h-5 ${
+                      eventCount > 0 ? 'text-cyan-600' : 'text-gray-400'
+                    }`} />
+                  </div>
+                  <p className={`text-xl font-bold leading-none mb-0.5 ${
+                    eventCount > 0 ? 'text-gray-800' : 'text-gray-400'
+                  }`}>{eventCount}</p>
+                  <p className="text-xs text-gray-500 leading-tight">Events</p>
+                </button>
+              </div>
 
                 {/* ✅ Action Buttons Row - Invite & Discuss */}
                 <div className="grid grid-cols-2 gap-2 mb-4">
