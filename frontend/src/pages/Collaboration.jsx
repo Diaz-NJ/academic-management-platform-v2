@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { groupAPI, invitationAPI, discussionAPI, taskAPI } from '../services/api';
-import { Users, Plus, Trash2, FileText, BookOpen, CheckSquare, Square, UserPlus, MessageSquare } from 'lucide-react';
+import { Users, Plus, Trash2, FileText, BookOpen, CheckSquare, Square, UserPlus, MessageSquare, Calendar } from 'lucide-react';
 import GroupModal from '../components/GroupModal';
 import ConfirmDialog from '../components/ConfirmDialog';
 import LoadingSpinner from '../components/LoadingSpinner';
@@ -586,7 +586,7 @@ const handleSaveGroup = async (groupData) => {
                     }}
                     className="relative flex items-center justify-center space-x-0.5 md:space-x-1 px-2 md:px-3 py-1.5 md:py-2.5 bg-gradient-to-r from-blue-500 to-cyan-600 text-white rounded-lg hover:from-blue-600 hover:to-cyan-700 transition-all shadow-sm hover:shadow-md text-xs md:text-sm font-semibold"
                   >
-                    <CalendarIcon className="w-3 h-3 md:w-4 md:h-4" />
+                    <Calendar className="w-3 h-3 md:w-4 md:h-4" />
                     <span>Events</span>
                   </button>
                 </div>
