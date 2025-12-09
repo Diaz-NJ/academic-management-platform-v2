@@ -495,20 +495,7 @@ const handleSaveGroup = async (groupData) => {
         const isAdmin = group.createdBy === user.id;
         const unreadCount = groupUnreadCounts[group.id] || 0;
         const taskCount = groupTaskCounts[group.id] || 0;
-        const eventCount = groupEventCounts[group.id] || 0; // ✅ CHANGED: Get from state
-          
-          // ✅ Load event count on mount
-          useEffect(() => {
-            const loadEventCount = async () => {
-              try {
-                const response = await eventAPI.getGroupEvents(group.id);
-                setEventCount(response.data.filter(e => !e.isCanceled).length);
-              } catch (error) {
-                console.error('Error loading event count:', error);
-              }
-            };
-            loadEventCount();
-          }, [group.id]);
+        const eventCount = groupEventCounts[group.id] || 0; // ✅ CHANGED: Get from state 
           
           return (
             <div 
