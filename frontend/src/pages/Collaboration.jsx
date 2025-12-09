@@ -37,6 +37,27 @@ const Collaboration = ({ onUnreadCountChange }) => {
   const [showTaskView, setShowTaskView] = useState(false);
   const [showEventView, setShowEventView] = useState(false);
 
+    // ✅ NEW: Safe loading wrapper with timeout
+  const safeLoadGroups = useCallback(async (options = {}) => {
+    const loadPromise = loadGroups(options);
+    const timeoutPromise = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error('Loading timeout')), 15000) // 15 second timeout
+    );
+    
+    try {
+      await Promise.race([loadPromise, timeoutPromise]);
+    } catch (error) {
+      console.error('Error loading groups:', error);
+      setLoading(false); // ✅ Always clear loading state
+      
+      if (error.message === 'Loading timeout') {
+        showToast('Loading timed out. Please try again.', 'error');
+      } else {
+        showToast('Failed to load groups. Please refresh.', 'error');
+      }
+    }
+  }, [loadGroups, showToast]);
+
   const loadAllGroupUnreadCounts = useCallback(async (groupsList) => {
     if (!groupsList || groupsList.length === 0) return;
     
@@ -90,9 +111,13 @@ const loadAllGroupTaskCounts = useCallback(async (groupsList) => {
 }, []);
 
 const loadAllGroupEventCounts = useCallback(async (groupsList) => {
-  if (!groupsList || groupsList.length === 0) return;
+  if (!groupsList || groupsList.length === 0) {
+    setGroupEventCounts({});
+    return;
+  }
   
   try {
+    console.log('🔍 Loading event counts for', groupsList.length, 'groups');
     const counts = {};
     
     await Promise.all(
@@ -100,7 +125,9 @@ const loadAllGroupEventCounts = useCallback(async (groupsList) => {
         try {
           const response = await eventAPI.getGroupEvents(group.id);
           // Filter out canceled events
-          counts[group.id] = response.data.filter(e => !e.isCanceled).length;
+          const activeEvents = response.data.filter(e => !e.isCanceled);
+          counts[group.id] = activeEvents.length;
+          console.log(`📊 Group ${group.groupName}: ${counts[group.id]} events`);
         } catch (error) {
           console.error(`Error loading events for group ${group.id}:`, error);
           counts[group.id] = 0;
@@ -108,9 +135,11 @@ const loadAllGroupEventCounts = useCallback(async (groupsList) => {
       })
     );
     
+    console.log('✅ Final event counts:', counts);
     setGroupEventCounts(counts);
   } catch (error) {
     console.error('Error loading group event counts:', error);
+    setGroupEventCounts({});
   }
 }, []);
 
@@ -157,13 +186,21 @@ useEffect(() => {
     }
   }, [groups, searchQuery]);// ✅ FIXED: Search filtering with better performance
 
-const loadGroups = useCallback(async (silent = false) => {
+const loadGroups = useCallback(async (options = {}) => {
+  const { silent = false, skipCache = false } = typeof options === 'boolean' 
+    ? { silent: options, skipCache: false } 
+    : options;
+    
   try {
+    console.log('🔄 Loading groups...', { silent, skipCache });
+    
     // Only show loading spinner on initial load
     if (!silent) {
       setLoading(true);
     }
 
+    // Add cache-busting parameter if needed
+    const timestamp = skipCache ? `?t=${Date.now()}` : '';
     const response = await groupAPI.getGroups(user.id);
     const newGroups = response.data;
     
@@ -193,7 +230,8 @@ const loadGroups = useCallback(async (silent = false) => {
 }, [user.id, showToast, loadAllGroupUnreadCounts, loadAllGroupTaskCounts, loadAllGroupEventCounts]);
 
   useEffect(() => {
-  loadGroups();
+  // ✅ FIXED: Use safe loading with timeout protection
+  safeLoadGroups({ silent: false, skipCache: false });
   // eslint-disable-next-line react-hooks/exhaustive-deps
 }, []);
 
@@ -246,8 +284,8 @@ const handleSaveGroup = async (groupData) => {
     }
     setShowGroupModal(false);
     
-    // ✅ Optimized refresh - no loading state
-    await loadGroups();
+    // ✅ FIXED: Force complete refresh with cache busting
+    await loadGroups({ silent: false, skipCache: true });
   } catch (error) {
     console.error('Error saving group:', error);
     showToast('Failed to save group', 'error');
@@ -283,12 +321,20 @@ const handleSaveGroup = async (groupData) => {
     };
 
   const handleLeaveConfirm = async () => {
-    try {
-      console.log('🚪 Leaving group:', groupToLeave.id);
-      const leftGroupId = groupToLeave.id;
-      
-      // Make API call
-      const response = await groupAPI.leaveGroup(leftGroupId, user.id);
+  try {
+    console.log('🚪 Leaving group:', groupToLeave.id);
+    const leftGroupId = groupToLeave.id;
+    
+    // ✅ FIXED: Show loading indicator
+    setLoading(true);
+    
+    // Make API call with timeout protection
+    const timeoutPromise = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error('Request timeout')), 10000)
+    );
+    
+    const leavePromise = groupAPI.leaveGroup(leftGroupId, user.id);
+    const response = await Promise.race([leavePromise, timeoutPromise]);
       
       console.log('✅ Leave response:', response.data);
       
@@ -306,10 +352,22 @@ const handleSaveGroup = async (groupData) => {
       setShowLeaveConfirm(false);
       setGroupToLeave(null);
       
-    } catch (error) {
+      } catch (error) {
       console.error('Error leaving group:', error);
-      const errorMessage = error.response?.data?.message || 'Failed to leave group';
+      
+      let errorMessage = 'Failed to leave group';
+      if (error.message === 'Request timeout') {
+        errorMessage = 'Request timed out. Please try again.';
+      } else if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      }
+      
       showToast(errorMessage, 'error');
+    } finally {
+      // ✅ CRITICAL: Always clear loading state and close dialogs
+      setLoading(false);
+      setShowLeaveConfirm(false);
+      setGroupToLeave(null);
     }
   };
 
@@ -332,11 +390,29 @@ const handleSaveGroup = async (groupData) => {
           <div className="flex items-center space-x-1 md:space-x-2 self-end sm:self-auto">
             <button
               onClick={async () => {
-                setLoading(true);
-                // ✅ CHANGED: Pass force=true to refresh
-                await loadGroups(true);
-                await loadAllGroupUnreadCounts(groups);
-                showToast('Groups refreshed', 'success');
+                try {
+                  setLoading(true);
+                  
+                  // ✅ FIXED: Complete refresh with cache busting
+                  await loadGroups({ silent: false, skipCache: true });
+                  
+                  // ✅ Wait for groups to load, then refresh counts
+                  const response = await groupAPI.getGroups(user.id);
+                  const newGroups = response.data;
+                  
+                  await Promise.all([
+                    loadAllGroupUnreadCounts(newGroups),
+                    loadAllGroupTaskCounts(newGroups),
+                    loadAllGroupEventCounts(newGroups)
+                  ]);
+                  
+                  showToast('Groups refreshed successfully!', 'success');
+                } catch (error) {
+                  console.error('Error refreshing:', error);
+                  showToast('Failed to refresh groups', 'error');
+                } finally {
+                  setLoading(false);
+                }
               }}
                className="btn-hover flex items-center space-x-1 md:space-x-2 px-2 md:px-4 py-1.5 md:py-2 bg-gray-100 text-gray-700 rounded-lg font-medium shadow-sm hover:bg-gray-200 text-sm md:text-base"
             >

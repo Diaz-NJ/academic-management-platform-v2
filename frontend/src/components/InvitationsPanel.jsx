@@ -60,12 +60,12 @@ const loadInvitationsQuietly = async () => {
       await invitationAPI.acceptInvitation(id);
       showToast('Invitation accepted! You are now a member.', 'success');
       
-      // Reload invitations
+      // ✅ FIXED: Reload invitations first
       await loadInvitations();
       
-      // Force parent to refresh groups immediately
+      // ✅ FIXED: Force parent to completely refresh with cache busting
       if (onUpdate) {
-        await onUpdate(true);
+        await onUpdate({ silent: false, skipCache: true });
       }
       
     } catch (error) {
