@@ -99,18 +99,31 @@ public class TaskController {
         Task updated = taskService.updateTask(task);
         System.out.println("📝 Task updated in database");
 
-        if ("Completed".equals(updated.getStatus()) && updated.getEventId() != null) {
-    System.out.println("🎯 Task marked as completed - deleting linked calendar event");
-    try {
-        eventService.deleteEvent(updated.getEventId());
-        updated.setEventId(null);
-        updated.setShowOnCalendar(false);
-        taskService.updateTask(updated);
-        System.out.println("✅ Calendar event deleted for completed task");
-    } catch (Exception e) {
-        System.err.println("❌ Error deleting calendar event: " + e.getMessage());
-    }
-}
+        // ✅ CRITICAL FIX: Delete event BEFORE updating task status
+        if ("Completed".equals(task.getStatus()) && updated.getEventId() != null) {
+            System.out.println("🎯 Task being marked as completed - deleting linked calendar event");
+            System.out.println("   - Event ID to delete: " + updated.getEventId());
+            
+            try {
+                Long eventIdToDelete = updated.getEventId();
+                
+                // Delete the event first
+                boolean eventDeleted = eventService.deleteEvent(eventIdToDelete);
+                
+                if (eventDeleted) {
+                    System.out.println("✅ Calendar event deleted successfully: " + eventIdToDelete);
+                    // Clear the link after successful deletion
+                    updated.setEventId(null);
+                    updated.setShowOnCalendar(false);
+                } else {
+                    System.err.println("⚠️ Event deletion returned false for ID: " + eventIdToDelete);
+                }
+            } catch (Exception e) {
+                System.err.println("❌ Error deleting calendar event: " + e.getMessage());
+                e.printStackTrace();
+                // Don't fail the task update if event deletion fails
+            }
+        }
         
         // Step 3: Handle calendar event creation/update
         if (updated.getDueDate() != null) {

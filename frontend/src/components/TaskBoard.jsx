@@ -1,5 +1,5 @@
 import React from 'react';
-import { taskAPI } from '../services/api';
+import { taskAPI, eventAPI } from '../services/api';
 import { useToast } from '../context/ToastContext';
 import { Clock } from 'lucide-react';
 import { formatShortDate } from '../utils/dateUtils';

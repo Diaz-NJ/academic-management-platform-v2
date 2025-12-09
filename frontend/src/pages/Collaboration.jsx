@@ -158,59 +158,43 @@ useEffect(() => {
   }, [groups, searchQuery]);// ✅ FIXED: Search filtering with better performance
 
 const loadGroups = useCallback(async (force = false) => {
-    try {
-      console.log('📥 loadGroups called, force:', force, 'current count:', groups.length);
-      
-      // ✅ FIXED: Always reload when forced
-      if (force) {
-        setLoading(true);
-      } else if (groups.length > 0) {
-        // Skip if not forced and already loaded
-        setLoading(false);
-        return;
-      }
+  try {
+    console.log('📥 loadGroups called, force:', force);
+    
+    // ✅ FIXED: Don't show loading spinner for background refreshes
+    if (force) {
+      // Silent refresh - no loading state
+      console.log('🔄 Silent refresh in progress...');
+    } else {
+      setLoading(true);
+    }
 
-      const response = await groupAPI.getGroups(user.id);
-      const newGroups = response.data;
-      
-      console.log('📦 Received groups from API:', newGroups.length);
-      
-      // ✅ FIXED: Always update when forced, no comparison
-      if (force) {
-        console.log('🔄 Force update: Setting groups directly');
-        setGroups(newGroups);
-        setFilteredGroups(newGroups);
-        setSelectedGroups([]);
-      } else {
-        // Only compare when not forced
-        setGroups(prevGroups => {
-          if (JSON.stringify(prevGroups) === JSON.stringify(newGroups)) {
-            return prevGroups;
-          }
-          return newGroups;
-        });
-        setSelectedGroups([]);
-      }
-      
-    } catch (error) {
-      console.error('Error loading groups:', error);
+    const response = await groupAPI.getGroups(user.id);
+    const newGroups = response.data;
+    
+    console.log('📦 Received groups from API:', newGroups.length);
+    
+    // ✅ Update state silently
+    setGroups(newGroups);
+    setFilteredGroups(newGroups);
+    setSelectedGroups([]);
+    
+  } catch (error) {
+    console.error('Error loading groups:', error);
+    if (!force) {
       showToast('Failed to load groups', 'error');
-    } finally {
+    }
+  } finally {
+    if (!force) {
       setLoading(false);
     }
-  }, [user.id, showToast]); // ✅ REMOVED groups.length from dependencies
+  }
+}, [user.id, showToast]);
 
   useEffect(() => {
   loadGroups();
-  
-  // ✅ FIX: Poll for group updates every 10 seconds
-  const interval = setInterval(() => {
-    loadGroups(true); // Force refresh to detect member changes
-  }, 10000);
-  
-  return () => clearInterval(interval);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-}, []); // ✅ Empty array = run once on mount, loadGroups intentionally excluded
+}, []);
 
   const toggleGroupSelection = (groupId) => {
     setSelectedGroups(prev => 

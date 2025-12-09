@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { taskAPI } from '../services/api';
+import { taskAPI, eventAPI } from '../services/api';
 import { Plus, Trash2, Edit, Filter, CheckSquare, Square, LayoutGrid, List, Clock, Calendar, Users } from 'lucide-react';
 import TaskModal from '../components/TaskModal';
 import { useToast } from '../context/ToastContext';
@@ -179,14 +179,22 @@ const Tasks = () => {
     try {
       const task = tasks.find(t => t.id === taskId);
       
-      // ✅ FIX: Check if completing a task with linked event
-      if (newStatus === 'Completed' && task.showOnCalendar && task.eventId) {
+      // ✅ SAFETY NET: If completing task with linked event, delete event first
+      if (newStatus === 'Completed' && task.eventId) {
         console.log('🎯 Completing task with linked event:', task.eventId);
+        
+        try {
+          await eventAPI.deleteEvent(task.eventId);
+          console.log('✅ Frontend: Event deleted successfully');
+        } catch (eventError) {
+          console.error('⚠️ Frontend: Failed to delete event:', eventError);
+          // Continue anyway - backend should handle it
+        }
       }
       
       await taskAPI.updateTask(taskId, { ...task, status: newStatus });
-      showToast(`Task marked as ${newStatus}`, 'success');
-      loadTasks();
+      showToast(`Task moved to ${newStatus}`, 'success');
+      onTasksChange();
     } catch (error) {
       console.error('Error updating task:', error);
       showToast('Failed to update task status', 'error');
