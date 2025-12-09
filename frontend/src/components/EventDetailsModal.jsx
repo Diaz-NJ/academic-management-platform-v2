@@ -125,6 +125,20 @@ const EventDetailsModal = ({ event, onClose, onEdit, onDelete, onUncancel, onVie
                 </div>
               </div>
             )}
+
+            {event.groupId && (
+              <div>
+                <h3 className="text-sm font-semibold text-gray-700 mb-2">Group</h3>
+                <div className="flex items-center space-x-2">
+                  <div className="px-3 py-1.5 bg-purple-100 text-purple-800 rounded-lg border border-purple-300 text-sm font-medium">
+                    👥 Linked to Group
+                  </div>
+                </div>
+                <p className="text-xs text-gray-500 mt-1">
+                  This event is shared with your group members
+                </p>
+              </div>
+            )}
           </div>
 
           {/* ✅ FIXED: View Series Button - show for both recurring and instances */}

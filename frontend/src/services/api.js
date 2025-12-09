@@ -54,6 +54,9 @@ export const eventAPI = {
   createEvent: (event) => api.post('/events', event),
   updateEvent: (id, event) => api.put(`/events/${id}`, event),
   deleteEvent: (id) => api.delete(`/events/${id}`),
+  linkToGroup: (eventId, groupId) => api.post(`/events/${eventId}/link-to-group/${groupId}`),
+  unlinkFromGroup: (eventId) => api.delete(`/events/${eventId}/unlink-from-group`),
+  getGroupEvents: (groupId) => api.get(`/events/group/${groupId}`),
   cancelInstance: (eventId, date) => 
     api.post(`/events/${eventId}/cancel-instance`, { date }),
   uncancelInstance: (eventId, date) => 

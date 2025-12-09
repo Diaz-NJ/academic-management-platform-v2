@@ -64,6 +64,12 @@ public class EventController {
             event.setColorCode(eventData.get("colorCode") != null 
                 ? (String) eventData.get("colorCode") 
                 : "#3788d8");
+
+                // ✅ NEW: Group linking
+            Object groupIdObj = eventData.get("groupId");
+            if (groupIdObj != null) {
+                event.setGroupId(((Number) groupIdObj).longValue());
+}
             
             LocalDateTime startDT = parseDateTime((String) eventData.get("startDateTime"));
             event.setStartDateTime(startDT);
@@ -300,6 +306,12 @@ public ResponseEntity<Event> deleteInstance(
             event.setEventType((String) eventData.get("eventType"));
             event.setLocation((String) eventData.get("location"));
             event.setColorCode((String) eventData.get("colorCode"));
+
+            // ✅ NEW: Group linking
+            Object groupIdObj = eventData.get("groupId");
+            if (groupIdObj != null) {
+                event.setGroupId(((Number) groupIdObj).longValue());
+            }
             
             event.setStartDateTime(parseDateTime((String) eventData.get("startDateTime")));
             event.setEndDateTime(parseDateTime((String) eventData.get("endDateTime")));
@@ -400,5 +412,56 @@ public ResponseEntity<?> deleteEvent(@PathVariable Long id) {
     } catch (Exception e) {
         return LocalDateTime.parse(dateTimeStr);
     }
+}
+
+@PostMapping("/{id}/link-to-group/{groupId}")
+public ResponseEntity<?> linkEventToGroup(@PathVariable Long id, @PathVariable Long groupId) {
+    try {
+        Optional<Event> eventOpt = eventService.getEventById(id);
+        if (eventOpt.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+
+        Event event = eventOpt.get();
+        event.setGroupId(groupId);
+        eventService.updateEvent(event);
+
+        return ResponseEntity.ok(Map.of("success", true, "message", "Event linked to group"));
+    } catch (Exception e) {
+        return ResponseEntity.internalServerError().body(Map.of(
+            "success", false,
+            "message", "Failed to link event to group: " + e.getMessage()
+        ));
+    }
+}
+
+@DeleteMapping("/{id}/unlink-from-group")
+public ResponseEntity<?> unlinkEventFromGroup(@PathVariable Long id) {
+    try {
+        Optional<Event> eventOpt = eventService.getEventById(id);
+        if (eventOpt.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+
+        Event event = eventOpt.get();
+        event.setGroupId(null);
+        eventService.updateEvent(event);
+
+        return ResponseEntity.ok(Map.of("success", true, "message", "Event unlinked from group"));
+    } catch (Exception e) {
+        return ResponseEntity.internalServerError().body(Map.of(
+            "success", false,
+            "message", "Failed to unlink event from group: " + e.getMessage()
+        ));
+    }
+}
+
+@GetMapping("/group/{groupId}")
+public ResponseEntity<List<Event>> getGroupEvents(@PathVariable Long groupId) {
+    List<Event> allEvents = eventService.getEventsByUserId(null); // We'll fix this
+    List<Event> groupEvents = allEvents.stream()
+        .filter(e -> groupId.equals(e.getGroupId()))
+        .collect(Collectors.toList());
+    return ResponseEntity.ok(groupEvents);
 }
 }

@@ -49,18 +49,15 @@ public class EventService {
         System.out.println("✅ Found event: " + event.getTitle());
         System.out.println("   - Is Recurring: " + event.getIsRecurring());
         
-        // ✅ FIXED: Set isCanceled flag for non-recurring events
-        if (Boolean.TRUE.equals(event.getIsRecurring())) {
-            // For recurring events, use canceledDates
-            String dateStr = event.getStartDateTime().toLocalDate().toString();
-            event.setCanceledDates(dateStr);
-        } else {
-            // For non-recurring events, set the isCanceled flag
-            event.setIsCanceled(true);
-        }
+        // ✅ FIXED: Always set BOTH canceledDates AND isCanceled for consistency
+        String dateStr = event.getStartDateTime().toLocalDate().toString();
+        event.setCanceledDates(dateStr);
+        event.setIsCanceled(true);
         
-        Event saved = eventRepository.save(event);
+        Event saved = eventRepository.saveAndFlush(event);
         System.out.println("✅ Event canceled: " + saved.getTitle());
+        System.out.println("   - canceledDates: " + saved.getCanceledDates());
+        System.out.println("   - isCanceled: " + saved.getIsCanceled());
         return saved;
     }
 
@@ -76,19 +73,22 @@ public class EventService {
         System.out.println("✅ Found event: " + event.getTitle());
         System.out.println("   - Is Recurring: " + event.getIsRecurring());
         
-        // ✅ FIXED: Clear both canceledDates and isCanceled flag
-        if (Boolean.TRUE.equals(event.getIsRecurring())) {
-            event.setCanceledDates(null);
-        } else {
-            event.setIsCanceled(false);
-        }
+        // ✅ FIXED: Always clear BOTH canceledDates AND isCanceled
+        event.setCanceledDates(null);
+        event.setIsCanceled(false);
         
-        Event saved = eventRepository.save(event);
+        Event saved = eventRepository.saveAndFlush(event);
         System.out.println("✅ Event un-canceled: " + saved.getTitle());
+        System.out.println("   - canceledDates: " + saved.getCanceledDates());
+        System.out.println("   - isCanceled: " + saved.getIsCanceled());
         return saved;
     }
 
     public Event cancelInstance(Long eventId, String dateStr) {
+        System.out.println("🚫 cancelInstance called");
+        System.out.println("   - Event ID: " + eventId);
+        System.out.println("   - Date: " + dateStr);
+        
         Optional<Event> eventOpt = eventRepository.findById(eventId);
         if (eventOpt.isEmpty()) {
             throw new RuntimeException("Event not found");
@@ -110,7 +110,10 @@ public class EventService {
         }
         
         event.setCanceledDates(String.join(",", canceledList));
-        return eventRepository.save(event);
+        Event saved = eventRepository.saveAndFlush(event);
+        
+        System.out.println("✅ Instance canceled: " + saved.getCanceledDates());
+        return saved;
     }
 
     public Event removeCanceledInstance(Long eventId, String dateStr) {

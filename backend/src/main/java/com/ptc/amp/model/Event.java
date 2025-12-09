@@ -33,6 +33,9 @@ public class Event {
     @Column(length = 7)
     private String colorCode;
 
+    @Column(name = "group_id")
+    private Long groupId;
+
     @Column(name = "is_recurring")
     private Boolean isRecurring = false;
 
@@ -144,4 +147,7 @@ public class Event {
 
     public String getDeletedDates() { return deletedDates; }
     public void setDeletedDates(String deletedDates) { this.deletedDates = deletedDates; }
+
+    public Long getGroupId() { return groupId; }
+    public void setGroupId(Long groupId) { this.groupId = groupId; }
 }

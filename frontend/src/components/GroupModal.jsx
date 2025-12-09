@@ -200,7 +200,7 @@ const GroupModal = ({ onClose, onSave, group, currentUser, mode = 'edit' }) => {
                               : 'bg-gray-100 text-gray-800 border border-gray-300'
                           }`}>
                             <span>{isMemberAdmin ? '👑' : member.role === 'Leader' ? '⭐' : '👤'}</span>
-                            <span className="hidden sm:inline">{isMemberAdmin ? 'Admin' : member.role || 'Member'}</span>
+                            <span className="hidden">{isMemberAdmin ? 'Admin' : member.role || 'Member'}</span>
                           </span>
                         </div>
                       </div>

@@ -9,6 +9,8 @@ const EventModal = ({ onClose, onSave, userId, initialDate, event = null }) => {
   const [conflicts, setConflicts] = useState([]);
   const [showConflictWarning, setShowConflictWarning] = useState(false);
   const [pendingEventData, setPendingEventData] = useState(null);
+  const [groups, setGroups] = useState([]);
+  const [loadingGroups, setLoadingGroups] = useState(true);
   
   const formatDateTimeLocal = (dateInput) => {
     let d;
@@ -44,6 +46,7 @@ const EventModal = ({ onClose, onSave, userId, initialDate, event = null }) => {
     endDateTime: '',
     location: '',
     colorCode: '#3788d8',
+    groupId: null,
     isRecurring: false,
     recurrencePattern: 'WEEKLY',
     recurrenceInterval: 1,
@@ -76,6 +79,7 @@ const EventModal = ({ onClose, onSave, userId, initialDate, event = null }) => {
         endDateTime: formatDateTimeLocal(endDT),
         location: event.location || '',
         colorCode: event.colorCode || '#3788d8',
+        groupId: event.groupId || null,
         isRecurring: event.isException || event.parentEventId ? false : (event.isRecurring || false),
         recurrencePattern: event.recurrencePattern || 'WEEKLY',
         recurrenceInterval: event.recurrenceInterval || 1,
@@ -96,6 +100,7 @@ const EventModal = ({ onClose, onSave, userId, initialDate, event = null }) => {
         endDateTime: formatDateTimeLocal(endDT),
         location: '',
         colorCode: '#3788d8',
+        groupId: null,
         isRecurring: false,
         recurrencePattern: 'WEEKLY',
         recurrenceInterval: 1,
@@ -114,6 +119,23 @@ const EventModal = ({ onClose, onSave, userId, initialDate, event = null }) => {
       [name]: type === 'checkbox' ? checked : value 
     });
   };
+
+  // ✅ NEW: Load user's groups
+  useEffect(() => {
+    const loadGroups = async () => {
+      try {
+        const { groupAPI } = await import('../services/api');
+        const response = await groupAPI.getGroups(userId);
+        setGroups(response.data);
+      } catch (error) {
+        console.error('Error loading groups:', error);
+      } finally {
+        setLoadingGroups(false);
+      }
+    };
+    
+    loadGroups();
+  }, [userId]);
 
   const toggleDayOfWeek = (day) => {
     const days = formData.recurrenceDaysOfWeek ? formData.recurrenceDaysOfWeek.split(',') : [];
@@ -300,6 +322,7 @@ const handleSubmit = async (e) => {
       location: formData.location,
       colorCode: formData.colorCode,
       userId: Number(userId),
+      groupId: formData.groupId ? Number(formData.groupId) : null,
       startDateTime: formatDateTimeForBackend(formData.startDateTime),
       endDateTime: formatDateTimeForBackend(formData.endDateTime),
       isRecurring: Boolean(formData.isRecurring),
@@ -511,6 +534,43 @@ const handleConflictCancel = () => {
               placeholder="e.g., Room 301"
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
             />
+          </div>
+
+          {/* ✅ NEW: Group Linking Section */}
+          <div className="border-t pt-4 mt-4">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Link to Group (Optional)
+            </label>
+            
+            {loadingGroups ? (
+              <div className="text-sm text-gray-500">Loading groups...</div>
+            ) : groups.length === 0 ? (
+              <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
+                <p className="text-sm text-gray-600">
+                  No groups available. Create a group first to link events.
+                </p>
+              </div>
+            ) : (
+              <select
+                name="groupId"
+                value={formData.groupId || ''}
+                onChange={handleChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+              >
+                <option value="">No group (personal event)</option>
+                {groups.map(group => (
+                  <option key={group.id} value={group.id}>
+                    {group.groupName} - {group.subject}
+                  </option>
+                ))}
+              </select>
+            )}
+            
+            {formData.groupId && (
+              <p className="text-xs text-purple-600 mt-1">
+                ℹ️ This event will be visible to your group members
+              </p>
+            )}
           </div>
 
           {/* Recurring Event Section */}

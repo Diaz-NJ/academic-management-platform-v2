@@ -129,6 +129,8 @@ useEffect(() => {
 
 const loadGroups = useCallback(async (force = false) => {
     try {
+      console.log('📥 loadGroups called, force:', force, 'current count:', groups.length);
+      
       // ✅ FIXED: Always show loading for forced refresh
       if (force) {
         setLoading(true);
@@ -141,28 +143,32 @@ const loadGroups = useCallback(async (force = false) => {
       const response = await groupAPI.getGroups(user.id);
       const newGroups = response.data;
       
-      // ✅ FIXED: Always update when forced
+      console.log('📦 Received groups from API:', newGroups.length);
+      
+      // ✅ FIXED: Always update when forced, no comparison
       if (force) {
-        console.log('Force refresh: Setting new groups', newGroups.length);
+        console.log('🔄 Force update: Setting groups directly');
         setGroups(newGroups);
         setFilteredGroups(newGroups);
+        setSelectedGroups([]);
       } else {
+        // Only compare when not forced
         setGroups(prevGroups => {
           if (JSON.stringify(prevGroups) === JSON.stringify(newGroups)) {
             return prevGroups;
           }
           return newGroups;
         });
+        setSelectedGroups([]);
       }
       
-      setSelectedGroups([]);
     } catch (error) {
       console.error('Error loading groups:', error);
       showToast('Failed to load groups', 'error');
     } finally {
       setLoading(false);
     }
-  }, [user.id, showToast, groups.length]);
+  }, [user.id, showToast]); // ✅ REMOVED groups.length from dependencies
 
   useEffect(() => {
   loadGroups();
@@ -256,7 +262,10 @@ const handleSaveGroup = async (groupData) => {
 
   const handleLeaveConfirm = async () => {
     try {
+      console.log('🚪 Leaving group:', groupToLeave.id);
       const response = await groupAPI.leaveGroup(groupToLeave.id, user.id);
+      
+      console.log('✅ Leave response:', response.data);
       
       if (response.data.groupDeleted) {
         showToast('Left group successfully. Group was deleted as no members remain.', 'success');
@@ -264,15 +273,32 @@ const handleSaveGroup = async (groupData) => {
         showToast('Left group successfully', 'success');
       }
       
+      const leftGroupId = groupToLeave.id;
       setShowLeaveConfirm(false);
       setGroupToLeave(null);
       
-      // ✅ FIXED: Immediately remove from state AND force refresh
-      setGroups(prevGroups => prevGroups.filter(g => g.id !== groupToLeave.id));
-      setFilteredGroups(prevFiltered => prevFiltered.filter(g => g.id !== groupToLeave.id));
+      // ✅ FIXED: Clear cache and force immediate state update
+      console.log('🔄 Removing group from state:', leftGroupId);
+      console.log('Current groups count:', groups.length);
       
-      // Force refresh to ensure sync with backend
-      await loadGroups(true);
+      // Clear both states immediately
+      setGroups(prevGroups => {
+        const filtered = prevGroups.filter(g => g.id !== leftGroupId);
+        console.log('New groups count:', filtered.length);
+        return filtered;
+      });
+      
+      setFilteredGroups(prevFiltered => {
+        const filtered = prevFiltered.filter(g => g.id !== leftGroupId);
+        return filtered;
+      });
+      
+      // Force complete reload from backend
+      setLoading(true);
+      setTimeout(async () => {
+        await loadGroups(true);
+      }, 100);
+      
     } catch (error) {
       console.error('Error leaving group:', error);
       const errorMessage = error.response?.data?.message || 'Failed to leave group';
