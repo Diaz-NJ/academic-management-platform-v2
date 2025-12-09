@@ -266,7 +266,13 @@ const handleSaveGroup = async (groupData) => {
       
       setShowLeaveConfirm(false);
       setGroupToLeave(null);
-      loadGroups();
+      
+      // ✅ FIXED: Immediately remove from state AND force refresh
+      setGroups(prevGroups => prevGroups.filter(g => g.id !== groupToLeave.id));
+      setFilteredGroups(prevFiltered => prevFiltered.filter(g => g.id !== groupToLeave.id));
+      
+      // Force refresh to ensure sync with backend
+      await loadGroups(true);
     } catch (error) {
       console.error('Error leaving group:', error);
       const errorMessage = error.response?.data?.message || 'Failed to leave group';

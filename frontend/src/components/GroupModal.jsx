@@ -192,14 +192,15 @@ const GroupModal = ({ onClose, onSave, group, currentUser, mode = 'edit' }) => {
                               <span className="ml-2 text-xs text-blue-600 font-semibold">(You)</span>
                             )}
                           </p>
-                          <span className={`inline-block px-2 py-0.5 text-xs rounded-full ${
+                          <span className={`inline-flex items-center space-x-1 px-2 py-0.5 text-xs rounded-full ${
                             isMemberAdmin
                               ? 'bg-purple-100 text-purple-800 border border-purple-300' 
                               : member.role === 'Leader'
                               ? 'bg-blue-100 text-blue-800 border border-blue-300'
                               : 'bg-gray-100 text-gray-800 border border-gray-300'
                           }`}>
-                            {isMemberAdmin ? 'Admin' : member.role || 'Member'}
+                            <span>{isMemberAdmin ? '👑' : member.role === 'Leader' ? '⭐' : '👤'}</span>
+                            <span className="hidden sm:inline">{isMemberAdmin ? 'Admin' : member.role || 'Member'}</span>
                           </span>
                         </div>
                       </div>
@@ -341,97 +342,89 @@ const GroupModal = ({ onClose, onSave, group, currentUser, mode = 'edit' }) => {
             
             {/* Members List */}
             <div className="border border-gray-200 rounded-lg divide-y max-h-64 overflow-y-auto">
-              {formData.members.length === 0 ? (
-                <div className="p-4 text-center text-gray-500 text-sm">
-                  {group ? 'No members in this group' : 'You will be added as the Admin'}
-                </div>
-              ) : (
-                formData.members.map((member) => {
-                  const isMemberAdmin = group?.createdBy === member.userId;
-                  const isCurrentUserItself = member.userId === currentUser.id;
-                  
-                  return (
-                    <div
-                      key={member.userId}
-                      className="p-3 hover:bg-gray-50 flex items-center justify-between"
-                    >
-                      <div className="flex items-center space-x-3">
-                        <div className="w-8 h-8 bg-gradient-to-br from-indigo-400 to-cyan-400 rounded-full border-2 border-white flex items-center justify-center text-xs font-medium text-white shadow-md">
-                          {member.name.charAt(0).toUpperCase()}
-                        </div>
-                        <div>
-                          <p className="font-medium text-gray-800">
-                            {member.name}
-                            {isCurrentUserItself && (
-                              <span className="ml-2 text-xs text-blue-600 font-semibold">(You)</span>
-                            )}
-                          </p>
-                          <span className={`inline-block px-2 py-0.5 text-xs rounded-full ${
-                            isMemberAdmin
-                              ? 'bg-purple-100 text-purple-800 border border-purple-300' 
-                              : member.role === 'Leader'
-                              ? 'bg-blue-100 text-blue-800 border border-blue-300'
-                              : 'bg-gray-100 text-gray-800 border border-gray-300'
-                          }`}>
-                            {!group && isCurrentUserItself ? 'Admin' : (isMemberAdmin ? 'Admin' : member.role || 'Member')}
-                          </span>
-                        </div>
+             {formData.members.map((member) => {
+                const isMemberAdmin = group?.createdBy === member.userId;
+                const isCurrentUserItself = member.userId === currentUser.id;
+                
+                return (
+                  <div
+                    key={member.userId}
+                    className="p-3 hover:bg-gray-50 flex items-center justify-between"
+                  >
+                    <div className="flex items-center space-x-3">
+                      <div className="w-8 h-8 bg-gradient-to-br from-indigo-400 to-cyan-400 rounded-full border-2 border-white flex items-center justify-center text-xs font-medium text-white shadow-md">
+                        {member.name.charAt(0).toUpperCase()}
                       </div>
+                      <div>
+                        <p className="font-medium text-gray-800">
+                          {member.name}
+                          {isCurrentUserItself && (
+                            <span className="ml-2 text-xs text-blue-600 font-semibold">(You)</span>
+                          )}
+                        </p>
+                        <span className={`inline-flex items-center space-x-1 px-2 py-0.5 text-xs rounded-full ${
+                          isMemberAdmin
+                            ? 'bg-purple-100 text-purple-800 border border-purple-300' 
+                            : member.role === 'Leader'
+                            ? 'bg-blue-100 text-blue-800 border border-blue-300'
+                            : 'bg-gray-100 text-gray-800 border border-gray-300'
+                        }`}>
+                          <span>{!group && isCurrentUserItself ? '👑' : (isMemberAdmin ? '👑' : member.role === 'Leader' ? '⭐' : '👤')}</span>
+                          <span className="hidden sm:inline">{!group && isCurrentUserItself ? 'Admin' : (isMemberAdmin ? 'Admin' : member.role || 'Member')}</span>
+                        </span>
+                      </div>
+                    </div>
                       
-                      {/* ✅ ONLY show actions if user is admin AND not editing themselves */}
-                      {group && isAdmin && !isCurrentUserItself && (
-                        <div className="flex items-center space-x-2">
-                          {/* ✅ Only role toggle - can give "Leader" title but no special permissions */}
-                          <button
-                            type="button"
-                            onClick={async () => {
-                              const newRole = member.role === 'Leader' ? 'Member' : 'Leader';
+                    {group && isAdmin && !isCurrentUserItself && (
+                      <div className="flex items-center space-x-2">
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            const newRole = member.role === 'Leader' ? 'Member' : 'Leader';
+                            
+                            try {
+                              const { groupAPI } = await import('../services/api');
+                              await groupAPI.changeMemberRole(group.id, member.userId, newRole);
+                              showToast(`Role changed to ${newRole}`, 'success');
                               
-                              try {
-                                const { groupAPI } = await import('../services/api');
-                                await groupAPI.changeMemberRole(group.id, member.userId, newRole);
-                                showToast(`Role changed to ${newRole}`, 'success');
-                                
-                                setFormData(prevData => ({
-                                  ...prevData,
-                                  members: prevData.members.map(m =>
-                                    m.userId === member.userId
-                                      ? { ...m, role: newRole }
-                                      : m
-                                  )
-                                }));
-                              } catch (error) {
-                                console.error('Error changing role:', error);
-                                showToast('Failed to change role', 'error');
-                              }
-                            }}
-                            className="text-xs px-3 py-1 bg-gray-100 hover:bg-gray-200 rounded transition"
-                            title={member.role === 'Leader' ? 'Remove Leader title' : 'Give Leader title'}
-                          >
-                            {member.role === 'Leader' ? '👤 Make Member' : '⭐ Make Leader'}
-                          </button>
-                          
-                          {/* ✅ Remove button - only admin can remove members */}
-                          <button
-                            type="button"
-                            onClick={() => {
                               setFormData(prevData => ({
                                 ...prevData,
-                                members: prevData.members.filter(m => m.userId !== member.userId)
+                                members: prevData.members.map(m =>
+                                  m.userId === member.userId
+                                    ? { ...m, role: newRole }
+                                    : m
+                                )
                               }));
-                              showToast('Member removed', 'info');
-                            }}
-                            className="p-2 text-red-500 hover:bg-red-50 rounded transition"
-                            title="Remove member (Admin only)"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })
-              )}
+                            } catch (error) {
+                              console.error('Error changing role:', error);
+                              showToast('Failed to change role', 'error');
+                            }
+                          }}
+                          className="text-xs px-3 py-1 bg-gray-100 hover:bg-gray-200 rounded transition"
+                          title={member.role === 'Leader' ? 'Remove Leader title' : 'Give Leader title'}
+                        >
+                          {member.role === 'Leader' ? '👤 Make Member' : '⭐ Make Leader'}
+                        </button>
+                        
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setFormData(prevData => ({
+                              ...prevData,
+                              members: prevData.members.filter(m => m.userId !== member.userId)
+                            }));
+                            showToast('Member removed', 'info');
+                          }}
+                          className="p-2 text-red-500 hover:bg-red-50 rounded transition"
+                          title="Remove member (Admin only)"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
             
             {/* Explanation for new groups */}

@@ -16,9 +16,17 @@ export const expandRecurringEvents = (events, viewStart, viewEnd) => {
       expandedEvents.push(event);
       return;
     }
-
+    
+    // ✅ FIXED: For non-recurring events, check if canceled
     if (!event.isRecurring) {
-      expandedEvents.push(event);
+      // Check if this specific event is canceled
+      const isCanceled = event.canceledDates && 
+        event.canceledDates.includes(new Date(event.startDateTime).toISOString().substring(0, 10));
+      
+      expandedEvents.push({
+        ...event,
+        isCanceled: isCanceled
+      });
       return;
     }
 

@@ -77,7 +77,6 @@ const Calendar = () => {
     }
   }, [events, searchQuery]);
 
-  // ✅ FIXED: Proper load with useCallback
 const loadEvents = useCallback(async () => {
   try {
     setLoading(true);
@@ -94,11 +93,11 @@ const loadEvents = useCallback(async () => {
         title: event.title,
         isRecurring: event.isRecurring,
         deletedDates: event.deletedDates,
-        canceledDates: event.canceledDates
+        canceledDates: event.canceledDates,
+        isCanceled: event.isCanceled // ✅ Add this
       });
-         });
+    });
 
-    
     // ✅ Create a Set of ALL event IDs (not just recurring ones)
     const allEventIds = new Set(originalEvents.filter(e => e.id).map(e => e.id));
     
@@ -428,7 +427,6 @@ const handleCancelInstanceClick = async (instance) => {
   }
 };
 
-// ✅ NEW: Handle cancel from details
 const handleCancelFromDetails = async () => {
   try {
     const event = modalState.data;
@@ -443,7 +441,7 @@ const handleCancelFromDetails = async () => {
     if (event.isRecurring || event.isRecurringInstance) {
       // Recurring event instance
       const instanceDate = new Date(event.startDateTime);
-      const dateStr = instanceDate.toISOString();
+      const dateStr = instanceDate.toISOString().substring(0, 10); // ✅ FIXED: Use date only
       const originalId = event.originalId || event.id;
       
       console.log('Canceling recurring instance:', { originalId, dateStr });
