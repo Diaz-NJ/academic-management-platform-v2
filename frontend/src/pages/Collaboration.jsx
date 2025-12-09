@@ -291,48 +291,38 @@ const handleSaveGroup = async (groupData) => {
   };
 
   const handleLeaveConfirm = async () => {
-  try {
-    console.log('🚪 Leaving group:', groupToLeave.id);
-    const leftGroupId = groupToLeave.id;
-    
-    // Make API call first
-    const response = await groupAPI.leaveGroup(leftGroupId, user.id);
-    
-    console.log('✅ Leave response:', response.data);
-    
-    if (response.data.groupDeleted) {
-      showToast('Left group successfully. Group was deleted as no members remain.', 'success');
-    } else {
-      showToast('Left group successfully', 'success');
-    }
-    
-    // ✅ FIXED: Update state immediately after successful API call
-    setGroups(prevGroups => {
-      const filtered = prevGroups.filter(g => g.id !== leftGroupId);
-      console.log('🔄 Groups after leave:', filtered.length);
-      return filtered;
-    });
-    
-    setFilteredGroups(prevFiltered => {
-      const filtered = prevFiltered.filter(g => g.id !== leftGroupId);
-      return filtered;
-    });
-    
-    // Close modals
-    setShowLeaveConfirm(false);
-    setGroupToLeave(null);
-    
-    // ✅ CRITICAL: Force full reload after state update
-    setTimeout(() => {
+    try {
+      console.log('🚪 Leaving group:', groupToLeave.id);
+      const leftGroupId = groupToLeave.id;
+      
+      // Show loading state
+      setLoading(true);
+      
+      // Make API call
+      const response = await groupAPI.leaveGroup(leftGroupId, user.id);
+      
+      console.log('✅ Leave response:', response.data);
+      
+      if (response.data.groupDeleted) {
+        showToast('Left group successfully. Group was deleted as no members remain.', 'success');
+      } else {
+        showToast('Left group successfully', 'success');
+      }
+      
+      // ✅ FIX: Force immediate reload with proper cleanup
+      setShowLeaveConfirm(false);
+      setGroupToLeave(null);
+      
+      // Force full page reload to refresh all data
       window.location.reload();
-    }, 500);
-    
-  } catch (error) {
-    console.error('Error leaving group:', error);
-    const errorMessage = error.response?.data?.message || 'Failed to leave group';
-    showToast(errorMessage, 'error');
-  }
-};
+      
+    } catch (error) {
+      console.error('Error leaving group:', error);
+      const errorMessage = error.response?.data?.message || 'Failed to leave group';
+      showToast(errorMessage, 'error');
+      setLoading(false);
+    }
+  };
 
   if (loading) {
     return <LoadingSpinner message="Loading your groups..." />;
@@ -572,8 +562,8 @@ const handleSaveGroup = async (groupData) => {
                     <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-1">
                       <Users className="w-5 h-5 text-blue-600" />
                     </div>
-                    <p className="text-xl font-bold text-gray-800">{group.members.length}</p>
-                    <p className="text-xs text-gray-500">Members</p>
+                    <p className="text-xl font-bold text-gray-800 leading-none">{group.members.length}</p>
+                    <p className="text-xs text-gray-500 mt-1">Members</p>
                   </div>
                   
                   {/* Tasks */}
@@ -592,13 +582,13 @@ const handleSaveGroup = async (groupData) => {
                         taskCount > 0 ? 'text-purple-600' : 'text-gray-400'
                       }`} />
                     </div>
-                    <p className={`text-xl font-bold ${
+                    <p className={`text-xl font-bold leading-none ${
                       taskCount > 0 ? 'text-gray-800' : 'text-gray-400'
                     }`}>{taskCount}</p>
-                    <p className="text-xs text-gray-500">Tasks</p>
+                    <p className="text-xs text-gray-500 mt-1">Tasks</p>
                   </button>
                   
-                  {/* ✅ Events */}
+                  {/* Events */}
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
@@ -614,10 +604,10 @@ const handleSaveGroup = async (groupData) => {
                         eventCount > 0 ? 'text-cyan-600' : 'text-gray-400'
                       }`} />
                     </div>
-                    <p className={`text-xl font-bold ${
+                    <p className={`text-xl font-bold leading-none ${
                       eventCount > 0 ? 'text-gray-800' : 'text-gray-400'
                     }`}>{eventCount}</p>
-                    <p className="text-xs text-gray-500">Events</p>
+                    <p className="text-xs text-gray-500 mt-1">Events</p>
                   </button>
                 </div>
 
@@ -693,7 +683,7 @@ const handleSaveGroup = async (groupData) => {
                     className="flex items-center justify-center space-x-2 px-4 py-3 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition font-semibold"
                   >
                     <FileText className="w-5 h-5" />
-                    <span>View Info</span>
+                    <span>{isAdmin ? 'View/Edit Info' : 'View Info'}</span>
                   </button>
                   
                   {isAdmin ? (

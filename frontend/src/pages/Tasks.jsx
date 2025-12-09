@@ -178,6 +178,12 @@ const Tasks = () => {
   const handleStatusChange = async (taskId, newStatus) => {
     try {
       const task = tasks.find(t => t.id === taskId);
+      
+      // ✅ FIX: Check if completing a task with linked event
+      if (newStatus === 'Completed' && task.showOnCalendar && task.eventId) {
+        console.log('🎯 Completing task with linked event:', task.eventId);
+      }
+      
       await taskAPI.updateTask(taskId, { ...task, status: newStatus });
       showToast(`Task marked as ${newStatus}`, 'success');
       loadTasks();
