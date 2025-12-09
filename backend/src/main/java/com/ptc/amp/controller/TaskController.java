@@ -98,6 +98,19 @@ public class TaskController {
         // Step 2: Update task in database
         Task updated = taskService.updateTask(task);
         System.out.println("📝 Task updated in database");
+
+        if ("Completed".equals(updated.getStatus()) && updated.getEventId() != null) {
+    System.out.println("🎯 Task marked as completed - deleting linked calendar event");
+    try {
+        eventService.deleteEvent(updated.getEventId());
+        updated.setEventId(null);
+        updated.setShowOnCalendar(false);
+        taskService.updateTask(updated);
+        System.out.println("✅ Calendar event deleted for completed task");
+    } catch (Exception e) {
+        System.err.println("❌ Error deleting calendar event: " + e.getMessage());
+    }
+}
         
         // Step 3: Handle calendar event creation/update
         if (updated.getDueDate() != null) {

@@ -60,10 +60,12 @@ const loadInvitationsQuietly = async () => {
       await invitationAPI.acceptInvitation(id);
       showToast('Invitation accepted! You are now a member.', 'success');
       loadInvitations();
-      // ✅ FIXED: Force refresh parent groups
-      if (onUpdate) {
-        await onUpdate(true); // Pass true to force refresh
-      }
+      
+      // ✅ CRITICAL FIX: Force immediate page reload to show updated groups
+      setTimeout(() => {
+        window.location.reload();
+      }, 500);
+      
     } catch (error) {
       console.error('Error accepting invitation:', error);
       showToast('Failed to accept invitation', 'error');

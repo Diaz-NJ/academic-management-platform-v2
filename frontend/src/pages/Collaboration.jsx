@@ -35,6 +35,7 @@ const Collaboration = ({ onUnreadCountChange }) => {
   const [groupTaskCounts, setGroupTaskCounts] = useState({});
   const [showTaskView, setShowTaskView] = useState(false);
   const [showEventView, setShowEventView] = useState(false);
+  const [groupEventCounts, setGroupEventCounts] = useState({});
 
   const loadAllGroupUnreadCounts = useCallback(async (groupsList) => {
     if (!groupsList || groupsList.length === 0) return;
@@ -460,179 +461,87 @@ const handleSaveGroup = async (groupData) => {
       </button>
     </div>
 
-    {/* ✨ REDESIGNED Group Cards - MOBILE OPTIMIZED */}
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-6">
-      {filteredGroups.map(group => {
-        const currentMember = group.members?.find(m => m.userId === user.id);
-        const isAdmin = group.createdBy === user.id;
-        const unreadCount = groupUnreadCounts[group.id] || 0;
-        
-        return (
-          <div 
-            key={group.id} 
-            className="bg-white rounded-xl shadow-md hover:shadow-2xl transition-all duration-300 overflow-hidden border-2 border-gray-100 hover:border-primary"
-          >
-              {/* ✨ Card Header with Gradient */}
-                <div className="bg-gradient-to-r from-purple-500 to-blue-500 p-3 md:p-4 relative">
-                  <div className="flex items-start justify-between mb-2">
-                    {/* Group Icon & Name */}
-                    <div className="flex items-center space-x-2 flex-1 min-w-0 pr-2">
-                      <div className="w-8 h-8 md:w-12 md:h-12 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center flex-shrink-0 ring-2 ring-white/50">
-                        <Users className="w-4 h-4 md:w-6 md:h-6 text-white" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <h3 className="text-sm md:text-lg font-bold text-white truncate leading-tight">
-                          {group.groupName}
-                        </h3>
-                        {group.groupNumber && (
-                          <p className="text-xs text-white/80 truncate">
-                            {group.groupNumber}
-                          </p>
-                        )}
-                      </div>
+     {/* ✨ REDESIGNED Group Cards - SIMPLIFIED BLUE THEME */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-6">
+        {filteredGroups.map(group => {
+          const currentMember = group.members?.find(m => m.userId === user.id);
+          const isAdmin = group.createdBy === user.id;
+          const unreadCount = groupUnreadCounts[group.id] || 0;
+          const taskCount = groupTaskCounts[group.id] || 0;
+          const [eventCount, setEventCount] = useState(0);
+          
+          // ✅ Load event count on mount
+          useEffect(() => {
+            const loadEventCount = async () => {
+              try {
+                const response = await eventAPI.getGroupEvents(group.id);
+                setEventCount(response.data.filter(e => !e.isCanceled).length);
+              } catch (error) {
+                console.error('Error loading event count:', error);
+              }
+            };
+            loadEventCount();
+          }, [group.id]);
+          
+          return (
+            <div 
+              key={group.id} 
+              className="bg-white rounded-xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden border-2 border-gray-200 hover:border-blue-500"
+            >
+              {/* ✨ SIMPLIFIED HEADER - Blue Theme */}
+              <div className="bg-gradient-to-r from-blue-500 to-blue-600 p-4 relative">
+                <div className="flex items-start justify-between mb-3">
+                  {/* Group Icon & Info */}
+                  <div className="flex items-center space-x-3 flex-1 min-w-0 pr-2">
+                    <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center flex-shrink-0 ring-2 ring-white/50">
+                      <Users className="w-6 h-6 text-white" />
                     </div>
-                    
-                    {/* ✅ FIXED: Role Badge - Positioned in Header, Always Visible */}
-                    <div className="flex items-center space-x-2 flex-shrink-0">
-                      {/* Checkbox */}
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          toggleGroupSelection(group.id);
-                        }}
-                        className="flex-shrink-0"
-                      >
-                        {selectedGroups.includes(group.id) ? (
-                          <CheckSquare className="w-4 h-4 md:w-6 md:h-6 text-white" />
-                        ) : (
-                          <Square className="w-4 h-4 md:w-6 md:h-6 text-white/70 hover:text-white" />
-                        )}
-                      </button>
-                      
-                      {/* Role Badge - Now Inline */}
-                      {isAdmin ? (
-                        <span className="inline-flex items-center space-x-1 px-2 md:px-3 py-1 bg-white/90 backdrop-blur-sm text-purple-800 rounded-full text-[10px] md:text-xs font-bold border border-white shadow-sm">
-                          <span>👑</span>
-                          <span className="hidden sm:inline">Admin</span>
-                        </span>
-                      ) : currentMember?.role === 'Leader' ? (
-                        <span className="inline-flex items-center space-x-1 px-2 md:px-3 py-1 bg-white/90 backdrop-blur-sm text-blue-800 rounded-full text-[10px] md:text-xs font-bold border border-white shadow-sm">
-                          <span>⭐</span>
-                          <span className="hidden sm:inline">Leader</span>
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center space-x-1 px-2 md:px-3 py-1 bg-white/90 backdrop-blur-sm text-gray-700 rounded-full text-[10px] md:text-xs font-semibold border border-white shadow-sm">
-                          <span>👤</span>
-                          <span className="hidden sm:inline">Member</span>
-                        </span>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="text-lg font-bold text-white truncate">
+                        {group.groupName}
+                      </h3>
+                      {group.groupNumber && (
+                        <p className="text-xs text-white/80 truncate">
+                          {group.groupNumber}
+                        </p>
                       )}
-                    </div>
-                  </div>
-                  
-                  {/* Subject Badge */}
-                  <div className="flex items-center space-x-2">
-                    <div className="flex items-center space-x-1 bg-white/20 backdrop-blur-sm px-2 py-1 rounded-full max-w-full">
-                      <BookOpen className="w-3 h-3 md:w-4 md:h-4 text-white flex-shrink-0" />
-                      <span className="text-xs md:text-sm font-medium text-white truncate">
-                        {group.subject}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-            {/* ✨ Card Body - Mobile: tighter spacing */}
-            <div className="p-3 md:p-4">
-              {/* Task Description - Mobile: smaller text */}
-              <div className="mb-3 md:mb-4">
-                <div className="flex items-start space-x-1 md:space-x-2">
-                  <FileText className="w-3 h-3 md:w-4 md:h-4 text-gray-400 mt-0.5 flex-shrink-0" />
-                  <p className="text-xs md:text-sm text-gray-600 line-clamp-3 leading-relaxed">
-                    {group.taskDescription}
-                  </p>
-                </div>
-              </div>
-
-              {/* ✨ Stats Row - Mobile: compact */}
-              <div className="flex items-center justify-between py-2 md:py-3 border-y border-gray-200">
-                {/* ✅ CHANGED: Now shows both members AND tasks */}
-                <div className="flex items-center space-x-3 md:space-x-4">
-                  {/* Members Count */}
-                  <div className="flex items-center space-x-1 md:space-x-2">
-                    <div className="w-8 h-8 md:w-10 md:h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                      <Users className="w-4 h-4 md:w-5 md:h-5 text-blue-600" />
-                    </div>
-                    <div>
-                      <p className="text-base md:text-xl font-bold text-gray-800 leading-none">
-                        {group.members.length}
-                      </p>
-                      <p className="text-[10px] md:text-xs text-gray-500">
-                        Member{group.members.length !== 1 ? 's' : ''}
+                      <p className="text-sm text-white/90 truncate flex items-center space-x-1 mt-1">
+                        <BookOpen className="w-4 h-4" />
+                        <span>{group.subject}</span>
                       </p>
                     </div>
                   </div>
                   
-                  {/* ✅ ENHANCED: Tasks Count with visual indicator */}
+                  {/* Checkbox for bulk actions */}
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      setSelectedGroup(group);
-                      setShowTaskView(true);
+                      toggleGroupSelection(group.id);
                     }}
-                    className="flex items-center space-x-1 md:space-x-2 hover:scale-105 transition-transform"
+                    className="flex-shrink-0"
                   >
-                    <div className={`w-8 h-8 md:w-10 md:h-10 rounded-full flex items-center justify-center ${
-                      (groupTaskCounts[group.id] || 0) > 0 
-                        ? 'bg-purple-100' 
-                        : 'bg-gray-100'
-                    }`}>
-                      <CheckSquare className={`w-4 h-4 md:w-5 md:h-5 ${
-                        (groupTaskCounts[group.id] || 0) > 0 
-                          ? 'text-purple-600' 
-                          : 'text-gray-400'
-                      }`} />
-                    </div>
-                    <div>
-                      <p className={`text-base md:text-xl font-bold leading-none ${
-                        (groupTaskCounts[group.id] || 0) > 0 
-                          ? 'text-gray-800' 
-                          : 'text-gray-400'
-                      }`}>
-                        {groupTaskCounts[group.id] || 0}
-                      </p>
-                      <p className="text-[10px] md:text-xs text-gray-500">
-                        Task{(groupTaskCounts[group.id] || 0) !== 1 ? 's' : ''}
-                      </p>
-                    </div>
-                  </button>
-
-                  {/* ✅ FIXED: Events Button - Matching Style */}
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setSelectedGroup(group);
-                      setShowEventView(true);
-                    }}
-                    className="flex-1 flex items-center justify-center space-x-1 md:space-x-2 px-2 md:px-3 py-1.5 md:py-2.5 bg-gradient-to-r from-cyan-500 to-blue-600 text-white rounded-lg hover:from-cyan-600 hover:to-blue-700 transition-all shadow-sm hover:shadow-md text-xs md:text-sm font-semibold"
-                  >
-                    <Calendar className="w-3 h-3 md:w-4 md:h-4" />
-                    <span>Events</span>
+                    {selectedGroups.includes(group.id) ? (
+                      <CheckSquare className="w-6 h-6 text-white" />
+                    ) : (
+                      <Square className="w-6 h-6 text-white/70 hover:text-white" />
+                    )}
                   </button>
                 </div>
                 
-                {/* ✅ FIXED: Role Badge - Now Shows Full Text */}
-                <div className="absolute top-3 right-3">
+                {/* ✅ User Role Badge - Bottom Right */}
+                <div className="absolute bottom-3 right-3">
                   {isAdmin ? (
-                    <span className="inline-flex items-center space-x-1 px-3 py-1.5 bg-purple-100 text-purple-800 rounded-full text-xs font-semibold border border-purple-300 shadow-sm">
+                    <span className="inline-flex items-center space-x-1 px-3 py-1 bg-white/90 text-blue-800 rounded-full text-xs font-bold border border-white shadow-sm">
                       <span>👑</span>
                       <span>Admin</span>
                     </span>
                   ) : currentMember?.role === 'Leader' ? (
-                    <span className="inline-flex items-center space-x-1 px-3 py-1.5 bg-blue-100 text-blue-800 rounded-full text-xs font-semibold border border-blue-300 shadow-sm">
+                    <span className="inline-flex items-center space-x-1 px-3 py-1 bg-white/90 text-blue-700 rounded-full text-xs font-bold border border-white shadow-sm">
                       <span>⭐</span>
                       <span>Leader</span>
                     </span>
                   ) : (
-                    <span className="inline-flex items-center space-x-1 px-3 py-1.5 bg-gray-100 text-gray-700 rounded-full text-xs font-medium border border-gray-300 shadow-sm">
+                    <span className="inline-flex items-center space-x-1 px-3 py-1 bg-white/90 text-gray-700 rounded-full text-xs font-semibold border border-white shadow-sm">
                       <span>👤</span>
                       <span>Member</span>
                     </span>
@@ -640,153 +549,168 @@ const handleSaveGroup = async (groupData) => {
                 </div>
               </div>
 
-              {/* ✨ Members Preview - Mobile: smaller avatars */}
-              <div className="mt-3 md:mt-4">
-                <p className="text-xs font-semibold text-gray-700 mb-2">Team Members</p>
-                <div className="flex items-center justify-between">
-                  <div className="flex -space-x-1 md:-space-x-2">
-                    {group.members.slice(0, 5).map((member, idx) => (
-                      <div
-                        key={idx}
-                        className="w-6 h-6 md:w-10 md:h-10 bg-gradient-to-br from-indigo-400 to-cyan-400 rounded-full border-2 border-white flex items-center justify-center text-[10px] md:text-sm font-bold text-white shadow-md hover:scale-110 transition-transform cursor-pointer"
-                        title={member.name}
-                      >
-                        {member.name.charAt(0).toUpperCase()}
-                      </div>
-                    ))}
-                    {group.members.length > 5 && (
-                      <div className="w-6 h-6 md:w-10 md:h-10 bg-gray-300 rounded-full border-2 border-white flex items-center justify-center text-[10px] md:text-xs font-bold text-gray-700 shadow-md">
-                        +{group.members.length - 5}
-                      </div>
-                    )}
+              {/* ✨ CARD BODY */}
+              <div className="p-4">
+                {/* ✅ Stats Row - Members, Tasks, Events */}
+                <div className="grid grid-cols-3 gap-2 mb-4 pb-4 border-b border-gray-200">
+                  {/* Members */}
+                  <div className="text-center">
+                    <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-1">
+                      <Users className="w-5 h-5 text-blue-600" />
+                    </div>
+                    <p className="text-xl font-bold text-gray-800">{group.members.length}</p>
+                    <p className="text-xs text-gray-500">Members</p>
                   </div>
                   
-                  {/* Created Date - Mobile: smaller text */}
-                  <span className="text-[10px] md:text-xs text-gray-400">
-                    {new Date(group.createdAt).toLocaleDateString('en-US', {
-                      month: 'short',
-                      day: 'numeric',
-                      year: new Date(group.createdAt).getFullYear() !== new Date().getFullYear() ? 'numeric' : undefined
-                    })}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {/* ✨ Action Buttons - Mobile: stacked, Desktop: side-by-side */}
-            <div className="p-2 md:p-4 bg-gray-50 border-t border-gray-200">
-              <div className="grid grid-cols-2 gap-1.5 md:gap-2">
-                {/* Invite Button - Mobile: smaller padding */}
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setSelectedGroup(group);
-                    setShowInviteModal(true);
-                  }}
-                  className="flex items-center justify-center space-x-0.5 md:space-x-1 px-2 md:px-3 py-1.5 md:py-2.5 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg hover:from-blue-600 hover:to-blue-700 transition-all shadow-sm hover:shadow-md text-xs md:text-sm font-semibold"
-                >
-                  <UserPlus className="w-3 h-3 md:w-4 md:h-4" />
-                  <span>Invite</span>
-                </button>
-
-                {/* Discussion Button */}
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setSelectedGroup(group);
-                      setShowDiscussionBoard(true);
-                    }}
-                    className="relative flex items-center justify-center space-x-0.5 md:space-x-1 px-2 md:px-3 py-1.5 md:py-2.5 bg-gradient-to-r from-purple-500 to-purple-600 text-white rounded-lg hover:from-purple-600 hover:to-purple-700 transition-all shadow-sm hover:shadow-md text-xs md:text-sm font-semibold"
-                  >
-                    <MessageSquare className="w-3 h-3 md:w-4 md:h-4" />
-                    <span>Discuss</span>
-                    {unreadCount > 0 && (
-                      <span className="absolute -top-0.5 md:-top-1 -right-0.5 md:-right-1">
-                        <UnreadBadge count={unreadCount} size="small" />
-                      </span>
-                    )}
-                  </button>
-                </div>
-                
-                {/* ✅ NEW: Second Row for Tasks & Events */}
-                <div className="grid grid-cols-2 gap-1.5 md:gap-2 mt-1.5 md:mt-2">
-                  {/* Tasks Button */}
+                  {/* Tasks */}
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
                       setSelectedGroup(group);
                       setShowTaskView(true);
                     }}
-                    className="relative flex items-center justify-center space-x-0.5 md:space-x-1 px-2 md:px-3 py-1.5 md:py-2.5 bg-gradient-to-r from-purple-500 to-indigo-600 text-white rounded-lg hover:from-purple-600 hover:to-indigo-700 transition-all shadow-sm hover:shadow-md text-xs md:text-sm font-semibold"
+                    className="text-center hover:bg-blue-50 rounded-lg p-2 transition"
                   >
-                    <CheckSquare className="w-3 h-3 md:w-4 md:h-4" />
-                    <span>Tasks</span>
-                    {(groupTaskCounts[group.id] || 0) > 0 && (
-                      <span className="absolute -top-0.5 md:-top-1 -right-0.5 md:-right-1 bg-purple-600 text-white text-[10px] font-bold rounded-full min-w-[16px] h-4 flex items-center justify-center px-1">
-                        {groupTaskCounts[group.id]}
-                      </span>
-                    )}
+                    <div className={`w-10 h-10 rounded-full flex items-center justify-center mx-auto mb-1 ${
+                      taskCount > 0 ? 'bg-purple-100' : 'bg-gray-100'
+                    }`}>
+                      <CheckSquare className={`w-5 h-5 ${
+                        taskCount > 0 ? 'text-purple-600' : 'text-gray-400'
+                      }`} />
+                    </div>
+                    <p className={`text-xl font-bold ${
+                      taskCount > 0 ? 'text-gray-800' : 'text-gray-400'
+                    }`}>{taskCount}</p>
+                    <p className="text-xs text-gray-500">Tasks</p>
                   </button>
                   
-                  {/* Events Button */}
+                  {/* ✅ Events */}
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
                       setSelectedGroup(group);
                       setShowEventView(true);
                     }}
-                    className="relative flex items-center justify-center space-x-0.5 md:space-x-1 px-2 md:px-3 py-1.5 md:py-2.5 bg-gradient-to-r from-cyan-500 to-blue-600 text-white rounded-lg hover:from-cyan-600 hover:to-blue-700 transition-all shadow-sm hover:shadow-md text-xs md:text-sm font-semibold"
+                    className="text-center hover:bg-blue-50 rounded-lg p-2 transition"
                   >
-                    <Calendar className="w-3 h-3 md:w-4 md:h-4" />
-                    <span>Events</span>
+                    <div className={`w-10 h-10 rounded-full flex items-center justify-center mx-auto mb-1 ${
+                      eventCount > 0 ? 'bg-cyan-100' : 'bg-gray-100'
+                    }`}>
+                      <Calendar className={`w-5 h-5 ${
+                        eventCount > 0 ? 'text-cyan-600' : 'text-gray-400'
+                      }`} />
+                    </div>
+                    <p className={`text-xl font-bold ${
+                      eventCount > 0 ? 'text-gray-800' : 'text-gray-400'
+                    }`}>{eventCount}</p>
+                    <p className="text-xs text-gray-500">Events</p>
                   </button>
                 </div>
-              
-              {/* Secondary Actions Row - Mobile: smaller text */}
-              <div className="mt-1.5 md:mt-2 flex items-center justify-between">
-                {/* ✅ FIXED: View/Edit Button */}
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setSelectedGroup(group);
-                    setShowGroupModal(true);
-                  }}
-                  className="text-[10px] md:text-xs text-gray-600 hover:text-primary font-medium flex items-center space-x-0.5 md:space-x-1 transition"
-                >
-                  <Users className="w-3 h-3" />
-                  <span>{isAdmin ? 'View/Edit Info' : 'View Info'}</span>
-                </button>
-                
-                {/* Admin/Member Actions - Mobile: smaller */}
-                {isAdmin ? (
+
+                {/* ✅ Action Buttons Row - Invite & Discuss */}
+                <div className="grid grid-cols-2 gap-2 mb-4">
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      handleDeleteClick(group);
+                      setSelectedGroup(group);
+                      setShowInviteModal(true);
                     }}
-                    className="text-[10px] md:text-xs text-red-600 hover:text-red-700 font-medium flex items-center space-x-0.5 md:space-x-1 transition"
+                    className="flex items-center justify-center space-x-1 px-3 py-2.5 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition text-sm font-semibold"
                   >
-                    <Trash2 className="w-3 h-3" />
-                    <span>Delete</span>
+                    <UserPlus className="w-4 h-4" />
+                    <span>Invite</span>
                   </button>
-                ) : currentMember ? (
+
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      handleLeaveGroup(group);
+                      setSelectedGroup(group);
+                      setShowDiscussionBoard(true);
                     }}
-                    className="text-[10px] md:text-xs text-orange-600 hover:text-orange-700 font-medium flex items-center space-x-0.5 md:space-x-1 transition"
+                    className="relative flex items-center justify-center space-x-1 px-3 py-2.5 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition text-sm font-semibold"
                   >
-                    <Trash2 className="w-3 h-3" />
-                    <span>Leave</span>
+                    <MessageSquare className="w-4 h-4" />
+                    <span>Discuss</span>
+                    {unreadCount > 0 && (
+                      <span className="absolute -top-1 -right-1">
+                        <UnreadBadge count={unreadCount} size="small" />
+                      </span>
+                    )}
                   </button>
-                ) : null}
+                </div>
+
+                {/* ✅ Team Members Preview */}
+                <div className="mb-4 pb-4 border-b border-gray-200">
+                  <p className="text-xs font-semibold text-gray-700 mb-2">Team Members</p>
+                  <div className="flex items-center justify-between">
+                    <div className="flex -space-x-2">
+                      {group.members.slice(0, 5).map((member, idx) => (
+                        <div
+                          key={idx}
+                          className="w-10 h-10 bg-gradient-to-br from-blue-400 to-cyan-400 rounded-full border-2 border-white flex items-center justify-center text-sm font-bold text-white shadow-md hover:scale-110 transition cursor-pointer"
+                          title={member.name}
+                        >
+                          {member.name.charAt(0).toUpperCase()}
+                        </div>
+                      ))}
+                      {group.members.length > 5 && (
+                        <div className="w-10 h-10 bg-gray-300 rounded-full border-2 border-white flex items-center justify-center text-xs font-bold text-gray-700 shadow-md">
+                          +{group.members.length - 5}
+                        </div>
+                      )}
+                    </div>
+                    <span className="text-xs text-gray-400">
+                      {new Date(group.createdAt).toLocaleDateString('en-US', {
+                        month: 'short',
+                        day: 'numeric'
+                      })}
+                    </span>
+                  </div>
+                </div>
+
+                {/* ✅ Bottom Buttons - View Info & Delete/Leave */}
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelectedGroup(group);
+                      setShowGroupModal(true);
+                    }}
+                    className="flex items-center justify-center space-x-2 px-4 py-3 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition font-semibold"
+                  >
+                    <FileText className="w-5 h-5" />
+                    <span>View Info</span>
+                  </button>
+                  
+                  {isAdmin ? (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeleteClick(group);
+                      }}
+                      className="flex items-center justify-center space-x-2 px-4 py-3 bg-red-500 text-white rounded-lg hover:bg-red-600 transition font-semibold"
+                    >
+                      <Trash2 className="w-5 h-5" />
+                      <span>Delete</span>
+                    </button>
+                  ) : currentMember ? (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleLeaveGroup(group);
+                      }}
+                      className="flex items-center justify-center space-x-2 px-4 py-3 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition font-semibold"
+                    >
+                      <Trash2 className="w-5 h-5" />
+                      <span>Leave</span>
+                    </button>
+                  ) : null}
+                </div>
               </div>
             </div>
-          </div>
-        );
-      })}
-    </div>
+          );
+        })}
+      </div>
   </>
 )}
 
