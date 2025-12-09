@@ -194,7 +194,7 @@ const Tasks = () => {
       
       await taskAPI.updateTask(taskId, { ...task, status: newStatus });
       showToast(`Task moved to ${newStatus}`, 'success');
-      onTasksChange();
+      loadTasks(); 
     } catch (error) {
       console.error('Error updating task:', error);
       showToast('Failed to update task status', 'error');
