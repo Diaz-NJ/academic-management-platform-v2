@@ -40,12 +40,11 @@ export const taskAPI = {
   createTask: (task) => api.post('/tasks', task),
   updateTask: (id, task) => api.put(`/tasks/${id}`, task),
   deleteTask: (id) => api.delete(`/tasks/${id}`),
-  // ✅ NEW: Calendar integration (automatic on backend)
   addToCalendar: (taskId) => api.post(`/tasks/${taskId}/add-to-calendar`),
   removeFromCalendar: (taskId) => api.delete(`/tasks/${taskId}/remove-from-calendar`),
-  // ✅ NEW: Group integration (manual)
-  linkToGroup: (taskId, groupId) => api.post(`/tasks/${taskId}/link-to-group/${groupId}`),
-  unlinkFromGroup: (taskId) => api.delete(`/tasks/${taskId}/unlink-from-group`),
+  // ✅ FIXED: Correct endpoint paths
+  linkToGroup: (taskId, groupId) => api.post(`/tasks/${taskId}/link-group/${groupId}`),
+  unlinkFromGroup: (taskId) => api.delete(`/tasks/${taskId}/unlink-group`),
   getGroupTasks: (groupId) => api.get(`/tasks/group/${groupId}`),
 };
 

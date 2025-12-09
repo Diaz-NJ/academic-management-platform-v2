@@ -44,7 +44,8 @@ public class TaskController {
     @PutMapping("/{id}")
     public ResponseEntity<Task> updateTask(@PathVariable Long id, @RequestBody Task task) {
         System.out.println("\n========================================");
-        System.out.println("UPDATE TASK ENDPOINT CALLED - ID: " + id);
+        System.out.println("UPDATE TASK ENDPOINT - ID: " + id);
+        System.out.println("New Status: " + task.getStatus());
         System.out.println("========================================");
         
         task.setId(id);
@@ -57,6 +58,29 @@ public class TaskController {
         Task existingTask = existingTaskOpt.get();
         Long oldEventId = existingTask.getEventId();
         
+        System.out.println("Old Event ID: " + oldEventId);
+        System.out.println("Old Status: " + existingTask.getStatus());
+        
+        // ✅ CRITICAL: Delete event if marking as completed AND event exists
+        if ("Completed".equals(task.getStatus()) && oldEventId != null) {
+            System.out.println("🎯 Marking as completed - deleting event ID: " + oldEventId);
+            
+            try {
+                boolean deleted = eventService.deleteEvent(oldEventId);
+                
+                if (deleted) {
+                    System.out.println("✅ Event deleted successfully");
+                    task.setEventId(null);
+                    task.setShowOnCalendar(false);
+                } else {
+                    System.err.println("⚠️ Event deletion returned false");
+                }
+            } catch (Exception e) {
+                System.err.println("❌ Error deleting event: " + e.getMessage());
+                e.printStackTrace();
+            }
+        }
+        
         // Check if due date changed
         boolean dueDateChanged = false;
         if (existingTask.getDueDate() != null && task.getDueDate() != null) {
@@ -65,70 +89,27 @@ public class TaskController {
             dueDateChanged = true;
         }
         
-        System.out.println("Task ID: " + id);
-        System.out.println("Old Event ID: " + oldEventId);
-        System.out.println("Old Due Date: " + existingTask.getDueDate());
-        System.out.println("New Due Date: " + task.getDueDate());
-        System.out.println("Due Date Changed: " + dueDateChanged);
-        
-        // Step 1: Handle old event deletion if due date changed
-        if (oldEventId != null && dueDateChanged) {
-            try {
-                System.out.println("🗑️ DELETING old event ID: " + oldEventId);
-                boolean deleted = eventService.deleteEvent(oldEventId);
-                
-                if (deleted) {
-                    System.out.println("✅ Old event deleted successfully");
-                } else {
-                    System.err.println("❌ Failed to delete old event!");
+        // Handle due date changes for non-completed tasks
+        if (!"Completed".equals(task.getStatus())) {
+            if (oldEventId != null && dueDateChanged) {
+                try {
+                    System.out.println("🗑️ Due date changed - deleting old event");
+                    eventService.deleteEvent(oldEventId);
+                    task.setEventId(null);
+                    task.setShowOnCalendar(false);
+                } catch (Exception e) {
+                    System.err.println("❌ Error deleting old event: " + e.getMessage());
                 }
-                
-                task.setEventId(null);
-                task.setShowOnCalendar(false);
-            } catch (Exception e) {
-                System.err.println("❌ Error deleting old event: " + e.getMessage());
-                e.printStackTrace();
             }
-        } else if (oldEventId != null && !dueDateChanged) {
-            // Preserve event ID if date didn't change
-            task.setEventId(oldEventId);
-            task.setShowOnCalendar(existingTask.getShowOnCalendar());
         }
         
-        // Step 2: Update task in database
+        // Update task
         Task updated = taskService.updateTask(task);
         System.out.println("📝 Task updated in database");
-
-        // ✅ CRITICAL FIX: Delete event BEFORE updating task status
-        if ("Completed".equals(task.getStatus()) && updated.getEventId() != null) {
-            System.out.println("🎯 Task being marked as completed - deleting linked calendar event");
-            System.out.println("   - Event ID to delete: " + updated.getEventId());
-            
-            try {
-                Long eventIdToDelete = updated.getEventId();
-                
-                // Delete the event first
-                boolean eventDeleted = eventService.deleteEvent(eventIdToDelete);
-                
-                if (eventDeleted) {
-                    System.out.println("✅ Calendar event deleted successfully: " + eventIdToDelete);
-                    // Clear the link after successful deletion
-                    updated.setEventId(null);
-                    updated.setShowOnCalendar(false);
-                } else {
-                    System.err.println("⚠️ Event deletion returned false for ID: " + eventIdToDelete);
-                }
-            } catch (Exception e) {
-                System.err.println("❌ Error deleting calendar event: " + e.getMessage());
-                e.printStackTrace();
-                // Don't fail the task update if event deletion fails
-            }
-        }
         
-        // Step 3: Handle calendar event creation/update
-        if (updated.getDueDate() != null) {
+        // Create new event if needed (only for non-completed tasks)
+        if (!"Completed".equals(updated.getStatus()) && updated.getDueDate() != null) {
             if (dueDateChanged || updated.getEventId() == null) {
-                // Due date changed or no event - create new one
                 System.out.println("📅 Creating new calendar event");
                 Long newEventId = createCalendarEventOnly(updated);
                 
@@ -139,27 +120,12 @@ public class TaskController {
                     System.out.println("✅ Task linked to new event ID: " + newEventId);
                 }
             } else {
-                // Just update existing event properties
-                System.out.println("🔄 Updating existing event properties");
+                System.out.println("🔄 Updating existing event");
                 updateCalendarEventOnly(updated);
-            }
-        } else if (updated.getEventId() != null) {
-            // No due date but event exists - remove it
-            System.out.println("🗑️ Removing event (no due date)");
-            try {
-                eventService.deleteEvent(updated.getEventId());
-                updated.setEventId(null);
-                updated.setShowOnCalendar(false);
-                taskService.updateTask(updated);
-            } catch (Exception e) {
-                System.err.println("Error removing event: " + e.getMessage());
             }
         }
         
-        System.out.println("=== UPDATE COMPLETE ===");
-        System.out.println("Final Event ID: " + updated.getEventId());
         System.out.println("========================================\n");
-        
         return ResponseEntity.ok(updated);
     }
 
@@ -320,48 +286,6 @@ public class TaskController {
         }
     }
 
-    @PostMapping("/{id}/link-to-group/{groupId}")
-    public ResponseEntity<?> linkTaskToGroup(@PathVariable Long id, @PathVariable Long groupId) {
-        try {
-            Optional<Task> taskOpt = taskService.getTaskById(id);
-            if (taskOpt.isEmpty()) {
-                return ResponseEntity.notFound().build();
-            }
-
-            Task task = taskOpt.get();
-            task.setGroupId(groupId);
-            taskService.updateTask(task);
-
-            return ResponseEntity.ok(Map.of("success", true, "message", "Task linked to group"));
-        } catch (Exception e) {
-            return ResponseEntity.internalServerError().body(Map.of(
-                "success", false,
-                "message", "Failed to link task to group: " + e.getMessage()
-            ));
-        }
-    }
-
-    @DeleteMapping("/{id}/unlink-from-group")
-    public ResponseEntity<?> unlinkTaskFromGroup(@PathVariable Long id) {
-        try {
-            Optional<Task> taskOpt = taskService.getTaskById(id);
-            if (taskOpt.isEmpty()) {
-                return ResponseEntity.notFound().build();
-            }
-
-            Task task = taskOpt.get();
-            task.setGroupId(null);
-            taskService.updateTask(task);
-
-            return ResponseEntity.ok(Map.of("success", true, "message", "Task unlinked from group"));
-        } catch (Exception e) {
-            return ResponseEntity.internalServerError().body(Map.of(
-                "success", false,
-                "message", "Failed to unlink task from group: " + e.getMessage()
-            ));
-        }
-    }
-
     @GetMapping("/group/{groupId}")
     public ResponseEntity<List<Task>> getGroupTasks(@PathVariable Long groupId) {
         List<Task> tasks = taskService.getTasksByGroupId(groupId);
@@ -400,4 +324,52 @@ public class TaskController {
             default -> "#6c757d";
         };
     }
+
+    @PostMapping("/{taskId}/link-group/{groupId}")
+        public ResponseEntity<?> linkTaskToGroup(@PathVariable Long taskId, @PathVariable Long groupId) {
+            try {
+                Optional<Task> taskOpt = taskService.getTaskById(taskId);
+                if (taskOpt.isEmpty()) {
+                    return ResponseEntity.notFound().build();
+                }
+                
+                Task task = taskOpt.get();
+                task.setGroupId(groupId);
+                taskService.updateTask(task);
+                
+                return ResponseEntity.ok(Map.of(
+                    "success", true,
+                    "message", "Task linked to group successfully"
+                ));
+            } catch (Exception e) {
+                return ResponseEntity.internalServerError().body(Map.of(
+                    "success", false,
+                    "message", "Failed to link task: " + e.getMessage()
+                ));
+            }
+        }
+
+    @DeleteMapping("/{taskId}/unlink-group")
+        public ResponseEntity<?> unlinkTaskFromGroup(@PathVariable Long taskId) {
+            try {
+                Optional<Task> taskOpt = taskService.getTaskById(taskId);
+                if (taskOpt.isEmpty()) {
+                    return ResponseEntity.notFound().build();
+                }
+                
+                Task task = taskOpt.get();
+                task.setGroupId(null);
+                taskService.updateTask(task);
+                
+                return ResponseEntity.ok(Map.of(
+                    "success", true,
+                    "message", "Task unlinked from group"
+                ));
+            } catch (Exception e) {
+                return ResponseEntity.internalServerError().body(Map.of(
+                    "success", false,
+                    "message", "Failed to unlink task: " + e.getMessage()
+                ));
+            }
+        }
 }

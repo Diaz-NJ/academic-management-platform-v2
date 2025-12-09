@@ -157,39 +157,40 @@ useEffect(() => {
     }
   }, [groups, searchQuery]);// ✅ FIXED: Search filtering with better performance
 
-const loadGroups = useCallback(async (force = false) => {
+const loadGroups = useCallback(async (silent = false) => {
   try {
-    console.log('📥 loadGroups called, force:', force);
-    
-    // ✅ FIXED: Don't show loading spinner for background refreshes
-    if (force) {
-      // Silent refresh - no loading state
-      console.log('🔄 Silent refresh in progress...');
-    } else {
+    // Only show loading spinner on initial load
+    if (!silent) {
       setLoading(true);
     }
 
     const response = await groupAPI.getGroups(user.id);
     const newGroups = response.data;
     
-    console.log('📦 Received groups from API:', newGroups.length);
-    
-    // ✅ Update state silently
     setGroups(newGroups);
     setFilteredGroups(newGroups);
     setSelectedGroups([]);
     
+    // ✅ Load related data in parallel
+    if (newGroups.length > 0) {
+      Promise.all([
+        loadAllGroupUnreadCounts(newGroups),
+        loadAllGroupTaskCounts(newGroups),
+        loadAllGroupEventCounts(newGroups)
+      ]);
+    }
+    
   } catch (error) {
     console.error('Error loading groups:', error);
-    if (!force) {
+    if (!silent) {
       showToast('Failed to load groups', 'error');
     }
   } finally {
-    if (!force) {
+    if (!silent) {
       setLoading(false);
     }
   }
-}, [user.id, showToast]);
+}, [user.id, showToast, loadAllGroupUnreadCounts, loadAllGroupTaskCounts, loadAllGroupEventCounts]);
 
   useEffect(() => {
   loadGroups();
@@ -277,17 +278,14 @@ const handleSaveGroup = async (groupData) => {
 
   // ✅ NEW: Leave group handler
   const handleLeaveGroup = (group) => {
-    setGroupToLeave(group);
-    setShowLeaveConfirm(true);
-  };
+      setGroupToLeave(group);
+      setShowLeaveConfirm(true);
+    };
 
   const handleLeaveConfirm = async () => {
     try {
       console.log('🚪 Leaving group:', groupToLeave.id);
       const leftGroupId = groupToLeave.id;
-      
-      // Show loading state
-      setLoading(true);
       
       // Make API call
       const response = await groupAPI.leaveGroup(leftGroupId, user.id);
@@ -300,18 +298,18 @@ const handleSaveGroup = async (groupData) => {
         showToast('Left group successfully', 'success');
       }
       
-      // ✅ FIX: Force immediate reload with proper cleanup
+      // ✅ FIX: Immediately update state instead of page reload
+      setGroups(prevGroups => prevGroups.filter(g => g.id !== leftGroupId));
+      setFilteredGroups(prevFiltered => prevFiltered.filter(g => g.id !== leftGroupId));
+      
+      // Close dialogs
       setShowLeaveConfirm(false);
       setGroupToLeave(null);
-      
-      // Force full page reload to refresh all data
-      window.location.reload();
       
     } catch (error) {
       console.error('Error leaving group:', error);
       const errorMessage = error.response?.data?.message || 'Failed to leave group';
       showToast(errorMessage, 'error');
-      setLoading(false);
     }
   };
 

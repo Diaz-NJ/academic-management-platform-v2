@@ -243,50 +243,40 @@ const checkForConflicts = async (eventData) => {
 const saveEvent = async (eventData) => {
   try {
     if (event) {
-      // ✅ Check if this is a NEW exception (first time editing an instance)
-      if (event.isException && !event.id) {
+      // ✅ Check if this is a NEW exception
+      if (event._isNewException && !event.id) {
         console.log('🔧 === CREATING NEW EXCEPTION ===');
         
         const parentEventId = event._parentEventId || event.parentEventId;
         const instanceDate = event._instanceDateToDelete;
         
-        console.log('Exception details:', {
+        if (!parentEventId || !instanceDate) {
+          throw new Error('Missing parent event ID or instance date');
+        }
+        
+        console.log('Creating exception:', {
           parentEventId,
           instanceDate,
-          title: eventData.title,
-          startDateTime: eventData.startDateTime
+          title: eventData.title
         });
         
-        if (!parentEventId) {
-          throw new Error('Missing parent event ID');
-        }
-        
-        if (!instanceDate) {
-          throw new Error('Missing instance date to delete');
-        }
-        
-        // ✅ STEP 1: Create the exception event FIRST
-        console.log('Step 1: Creating exception event...');
+        // Step 1: Create exception event
         const exceptionResponse = await eventAPI.createEvent(eventData);
         console.log('✅ Exception created with ID:', exceptionResponse.data.id);
         
-        // ✅ STEP 2: Add original date to parent's deletedDates
-        console.log('Step 2: Adding date to parent deletedDates...');
-        console.log('  - Parent ID:', parentEventId);
-        console.log('  - Date:', instanceDate);
-        
+        // Step 2: Add to parent's deletedDates
         await eventAPI.deleteInstance(parentEventId, instanceDate);
-        console.log('✅ Date added to parent deletedDates');
+        console.log('✅ Date added to deletedDates');
         
         showToast('Event instance updated successfully!', 'success');
       } else {
-        // ✅ Regular update
+        // Regular update
         console.log('🔧 Updating existing event:', event.id);
         await eventAPI.updateEvent(event.id, eventData);
         showToast('Event updated successfully!', 'success');
       }
     } else {
-      // ✅ New event creation
+      // New event
       console.log('🔧 Creating new event');
       await eventAPI.createEvent(eventData);
       showToast('Event created successfully!', 'success');

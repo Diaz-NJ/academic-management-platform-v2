@@ -216,8 +216,13 @@ const handleEditSeriesClick = () => {
 
 const handleEditInstanceClick = async (instance) => {
   try {
-    console.log('=== Edit Instance Clicked ===');
-    console.log('Instance:', instance);
+    console.log('=== Edit Instance Started ===');
+    console.log('Instance:', {
+      id: instance.id,
+      originalId: instance.originalId,
+      title: instance.title,
+      startDateTime: instance.startDateTime
+    });
     
     if (!instance) {
       showToast('Error: Invalid event instance', 'error');
@@ -234,47 +239,43 @@ const handleEditInstanceClick = async (instance) => {
     }
 
     const instanceDate = new Date(instance.startDateTime);
+    const dateStr = instanceDate.toISOString().substring(0, 10);
     
-    // ✅ Check if an exception already exists for this date
+    console.log('Looking for existing exceptions...');
+    
+    // Check if exception already exists
     const existingExceptions = await eventAPI.getExceptions(originalEvent.id);
     
     const existingException = existingExceptions.data?.find(exc => {
       const excDate = new Date(exc.exceptionDate);
-      return (
-        excDate.getFullYear() === instanceDate.getFullYear() &&
-        excDate.getMonth() === instanceDate.getMonth() &&
-        excDate.getDate() === instanceDate.getDate()
-      );
+      const excDateStr = excDate.toISOString().substring(0, 10);
+      return excDateStr === dateStr;
     });
 
     if (existingException) {
-      // Edit existing exception
-      console.log('Editing existing exception');
+      console.log('Found existing exception - editing it');
       setModalState({
         type: 'edit',
         data: existingException,
         extraData: null
       });
     } else {
-      // ✅ Create new exception data
-      console.log('Creating new exception for instance');
+      console.log('Creating new exception');
       
-      // ✅ CRITICAL: Use YYYY-MM-DD format only
-      const dateStrToDelete = instanceDate.toISOString().substring(0, 10);
-      
+      // ✅ Create exception data
       const exceptionEventData = {
         ...originalEvent,
-        id: null, // ✅ CRITICAL: Must be null for new event
+        id: null, // ✅ Must be null for new event
         isRecurring: false,
         isException: true,
         parentEventId: originalEvent.id,
         exceptionDate: instanceDate.toISOString(),
         startDateTime: instance.startDateTime,
         endDateTime: instance.endDateTime,
-        // ✅ Store info needed after save
-        _instanceDateToDelete: dateStrToDelete,
+        // ✅ Store metadata for later use
+        _instanceDateToDelete: dateStr,
         _parentEventId: originalEvent.id,
-        _isNewException: true, // ✅ Flag to identify this is new
+        _isNewException: true,
         // Clear recurrence fields
         recurrencePattern: null,
         recurrenceInterval: null,
@@ -284,11 +285,7 @@ const handleEditInstanceClick = async (instance) => {
         recurrenceCount: null,
       };
       
-      console.log('Exception data prepared:', {
-        parentEventId: exceptionEventData._parentEventId,
-        dateToDelete: exceptionEventData._instanceDateToDelete,
-        isNewException: exceptionEventData._isNewException
-      });
+      console.log('Exception data prepared');
       
       setModalState({
         type: 'edit',
@@ -505,10 +502,18 @@ const handleDeleteInstanceClick = async (instance) => {
     }
 
     const instanceDate = new Date(instance.startDateTime);
-    const dateStr = instanceDate.toISOString();
+    const dateStr = instanceDate.toISOString().substring(0, 10); // ✅ Use YYYY-MM-DD only
     
-    const originalId = instance.originalId || instance.id;
-    await eventAPI.deleteInstance(originalId, dateStr);
+    // ✅ FIX: Use originalId for instances, id for regular events
+    const eventId = instance.isRecurringInstance ? instance.originalId : instance.id;
+    
+    console.log('🗑️ Deleting instance:', {
+      eventId,
+      dateStr,
+      isRecurringInstance: instance.isRecurringInstance
+    });
+    
+    await eventAPI.deleteInstance(eventId, dateStr);
     
     showToast('Event occurrence deleted permanently', 'success');
     await loadEvents();
