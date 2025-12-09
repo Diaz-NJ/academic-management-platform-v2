@@ -458,10 +458,18 @@ public ResponseEntity<?> unlinkEventFromGroup(@PathVariable Long id) {
 
 @GetMapping("/group/{groupId}")
 public ResponseEntity<List<Event>> getGroupEvents(@PathVariable Long groupId) {
-    List<Event> allEvents = eventService.getEventsByUserId(null); // We'll fix this
-    List<Event> groupEvents = allEvents.stream()
-        .filter(e -> groupId.equals(e.getGroupId()))
-        .collect(Collectors.toList());
-    return ResponseEntity.ok(groupEvents);
+    try {
+        System.out.println("🔍 Getting events for group: " + groupId);
+        
+        // Use eventService to get events by groupId
+        List<Event> groupEvents = eventService.getEventsByGroupId(groupId);
+        
+        System.out.println("✅ Returning " + groupEvents.size() + " events for group " + groupId);
+        return ResponseEntity.ok(groupEvents);
+    } catch (Exception e) {
+        System.err.println("❌ Error getting group events: " + e.getMessage());
+        e.printStackTrace();
+        return ResponseEntity.ok(new ArrayList<>());
+    }
 }
 }

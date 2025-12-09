@@ -37,6 +37,13 @@ public class EventService {
         return eventRepository.findByParentEventId(parentId);
     }
 
+    public List<Event> getEventsByGroupId(Long groupId) {
+        System.out.println("📋 EventService: Getting events for group " + groupId);
+        List<Event> events = eventRepository.findByGroupIdOrderByStartDateTimeAsc(groupId);
+        System.out.println("✅ Found " + events.size() + " events for group " + groupId);
+        return events;
+    }
+
     public Event cancelEvent(Long eventId) {
         System.out.println("🚫 cancelEvent called for ID: " + eventId);
         

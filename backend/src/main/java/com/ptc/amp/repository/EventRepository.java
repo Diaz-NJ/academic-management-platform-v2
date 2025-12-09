@@ -14,4 +14,5 @@ public interface EventRepository extends JpaRepository<Event, Long> {
 
     @Query("SELECT e FROM Event e WHERE e.userId = :userId AND (e.deletedDates IS NULL OR e.deletedDates = '') ORDER BY e.startDateTime ASC")
     List<Event> findActiveEventsByUserId(@Param("userId") Long userId);
+    List<Event> findByGroupIdOrderByStartDateTimeAsc(Long groupId);
 }

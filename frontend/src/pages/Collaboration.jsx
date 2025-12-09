@@ -267,15 +267,7 @@ const handleSaveGroup = async (groupData) => {
     console.log('🚪 Leaving group:', groupToLeave.id);
     const leftGroupId = groupToLeave.id;
     
-    // ✅ FIXED: Clear local state BEFORE API call
-    setGroups(prevGroups => prevGroups.filter(g => g.id !== leftGroupId));
-    setFilteredGroups(prevFiltered => prevFiltered.filter(g => g.id !== leftGroupId));
-    
-    // Close modals immediately
-    setShowLeaveConfirm(false);
-    setGroupToLeave(null);
-    
-    // Make API call in background
+    // Make API call first
     const response = await groupAPI.leaveGroup(leftGroupId, user.id);
     
     console.log('✅ Leave response:', response.data);
@@ -286,17 +278,31 @@ const handleSaveGroup = async (groupData) => {
       showToast('Left group successfully', 'success');
     }
     
-    // Force refresh from backend after a short delay
-    setTimeout(async () => {
-      await loadGroups(true);
+    // ✅ FIXED: Update state immediately after successful API call
+    setGroups(prevGroups => {
+      const filtered = prevGroups.filter(g => g.id !== leftGroupId);
+      console.log('🔄 Groups after leave:', filtered.length);
+      return filtered;
+    });
+    
+    setFilteredGroups(prevFiltered => {
+      const filtered = prevFiltered.filter(g => g.id !== leftGroupId);
+      return filtered;
+    });
+    
+    // Close modals
+    setShowLeaveConfirm(false);
+    setGroupToLeave(null);
+    
+    // ✅ CRITICAL: Force full reload after state update
+    setTimeout(() => {
+      window.location.reload();
     }, 500);
     
   } catch (error) {
     console.error('Error leaving group:', error);
     const errorMessage = error.response?.data?.message || 'Failed to leave group';
     showToast(errorMessage, 'error');
-    // Reload on error to restore correct state
-    await loadGroups(true);
   }
 };
 
@@ -466,52 +472,73 @@ const handleSaveGroup = async (groupData) => {
             key={group.id} 
             className="bg-white rounded-xl shadow-md hover:shadow-2xl transition-all duration-300 overflow-hidden border-2 border-gray-100 hover:border-primary"
           >
-            {/* ✨ Card Header with Gradient */}
-            <div className="bg-gradient-to-r from-purple-500 to-blue-500 p-3 md:p-4">
-              <div className="flex items-start justify-between mb-2">
-                {/* Group Icon & Name */}
-                <div className="flex items-center space-x-2 flex-1 min-w-0">
-                  <div className="w-8 h-8 md:w-12 md:h-12 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center flex-shrink-0 ring-2 ring-white/50">
-                    <Users className="w-4 h-4 md:w-6 md:h-6 text-white" />
+              {/* ✨ Card Header with Gradient */}
+                <div className="bg-gradient-to-r from-purple-500 to-blue-500 p-3 md:p-4 relative">
+                  <div className="flex items-start justify-between mb-2">
+                    {/* Group Icon & Name */}
+                    <div className="flex items-center space-x-2 flex-1 min-w-0 pr-2">
+                      <div className="w-8 h-8 md:w-12 md:h-12 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center flex-shrink-0 ring-2 ring-white/50">
+                        <Users className="w-4 h-4 md:w-6 md:h-6 text-white" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h3 className="text-sm md:text-lg font-bold text-white truncate leading-tight">
+                          {group.groupName}
+                        </h3>
+                        {group.groupNumber && (
+                          <p className="text-xs text-white/80 truncate">
+                            {group.groupNumber}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                    
+                    {/* ✅ FIXED: Role Badge - Positioned in Header, Always Visible */}
+                    <div className="flex items-center space-x-2 flex-shrink-0">
+                      {/* Checkbox */}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toggleGroupSelection(group.id);
+                        }}
+                        className="flex-shrink-0"
+                      >
+                        {selectedGroups.includes(group.id) ? (
+                          <CheckSquare className="w-4 h-4 md:w-6 md:h-6 text-white" />
+                        ) : (
+                          <Square className="w-4 h-4 md:w-6 md:h-6 text-white/70 hover:text-white" />
+                        )}
+                      </button>
+                      
+                      {/* Role Badge - Now Inline */}
+                      {isAdmin ? (
+                        <span className="inline-flex items-center space-x-1 px-2 md:px-3 py-1 bg-white/90 backdrop-blur-sm text-purple-800 rounded-full text-[10px] md:text-xs font-bold border border-white shadow-sm">
+                          <span>👑</span>
+                          <span className="hidden sm:inline">Admin</span>
+                        </span>
+                      ) : currentMember?.role === 'Leader' ? (
+                        <span className="inline-flex items-center space-x-1 px-2 md:px-3 py-1 bg-white/90 backdrop-blur-sm text-blue-800 rounded-full text-[10px] md:text-xs font-bold border border-white shadow-sm">
+                          <span>⭐</span>
+                          <span className="hidden sm:inline">Leader</span>
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center space-x-1 px-2 md:px-3 py-1 bg-white/90 backdrop-blur-sm text-gray-700 rounded-full text-[10px] md:text-xs font-semibold border border-white shadow-sm">
+                          <span>👤</span>
+                          <span className="hidden sm:inline">Member</span>
+                        </span>
+                      )}
+                    </div>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <h3 className="text-sm md:text-lg font-bold text-white truncate leading-tight">
-                      {group.groupName}
-                    </h3>
-                    {group.groupNumber && (
-                      <p className="text-xs text-white/80 truncate">
-                        {group.groupNumber}
-                      </p>
-                    )}
+                  
+                  {/* Subject Badge */}
+                  <div className="flex items-center space-x-2">
+                    <div className="flex items-center space-x-1 bg-white/20 backdrop-blur-sm px-2 py-1 rounded-full max-w-full">
+                      <BookOpen className="w-3 h-3 md:w-4 md:h-4 text-white flex-shrink-0" />
+                      <span className="text-xs md:text-sm font-medium text-white truncate">
+                        {group.subject}
+                      </span>
+                    </div>
                   </div>
                 </div>
-                
-                {/* Checkbox - Mobile: smaller */}
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    toggleGroupSelection(group.id);
-                  }}
-                  className="flex-shrink-0 ml-2"
-                >
-                  {selectedGroups.includes(group.id) ? (
-                    <CheckSquare className="w-4 h-4 md:w-6 md:h-6 text-white" />
-                  ) : (
-                    <Square className="w-4 h-4 md:w-6 md:h-6 text-white/70 hover:text-white" />
-                  )}
-                </button>
-              </div>
-              
-              {/* Subject Badge - Mobile: smaller text */}
-              <div className="flex items-center space-x-2">
-                <div className="flex items-center space-x-1 bg-white/20 backdrop-blur-sm px-2 py-1 rounded-full">
-                  <BookOpen className="w-3 h-3 md:w-4 md:h-4 text-white flex-shrink-0" />
-                  <span className="text-xs md:text-sm font-medium text-white truncate">
-                    {group.subject}
-                  </span>
-                </div>
-              </div>
-            </div>
 
             {/* ✨ Card Body - Mobile: tighter spacing */}
             <div className="p-3 md:p-4">
@@ -578,15 +605,16 @@ const handleSaveGroup = async (groupData) => {
                     </div>
                   </button>
 
+                  {/* ✅ FIXED: Events Button - Matching Style */}
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
                       setSelectedGroup(group);
                       setShowEventView(true);
                     }}
-                    className="relative flex items-center justify-center space-x-0.5 md:space-x-1 px-2 md:px-3 py-1.5 md:py-2.5 bg-gradient-to-r from-blue-500 to-cyan-600 text-white rounded-lg hover:from-blue-600 hover:to-cyan-700 transition-all shadow-sm hover:shadow-md text-xs md:text-sm font-semibold"
+                    className="flex-1 flex items-center justify-center space-x-1 md:space-x-2 px-2 md:px-3 py-1.5 md:py-2.5 bg-gradient-to-r from-cyan-500 to-blue-600 text-white rounded-lg hover:from-cyan-600 hover:to-blue-700 transition-all shadow-sm hover:shadow-md text-xs md:text-sm font-semibold"
                   >
-                    <Calendar className="w-3 h-3 md:w-4 md:h-4" />
+                    <CalendarIcon className="w-3 h-3 md:w-4 md:h-4" />
                     <span>Events</span>
                   </button>
                 </div>
@@ -661,24 +689,58 @@ const handleSaveGroup = async (groupData) => {
                   <span>Invite</span>
                 </button>
 
-                {/* Discussion Button - Mobile: smaller padding */}
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setSelectedGroup(group);
-                    setShowDiscussionBoard(true);
-                  }}
-                  className="relative flex items-center justify-center space-x-0.5 md:space-x-1 px-2 md:px-3 py-1.5 md:py-2.5 bg-gradient-to-r from-purple-500 to-purple-600 text-white rounded-lg hover:from-purple-600 hover:to-purple-700 transition-all shadow-sm hover:shadow-md text-xs md:text-sm font-semibold"
-                >
-                  <MessageSquare className="w-3 h-3 md:w-4 md:h-4" />
-                  <span>Discuss</span>
-                  {unreadCount > 0 && (
-                    <span className="absolute -top-0.5 md:-top-1 -right-0.5 md:-right-1">
-                      <UnreadBadge count={unreadCount} size="small" />
-                    </span>
-                  )}
-                </button>
-              </div>
+                {/* Discussion Button */}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelectedGroup(group);
+                      setShowDiscussionBoard(true);
+                    }}
+                    className="relative flex items-center justify-center space-x-0.5 md:space-x-1 px-2 md:px-3 py-1.5 md:py-2.5 bg-gradient-to-r from-purple-500 to-purple-600 text-white rounded-lg hover:from-purple-600 hover:to-purple-700 transition-all shadow-sm hover:shadow-md text-xs md:text-sm font-semibold"
+                  >
+                    <MessageSquare className="w-3 h-3 md:w-4 md:h-4" />
+                    <span>Discuss</span>
+                    {unreadCount > 0 && (
+                      <span className="absolute -top-0.5 md:-top-1 -right-0.5 md:-right-1">
+                        <UnreadBadge count={unreadCount} size="small" />
+                      </span>
+                    )}
+                  </button>
+                </div>
+                
+                {/* ✅ NEW: Second Row for Tasks & Events */}
+                <div className="grid grid-cols-2 gap-1.5 md:gap-2 mt-1.5 md:mt-2">
+                  {/* Tasks Button */}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelectedGroup(group);
+                      setShowTaskView(true);
+                    }}
+                    className="relative flex items-center justify-center space-x-0.5 md:space-x-1 px-2 md:px-3 py-1.5 md:py-2.5 bg-gradient-to-r from-purple-500 to-indigo-600 text-white rounded-lg hover:from-purple-600 hover:to-indigo-700 transition-all shadow-sm hover:shadow-md text-xs md:text-sm font-semibold"
+                  >
+                    <CheckSquare className="w-3 h-3 md:w-4 md:h-4" />
+                    <span>Tasks</span>
+                    {(groupTaskCounts[group.id] || 0) > 0 && (
+                      <span className="absolute -top-0.5 md:-top-1 -right-0.5 md:-right-1 bg-purple-600 text-white text-[10px] font-bold rounded-full min-w-[16px] h-4 flex items-center justify-center px-1">
+                        {groupTaskCounts[group.id]}
+                      </span>
+                    )}
+                  </button>
+                  
+                  {/* Events Button */}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelectedGroup(group);
+                      setShowEventView(true);
+                    }}
+                    className="relative flex items-center justify-center space-x-0.5 md:space-x-1 px-2 md:px-3 py-1.5 md:py-2.5 bg-gradient-to-r from-cyan-500 to-blue-600 text-white rounded-lg hover:from-cyan-600 hover:to-blue-700 transition-all shadow-sm hover:shadow-md text-xs md:text-sm font-semibold"
+                  >
+                    <CalendarIcon className="w-3 h-3 md:w-4 md:h-4" />
+                    <span>Events</span>
+                  </button>
+                </div>
               
               {/* Secondary Actions Row - Mobile: smaller text */}
               <div className="mt-1.5 md:mt-2 flex items-center justify-between">
