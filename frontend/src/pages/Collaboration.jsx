@@ -17,47 +17,6 @@ import GroupEventsView from '../components/GroupEventsView';
 const Collaboration = ({ onUnreadCountChange }) => {
   const { user } = useAuth();
   const { showToast } = useToast();
-  
-  // ✅ ADD: Error boundary state
-  const [hasError, setHasError] = useState(false);
-  
-  // ✅ ADD: Error handler
-  useEffect(() => {
-    const handleError = (error) => {
-      console.error('❌ Collaboration page error:', error);
-      setHasError(true);
-      setLoading(false);
-    };
-    
-    window.addEventListener('error', handleError);
-    return () => window.removeEventListener('error', handleError);
-  }, []);
-  
-  // ✅ ADD: Error recovery UI
-  if (hasError) {
-    return (
-      <div className="max-w-7xl mx-auto px-6 py-12">
-        <div className="bg-red-50 border-2 border-red-200 rounded-lg p-6 text-center">
-          <h2 className="text-2xl font-bold text-red-800 mb-4">
-            ⚠️ Something went wrong
-          </h2>
-          <p className="text-red-600 mb-6">
-            The collaboration page encountered an error. Please try refreshing.
-          </p>
-          <button
-            onClick={() => {
-              setHasError(false);
-              window.location.reload();
-            }}
-            className="px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition font-medium"
-          >
-            Refresh Page
-          </button>
-        </div>
-      </div>
-    );
-  }
-
   const [groups, setGroups] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showGroupModal, setShowGroupModal] = useState(false);
@@ -214,28 +173,24 @@ const loadGroups = useCallback(async (options = {}) => {
   
   // ✅ Create abort controller for timeout
   const abortController = new AbortController();
-  const timeoutId = setTimeout(() => abortController.abort(), 15000); // 15 second timeout
+  const timeoutId = setTimeout(() => abortController.abort(), 15000);
     
   try {
     console.log('🔄 Loading groups...', { silent, skipCache });
     
-    // Only show loading spinner on initial load
     if (!silent) {
       setLoading(true);
     }
 
-    // Make API call
     const response = await groupAPI.getGroups(user.id);
     const newGroups = response.data || [];
     
     console.log('✅ Loaded', newGroups.length, 'groups');
     
-    // Update state
     setGroups(newGroups);
     setFilteredGroups(newGroups);
     setSelectedGroups([]);
     
-    // ✅ Load related data in parallel (but don't await - let them load in background)
     if (newGroups.length > 0) {
       loadAllGroupUnreadCounts(newGroups).catch(err => 
         console.error('Error loading unread counts:', err)
@@ -247,7 +202,6 @@ const loadGroups = useCallback(async (options = {}) => {
         console.error('Error loading event counts:', err)
       );
     } else {
-      // Clear counts if no groups
       setGroupUnreadCounts({});
       setGroupTaskCounts({});
       setGroupEventCounts({});
@@ -256,14 +210,12 @@ const loadGroups = useCallback(async (options = {}) => {
   } catch (error) {
     console.error('❌ Error loading groups:', error);
     
-    // ✅ Handle specific error types
     if (error.name === 'AbortError') {
       showToast('Loading timed out. Please try again.', 'error');
     } else if (!silent) {
       showToast('Failed to load groups. Check your connection.', 'error');
     }
     
-    // ✅ Set safe defaults on error
     setGroups([]);
     setFilteredGroups([]);
     setSelectedGroups([]);
@@ -271,7 +223,6 @@ const loadGroups = useCallback(async (options = {}) => {
   } finally {
     clearTimeout(timeoutId);
     
-    // ✅ CRITICAL: Always clear loading state
     if (!silent) {
       setLoading(false);
     }

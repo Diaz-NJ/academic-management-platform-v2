@@ -110,13 +110,13 @@ const Dashboard = () => {
   }, [loadTasks, loadEvents]); // ✅ Proper dependencies
 
   useEffect(() => {
-  if (tasks.length > 0) {
-    const urgentTasks = getUrgentTasks(tasks);
-    setUrgentTaskCount(urgentTasks.length);
-  } else {
-    setUrgentTaskCount(0);
-  }
-}, [tasks]);
+    if (tasks.length > 0) {
+      const urgentTasks = getUrgentTasks(tasks);
+      setUrgentTaskCount(urgentTasks.length);
+    } else {
+      setUrgentTaskCount(0);
+    }
+  }, [tasks]);
 
   // ✅ OPTIMIZED: Poll for notifications less frequently and only when on dashboard
   useEffect(() => {
