@@ -141,7 +141,7 @@ export const formatTimeRemaining = (hours) => {
     // Less than 1 hour
     const minutes = Math.floor(absHours * 60);
     if (isOverdue) {
-      return `${minutes} minute${minutes !== 1 ? 's' : ''} ago`;
+      return `${minutes} minute${minutes !== 1 ? 's' : ''} overdue`;
     } else {
       return `${minutes} minute${minutes !== 1 ? 's' : ''} left`;
     }
@@ -149,7 +149,7 @@ export const formatTimeRemaining = (hours) => {
     // Less than 24 hours
     const displayHours = Math.floor(absHours);
     if (isOverdue) {
-      return `${displayHours} hour${displayHours !== 1 ? 's' : ''} ago`;
+      return `${displayHours} hour${displayHours !== 1 ? 's' : ''} overdue`;
     } else {
       return `${displayHours} hour${displayHours !== 1 ? 's' : ''} left`;
     }
@@ -157,7 +157,7 @@ export const formatTimeRemaining = (hours) => {
     // 24+ hours
     const days = Math.floor(absHours / 24);
     if (isOverdue) {
-      return `${days} day${days !== 1 ? 's' : ''} ago`;
+      return `${days} day${days !== 1 ? 's' : ''} overdue`;
     } else {
       return `${days} day${days !== 1 ? 's' : ''} left`;
     }

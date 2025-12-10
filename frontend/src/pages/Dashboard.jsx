@@ -163,6 +163,23 @@ const Dashboard = () => {
       }
     };
 
+    // ✅ NEW: Listen for task changes from other tabs/components
+      useEffect(() => {
+        const handleTasksUpdate = () => {
+          if (activeTab === 'dashboard') {
+            loadTasks();
+            loadEvents();
+          }
+        };
+
+  // Listen for custom event
+  window.addEventListener('tasksUpdated', handleTasksUpdate);
+
+  return () => {
+    window.removeEventListener('tasksUpdated', handleTasksUpdate);
+  };
+}, [activeTab, loadTasks, loadEvents]);
+
     // ✅ Check immediately on mount
     checkNotifications();
     

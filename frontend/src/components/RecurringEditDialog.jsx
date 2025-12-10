@@ -13,7 +13,7 @@ const RecurringEditDialog = ({ isOpen, onClose, onEditSeries, onEditInstance, ev
           {/* Header */}
           <div className="flex justify-between items-start mb-4">
             <div>
-              <h2 className="text-xl font-bold text-gray-800 mb-1">Edit Recurring Event</h2>
+              <h2 className="text-xl font-bold text-gray-800 mb-1">Edit Scheduled Event</h2>
               <p className="text-sm text-gray-600">"{eventTitle}"</p>
             </div>
             <button
@@ -25,7 +25,7 @@ const RecurringEditDialog = ({ isOpen, onClose, onEditSeries, onEditInstance, ev
           </div>
 
           <p className="text-gray-700 mb-6">
-            This is a recurring event. What would you like to edit?
+            This is a scheduled event. What would you like to edit?
           </p>
 
           {/* Options */}

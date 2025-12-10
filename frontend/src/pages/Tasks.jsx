@@ -42,6 +42,11 @@ const Tasks = () => {
     setShowIntegrationModal(true);
   };
 
+  // ✅ NEW: Helper to notify other components about task changes
+  const notifyTasksUpdated = () => {
+    window.dispatchEvent(new Event('tasksUpdated'));
+  };
+
   // ✅ NEW: View Mode State
   const [viewMode, setViewMode] = useState('list'); // 'grid' or 'list'
 
@@ -124,12 +129,19 @@ const Tasks = () => {
   };
 
   const handleBulkDelete = async () => {
-    try {
+   try {
       await Promise.all(selectedTasks.map(id => taskAPI.deleteTask(id)));
       showToast(`${selectedTasks.length} task(s) deleted successfully`, 'success');
       
-      // ✅ FIX: Immediately update state
-      setTasks(prevTasks => prevTasks.filter(t => !selectedTasks.includes(t.id)));
+      // ✅ FIXED: Immediately update state
+      const updatedTasks = tasks.filter(t => !selectedTasks.includes(t.id));
+      setTasks(updatedTasks);
+      
+      // ✅ Force recalculation
+      applyFilters();
+      
+      // ✅ NEW: Notify dashboard to refresh
+      notifyTasksUpdated();
       
       setSelectedTasks([]);
       setShowBulkDeleteDialog(false);
@@ -169,8 +181,15 @@ const Tasks = () => {
       await taskAPI.deleteTask(taskToDelete.id);
       showToast('Task deleted successfully', 'success');
       
-      // ✅ FIX: Immediately update state
-      setTasks(prevTasks => prevTasks.filter(t => t.id !== taskToDelete.id));
+      // ✅ FIXED: Immediately update state
+      const updatedTasks = tasks.filter(t => t.id !== taskToDelete.id);
+      setTasks(updatedTasks);
+      
+      // ✅ Force recalculation
+      applyFilters();
+      
+      // ✅ NEW: Notify dashboard to refresh
+      notifyTasksUpdated();
       
     } catch (error) {
       console.error('Error deleting task:', error);

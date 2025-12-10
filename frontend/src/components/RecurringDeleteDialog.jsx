@@ -23,7 +23,7 @@ const RecurringDeleteDialog = ({
                 <AlertTriangle className="w-6 h-6 text-red-600" />
               </div>
               <div>
-                <h2 className="text-xl font-bold text-gray-800 mb-1">Delete Recurring Event</h2>
+                <h2 className="text-xl font-bold text-gray-800 mb-1">Delete Scheduled Event</h2>
                 <p className="text-sm text-gray-600">"{eventTitle}"</p>
               </div>
             </div>
@@ -36,7 +36,7 @@ const RecurringDeleteDialog = ({
           </div>
 
           <p className="text-gray-700 mb-6">
-            This is a recurring event. What would you like to do?
+            This is a scheduled event. What would you like to do?
           </p>
 
           {/* Options */}
@@ -64,7 +64,7 @@ const RecurringDeleteDialog = ({
               <div>
                 <h3 className="font-semibold text-gray-800 mb-1">Delete Entire Series</h3>
                 <p className="text-sm text-gray-600">
-                  Permanently delete all occurrences of this recurring event. This cannot be undone.
+                  Permanently delete all occurrences of this scheduled event. This cannot be undone.
                 </p>
               </div>
             </button>

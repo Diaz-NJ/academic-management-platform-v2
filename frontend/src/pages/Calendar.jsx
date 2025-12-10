@@ -193,27 +193,6 @@ const handleEditFromDetails = () => {
 };
 
 // ✅ FIXED: Edit series - find the original event properly
-const handleEditSeriesClick = () => {
-  const event = modalState.data;
-  
-  // Find the original event from originalEvents
-  const eventToEdit = event.isRecurringInstance 
-    ? originalEvents.find(e => e.id === event.originalId)
-    : event;
-  
-  if (!eventToEdit) {
-    showToast('Error: Could not find event for editing', 'error');
-    closeModal();
-    return;
-  }
-  
-  setModalState({
-    type: 'edit',
-    data: eventToEdit,
-    extraData: null
-  });
-};
-
 const handleEditInstanceClick = async (instance) => {
   try {
     console.log('=== Edit Instance Started ===');
@@ -253,16 +232,16 @@ const handleEditInstanceClick = async (instance) => {
     });
 
     if (existingException) {
-      console.log('Found existing exception - editing it');
+      console.log('✅ Found existing exception - editing it');
       setModalState({
         type: 'edit',
         data: existingException,
         extraData: null
       });
     } else {
-      console.log('Creating new exception');
+      console.log('✅ Creating new exception');
       
-      // ✅ Create exception data
+      // ✅ CRITICAL: Create exception data properly
       const exceptionEventData = {
         ...originalEvent,
         id: null, // ✅ Must be null for new event
@@ -272,7 +251,7 @@ const handleEditInstanceClick = async (instance) => {
         exceptionDate: instanceDate.toISOString(),
         startDateTime: instance.startDateTime,
         endDateTime: instance.endDateTime,
-        // ✅ Store metadata for later use
+        // ✅ Store metadata for save handler
         _instanceDateToDelete: dateStr,
         _parentEventId: originalEvent.id,
         _isNewException: true,
@@ -285,7 +264,7 @@ const handleEditInstanceClick = async (instance) => {
         recurrenceCount: null,
       };
       
-      console.log('Exception data prepared');
+      console.log('✅ Exception data prepared');
       
       setModalState({
         type: 'edit',
@@ -331,16 +310,30 @@ const handleDeleteFromDetails = () => {
   }
 };
 
-// ✅ FIXED: Delete series - find original event properly
 const handleDeleteSeriesClick = () => {
   const event = modalState.data;
   
-  // Find the original event
-  const eventToDelete = event.isRecurringInstance 
-    ? originalEvents.find(e => e.id === event.originalId) || event
-    : event;
+  // ✅ CRITICAL: Always find the original parent event for series delete
+  let eventToDelete;
   
-  // Close recurring delete dialog and show confirm
+  if (event.isRecurringInstance && event.originalId) {
+    // This is an instance - find the parent series
+    eventToDelete = originalEvents.find(e => e.id === event.originalId);
+    
+    if (!eventToDelete) {
+      console.error('Could not find parent event for instance');
+      showToast('Error: Could not find parent event', 'error');
+      closeModal();
+      return;
+    }
+    
+    console.log('✅ Found parent event for series delete:', eventToDelete.id);
+  } else {
+    // This is already the parent event
+    eventToDelete = event;
+  }
+  
+  // Confirm we're deleting the entire series
   setModalState({
     type: 'delete',
     data: eventToDelete,
@@ -364,9 +357,9 @@ const handleDeleteConfirm = async () => {
       startDateTime: eventToDelete.startDateTime
     });
 
-    // ✅ FIXED: Check if this is a single instance from a recurring series
+    // ✅ CRITICAL FIX: Distinguish between instance and series delete
+    // If this is an INSTANCE (has originalId), only delete THIS instance
     if (eventToDelete.isRecurringInstance && eventToDelete.originalId) {
-      // This is an INSTANCE - always use deleteInstance
       const instanceDate = new Date(eventToDelete.startDateTime);
       const dateStr = instanceDate.toISOString().substring(0, 10);
       const parentEventId = eventToDelete.originalId;
@@ -378,18 +371,33 @@ const handleDeleteConfirm = async () => {
       await eventAPI.deleteInstance(parentEventId, dateStr);
       console.log('✅ Instance added to deletedDates');
       
-      showToast(eventToDelete.isCanceled ? 'Canceled event removed permanently' : 'Event instance deleted', 'success');
+      showToast('Event instance deleted', 'success');
       await loadEvents();
       closeModal();
       return;
     }
     
-    // ✅ For all other cases (standalone or full series delete)
-    console.log('🗑️ Deleting standalone event or entire series');
+    // ✅ If this is the ORIGINAL recurring event (not an instance)
+    // This means user wants to delete the ENTIRE series
+    if (eventToDelete.isRecurring && !eventToDelete.originalId) {
+      console.log('🗑️ Deleting ENTIRE SERIES');
+      console.log('  - Series ID to delete:', eventToDelete.id);
+      
+      await eventAPI.deleteEvent(eventToDelete.id);
+      console.log('✅ Entire series deleted');
+      
+      showToast('Event series deleted successfully', 'success');
+      await loadEvents();
+      closeModal();
+      return;
+    }
+    
+    // ✅ For standalone (non-recurring) events
+    console.log('🗑️ Deleting standalone event');
     console.log('  - Event ID to delete:', eventToDelete.id);
     
     await eventAPI.deleteEvent(eventToDelete.id);
-    console.log('✅ Event deleted via deleteEvent endpoint');
+    console.log('✅ Event deleted');
     
     showToast('Event deleted successfully', 'success');
     await loadEvents();
@@ -502,20 +510,29 @@ const handleDeleteInstanceClick = async (instance) => {
     }
 
     const instanceDate = new Date(instance.startDateTime);
-    const dateStr = instanceDate.toISOString().substring(0, 10); // ✅ Use YYYY-MM-DD only
+    const dateStr = instanceDate.toISOString().substring(0, 10);
     
-    // ✅ FIX: Use originalId for instances, id for regular events
-    const eventId = instance.isRecurringInstance ? instance.originalId : instance.id;
+    // ✅ CRITICAL: Always use originalId for instances
+    const parentEventId = instance.originalId || instance.id;
     
     console.log('🗑️ Deleting instance:', {
-      eventId,
+      parentEventId,
       dateStr,
-      isRecurringInstance: instance.isRecurringInstance
+      isRecurringInstance: instance.isRecurringInstance,
+      instanceTitle: instance.title
     });
     
-    await eventAPI.deleteInstance(eventId, dateStr);
+    // ✅ Verify parent event exists
+    const parentExists = originalEvents.find(e => e.id === parentEventId);
+    if (!parentExists) {
+      console.error('Parent event not found in originalEvents!');
+      showToast('Error: Parent event not found', 'error');
+      return;
+    }
     
-    showToast('Event occurrence deleted permanently', 'success');
+    await eventAPI.deleteInstance(parentEventId, dateStr);
+    
+    showToast('Event instance deleted permanently', 'success');
     await loadEvents();
     closeModal();
   } catch (error) {

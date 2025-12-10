@@ -576,7 +576,7 @@ const handleConflictCancel = () => {
               />
               <label htmlFor="isRecurring" className="flex items-center text-sm font-medium text-gray-700 cursor-pointer">
                 <RefreshCw className="w-4 h-4 mr-2" />
-                Recurring Event
+                Scheduled Event
               </label>
             </div>
 

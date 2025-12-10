@@ -17,6 +17,47 @@ import GroupEventsView from '../components/GroupEventsView';
 const Collaboration = ({ onUnreadCountChange }) => {
   const { user } = useAuth();
   const { showToast } = useToast();
+  
+  // ✅ ADD: Error boundary state
+  const [hasError, setHasError] = useState(false);
+  
+  // ✅ ADD: Error handler
+  useEffect(() => {
+    const handleError = (error) => {
+      console.error('❌ Collaboration page error:', error);
+      setHasError(true);
+      setLoading(false);
+    };
+    
+    window.addEventListener('error', handleError);
+    return () => window.removeEventListener('error', handleError);
+  }, []);
+  
+  // ✅ ADD: Error recovery UI
+  if (hasError) {
+    return (
+      <div className="max-w-7xl mx-auto px-6 py-12">
+        <div className="bg-red-50 border-2 border-red-200 rounded-lg p-6 text-center">
+          <h2 className="text-2xl font-bold text-red-800 mb-4">
+            ⚠️ Something went wrong
+          </h2>
+          <p className="text-red-600 mb-6">
+            The collaboration page encountered an error. Please try refreshing.
+          </p>
+          <button
+            onClick={() => {
+              setHasError(false);
+              window.location.reload();
+            }}
+            className="px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition font-medium"
+          >
+            Refresh Page
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   const [groups, setGroups] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showGroupModal, setShowGroupModal] = useState(false);
@@ -36,27 +77,6 @@ const Collaboration = ({ onUnreadCountChange }) => {
   const [groupEventCounts, setGroupEventCounts] = useState({});
   const [showTaskView, setShowTaskView] = useState(false);
   const [showEventView, setShowEventView] = useState(false);
-
-    // ✅ NEW: Safe loading wrapper with timeout
-  const safeLoadGroups = useCallback(async (options = {}) => {
-    const loadPromise = loadGroups(options);
-    const timeoutPromise = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error('Loading timeout')), 15000) // 15 second timeout
-    );
-    
-    try {
-      await Promise.race([loadPromise, timeoutPromise]);
-    } catch (error) {
-      console.error('Error loading groups:', error);
-      setLoading(false); // ✅ Always clear loading state
-      
-      if (error.message === 'Loading timeout') {
-        showToast('Loading timed out. Please try again.', 'error');
-      } else {
-        showToast('Failed to load groups. Please refresh.', 'error');
-      }
-    }
-  }, [loadGroups, showToast]);
 
   const loadAllGroupUnreadCounts = useCallback(async (groupsList) => {
     if (!groupsList || groupsList.length === 0) return;
@@ -187,9 +207,14 @@ useEffect(() => {
   }, [groups, searchQuery]);// ✅ FIXED: Search filtering with better performance
 
 const loadGroups = useCallback(async (options = {}) => {
+  // ✅ Handle both boolean (legacy) and object params
   const { silent = false, skipCache = false } = typeof options === 'boolean' 
     ? { silent: options, skipCache: false } 
     : options;
+  
+  // ✅ Create abort controller for timeout
+  const abortController = new AbortController();
+  const timeoutId = setTimeout(() => abortController.abort(), 15000); // 15 second timeout
     
   try {
     console.log('🔄 Loading groups...', { silent, skipCache });
@@ -199,30 +224,54 @@ const loadGroups = useCallback(async (options = {}) => {
       setLoading(true);
     }
 
-    // Add cache-busting parameter if needed
-    const timestamp = skipCache ? `?t=${Date.now()}` : '';
+    // Make API call
     const response = await groupAPI.getGroups(user.id);
-    const newGroups = response.data;
+    const newGroups = response.data || [];
     
+    console.log('✅ Loaded', newGroups.length, 'groups');
+    
+    // Update state
     setGroups(newGroups);
     setFilteredGroups(newGroups);
     setSelectedGroups([]);
     
-    // ✅ Load related data in parallel
+    // ✅ Load related data in parallel (but don't await - let them load in background)
     if (newGroups.length > 0) {
-      Promise.all([
-        loadAllGroupUnreadCounts(newGroups),
-        loadAllGroupTaskCounts(newGroups),
-        loadAllGroupEventCounts(newGroups)
-      ]);
+      loadAllGroupUnreadCounts(newGroups).catch(err => 
+        console.error('Error loading unread counts:', err)
+      );
+      loadAllGroupTaskCounts(newGroups).catch(err => 
+        console.error('Error loading task counts:', err)
+      );
+      loadAllGroupEventCounts(newGroups).catch(err => 
+        console.error('Error loading event counts:', err)
+      );
+    } else {
+      // Clear counts if no groups
+      setGroupUnreadCounts({});
+      setGroupTaskCounts({});
+      setGroupEventCounts({});
     }
     
   } catch (error) {
-    console.error('Error loading groups:', error);
-    if (!silent) {
-      showToast('Failed to load groups', 'error');
+    console.error('❌ Error loading groups:', error);
+    
+    // ✅ Handle specific error types
+    if (error.name === 'AbortError') {
+      showToast('Loading timed out. Please try again.', 'error');
+    } else if (!silent) {
+      showToast('Failed to load groups. Check your connection.', 'error');
     }
+    
+    // ✅ Set safe defaults on error
+    setGroups([]);
+    setFilteredGroups([]);
+    setSelectedGroups([]);
+    
   } finally {
+    clearTimeout(timeoutId);
+    
+    // ✅ CRITICAL: Always clear loading state
     if (!silent) {
       setLoading(false);
     }
@@ -230,10 +279,9 @@ const loadGroups = useCallback(async (options = {}) => {
 }, [user.id, showToast, loadAllGroupUnreadCounts, loadAllGroupTaskCounts, loadAllGroupEventCounts]);
 
   useEffect(() => {
-  // ✅ FIXED: Use safe loading with timeout protection
-  safeLoadGroups({ silent: false, skipCache: false });
+  loadGroups({ silent: false, skipCache: false });
   // eslint-disable-next-line react-hooks/exhaustive-deps
-}, []);
+}, []); 
 
   const toggleGroupSelection = (groupId) => {
     setSelectedGroups(prev => 
