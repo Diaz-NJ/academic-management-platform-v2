@@ -119,58 +119,67 @@ const Dashboard = () => {
   }, [tasks]);
 
   // ✅ OPTIMIZED: Poll for notifications less frequently and only when on dashboard
-  useEffect(() => {
-    const checkNotifications = async () => {
-      try {
-        // Check invitations
-        const invitationsResponse = await invitationAPI.getReceivedInvitations(user.id);
-        setPendingInvitations(invitationsResponse.data.length);
-        
-        // ✅ OPTIMIZED: Only check unread messages if on collaboration tab
-        // Dashboard doesn't need real-time unread counts
-        if (activeTab === 'collaboration') {
-          try {
-            const groupsResponse = await groupAPI.getGroups(user.id);
-            const groups = groupsResponse.data;
-            
-            let totalUnread = 0;
-            
-            // Get unread counts for each group
-            await Promise.all(
-              groups.map(async (group) => {
-                try {
-                  const unreadResponse = await discussionAPI.getGroupUnreadCounts(group.id, user.id);
-                  if (unreadResponse.data.success) {
-                    const unreadCounts = unreadResponse.data.unreadCounts;
-                    const groupTotal = Object.values(unreadCounts).reduce((sum, count) => sum + count, 0);
-                    totalUnread += groupTotal;
-                  }
-                } catch (error) {
-                  // Silently fail for individual groups
-                  console.error(`Error loading unread for group ${group.id}:`, error);
+useEffect(() => {
+  const checkNotifications = async () => {
+    try {
+      // Check invitations
+      const invitationsResponse = await invitationAPI.getReceivedInvitations(user.id);
+      setPendingInvitations(invitationsResponse.data.length);
+      
+      // ✅ OPTIMIZED: Only check unread messages if on collaboration tab
+      // Dashboard doesn't need real-time unread counts
+      if (activeTab === 'collaboration') {
+        try {
+          const groupsResponse = await groupAPI.getGroups(user.id);
+          const groups = groupsResponse.data;
+          
+          let totalUnread = 0;
+          
+          // Get unread counts for each group
+          await Promise.all(
+            groups.map(async (group) => {
+              try {
+                const unreadResponse = await discussionAPI.getGroupUnreadCounts(group.id, user.id);
+                if (unreadResponse.data.success) {
+                  const unreadCounts = unreadResponse.data.unreadCounts;
+                  const groupTotal = Object.values(unreadCounts).reduce((sum, count) => sum + count, 0);
+                  totalUnread += groupTotal;
                 }
-              })
-            );
-            
-            setTotalUnreadMessages(totalUnread);
-          } catch (error) {
-            console.error('Error checking unread messages:', error);
-          }
+              } catch (error) {
+                // Silently fail for individual groups
+                console.error(`Error loading unread for group ${group.id}:`, error);
+              }
+            })
+          );
+          
+          setTotalUnreadMessages(totalUnread);
+        } catch (error) {
+          console.error('Error checking unread messages:', error);
         }
-        
-      } catch (error) {
-        console.error('Error checking notifications:', error);
       }
-    };
+      
+    } catch (error) {
+      console.error('Error checking notifications:', error);
+    }
+  };
 
-    // ✅ NEW: Listen for task changes from other tabs/components
-      useEffect(() => {
-        const handleTasksUpdate = () => {
-          if (activeTab === 'dashboard') {
-            loadTasks();
-            loadEvents();
-          }
-        };
+  // ✅ Check immediately on mount
+  checkNotifications();
+  
+  // ✅ OPTIMIZED: Poll every 60 seconds
+  const interval = setInterval(checkNotifications, 60000);
+  
+  return () => clearInterval(interval);
+}, [user.id, activeTab]); // Re-run when tab changes
+
+// ✅ FIXED: Separate useEffect for task change listener
+useEffect(() => {
+  const handleTasksUpdate = () => {
+    if (activeTab === 'dashboard') {
+      loadTasks();
+      loadEvents();
+    }
+  };
 
   // Listen for custom event
   window.addEventListener('tasksUpdated', handleTasksUpdate);
@@ -179,15 +188,6 @@ const Dashboard = () => {
     window.removeEventListener('tasksUpdated', handleTasksUpdate);
   };
 }, [activeTab, loadTasks, loadEvents]);
-
-    // ✅ Check immediately on mount
-    checkNotifications();
-    
-    // ✅ OPTIMIZED: Poll every 30 seconds instead of 10 (less aggressive)
-    const interval = setInterval(checkNotifications, 60000);
-    
-    return () => clearInterval(interval);
-  }, [user.id, activeTab]); // Re-run when tab changes
 
   const handleLogout = async () => {
     await logout();

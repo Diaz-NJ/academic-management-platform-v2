@@ -193,6 +193,28 @@ const handleEditFromDetails = () => {
 };
 
 // ✅ FIXED: Edit series - find the original event properly
+const handleEditSeriesClick = () => {
+  const event = modalState.data;
+  
+  // Find the original event from originalEvents
+  const eventToEdit = event.isRecurringInstance 
+    ? originalEvents.find(e => e.id === event.originalId)
+    : event;
+  
+  if (!eventToEdit) {
+    showToast('Error: Could not find event for editing', 'error');
+    closeModal();
+    return;
+  }
+  
+  setModalState({
+    type: 'edit',
+    data: eventToEdit,
+    extraData: null
+  });
+};
+
+// ✅ FIXED: Edit series - find the original event properly
 const handleEditInstanceClick = async (instance) => {
   try {
     console.log('=== Edit Instance Started ===');
